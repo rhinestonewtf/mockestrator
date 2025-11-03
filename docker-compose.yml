@@ -12,3 +12,15 @@ services:
       interval: 10s
       timeout: 5s
       retries: 3
+  
+  sepolia_fork:
+    image: ghcr.io/foundry-rs/foundry
+    command:
+      - anvil --fork-url https://eth-sepolia.g.alchemy.com/v2/${ALCHEMY_API_KEY:?alchemy key missing for sepolia} --host 0.0.0.0 --hardfork prague --no-priority-fee --gas-price 12000000 --base-fee 12000000
+    ports:
+      - '30006:8545'
+    healthcheck:
+      test: ['CMD', 'sh', '-c', 'cast rpc eth_blockNumber > /dev/null 2>&1']
+      interval: 10s
+      timeout: 5s
+      retries: 3

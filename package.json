@@ -5,7 +5,7 @@
   "scripts": {
     "build": "tsc",
     "start": "ts-node src/app.ts",
-    "dev": "ts-node src/app.ts",
+    "dev": "PORT=4000 ts-node src/app.ts",
     "chains": "op run --env-file=.env.sensitive -- docker compose up -d"
   },
   "keywords": [],
@@ -20,6 +20,7 @@
     "vitest": "^4.0.6"
   },
   "dependencies": {
-    "express": "^5.1.0"
+    "express": "^5.1.0",
+    "viem": "^2.38.6"
   }
 }
