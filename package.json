@@ -5,7 +5,8 @@
   "scripts": {
     "build": "tsc",
     "start": "ts-node src/app.ts",
-    "dev": "ts-node src/app.ts"
+    "dev": "ts-node src/app.ts",
+    "chains": "op run --env-file=.env.sensitive -- docker compose up -d"
   },
   "keywords": [],
   "author": "",
