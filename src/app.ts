@@ -1,5 +1,7 @@
-import express, { Request } from 'express';
+import express from 'express';
 import { portfolio } from './routes/portfolio';
+import { logRequest } from './log';
+import { intent_route } from './routes/intent_route';
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -8,6 +10,7 @@ const port = process.env.PORT || 3000;
 app.use(express.json())
 
 app.get('/accounts/:address/portfolio', portfolio)
+app.post('/intents/route', intent_route)
 
 app.all(/.*/, (req, res) => {
 
@@ -21,14 +24,3 @@ app.all(/.*/, (req, res) => {
 app.listen(port, () => {
     console.log(`🚀 Server running on http://localhost:${port}`);
 });
-
-function logRequest(req: Request) {
-    console.log(`${req.method} -> ${req.originalUrl} @ ${req.host}`)
-    console.log('Headers: ', jsonify(req.headers))
-    console.log('Body: ', jsonify(req.body))
-
-}
-
-function jsonify(obj: any): string {
-    return JSON.stringify(obj, undefined, 2)
-}

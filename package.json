@@ -4,15 +4,16 @@
   "description": "",
   "scripts": {
     "build": "tsc",
-    "start": "ts-node src/app.ts",
-    "dev": "PORT=4000 ts-node src/app.ts",
-    "chains": "op run --env-file=.env.sensitive -- docker compose up -d"
+    "start": "PORT=4000 ts-node src/app.ts",
+    "chains": "op run --env-file=.env.sensitive -- docker compose up -d",
+    "generate": "openapi-ts"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "packageManager": "pnpm@10.13.1",
   "devDependencies": {
+    "@hey-api/openapi-ts": "^0.87.0",
     "@types/express": "^5.0.5",
     "@types/node": "^24.10.0",
     "ts-node": "^10.9.2",
@@ -20,7 +21,9 @@
     "vitest": "^4.0.6"
   },
   "dependencies": {
+    "@rhinestone/shared-configs": "^1.4.14",
     "express": "^5.1.0",
-    "viem": "^2.38.6"
+    "viem": "^2.38.6",
+    "zod": "^4.1.12"
   }
 }
