@@ -9,7 +9,7 @@ const port = process.env.PORT || 3000;
 
 app.use(express.json())
 
-app.get('/accounts/:address/portfolio', portfolio)
+app.get('/accounts/:userAddress/portfolio', portfolio)
 app.post('/intents/route', intent_route)
 
 app.all(/.*/, (req, res) => {
