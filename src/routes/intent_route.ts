@@ -2,12 +2,16 @@ import { Request, Response } from "express";
 import { jsonify, logRequest } from "../log";
 import { zPostIntentsRouteData, zPostIntentsRouteResponse } from "../gen/zod.gen";
 import { z, ZodError } from "zod";
-import { getAddress, hexToBigInt } from "viem";
+import { Address, getAddress, hexToBigInt } from "viem";
 import { randomBytes } from "crypto";
+import { chainContexts, supportedTokens } from "../chains";
+import { TokenSymbol } from "@rhinestone/sdk";
 
 type UserIntent = z.infer<typeof zPostIntentsRouteData>
 
 type UserIntentRouteResponse = z.infer<typeof zPostIntentsRouteResponse>
+
+type AccountAccessListType = NonNullable<UserIntent["body"]>["accountAccessList"];
 
 export const intent_route = async (req: Request, resp: Response) => {
     logRequest(req)
@@ -54,6 +58,34 @@ const create_intent_route = async (data: UserIntent): Promise<UserIntentRouteRes
     const currentDate = Math.floor(Date.now() / 1000);
     const expires = currentDate + 3600 // expires in 1h
 
+    const destinatinoChain = userIntent.destinationChainId
+    const sourceChain = extractSourceChain(userIntent.accountAccessList)
+
+    const qualifier = (() => {
+        if (sourceChain == destinatinoChain) {
+            return {
+                settlementContext: {
+                    settlementLayer: "SAME_CHAIN" as const
+                },
+                encodedVal: "0xff"
+            }
+        } else {
+            return {
+                settlementContext: {
+                    settlementLayer: "ACROSS" as const
+                },
+                encodedVal: "0xff"
+            }
+        }
+    })()
+
+
+    const tokenOut = userIntent.tokenTransfers.map((transfer) => {
+        // TODO: a check if token is supported by our mock system?
+
+        return [hexToBigInt(transfer.tokenAddress as Address), transfer.amount]
+    })
+
     return {
         intentOp: {
             sponsor,
@@ -62,22 +94,17 @@ const create_intent_route = async (data: UserIntent): Promise<UserIntentRouteRes
             elements: [
                 {
                     arbiter,
-                    chainId: 11155111n, //TODO: select from intentOp.accountAccessList or take first supported chain
+                    chainId: BigInt(sourceChain),
                     idsAndAmounts: [],
                     spendTokens: [],
                     mandate: {
                         recipient,
-                        tokenOut: [],
+                        tokenOut,
                         destinationChainId: BigInt(userIntent.destinationChainId),
                         fillDeadline: BigInt(expires),
                         preClaimOps: [],
-                        destinationOps: [],
-                        qualifier: {
-                            settlementContext: {
-                                settlementLayer: "ACROSS"
-                            },
-                            encodedVal: "0xfefe"
-                        },
+                        destinationOps: userIntent.destinationExecutions ?? [],
+                        qualifier,
                         v: 0,
                         minGas: 0n
                     }
@@ -87,11 +114,7 @@ const create_intent_route = async (data: UserIntent): Promise<UserIntentRouteRes
             signedMetadata: {
                 tokenPrices: {},
                 gasPrices: {},
-                account: {
-                    address: "",
-                    accountType: "",
-                    accountContext: {}
-                }
+                account: { ...userIntent.account, accountContext: {} }
             }
         },
         intentCost: {
@@ -99,4 +122,23 @@ const create_intent_route = async (data: UserIntent): Promise<UserIntentRouteRes
             tokensReceived: []
         }
     }
+}
+
+function extractSourceChain(accountAccessList: AccountAccessListType | undefined): number {
+    if (!accountAccessList) {
+        return parseInt(Object.keys(chainContexts)[0])
+    }
+
+
+    // Case 1: array of { chainId, tokenAddress }
+    if (Array.isArray(accountAccessList) && accountAccessList.length > 0) {
+        return accountAccessList[0].chainId;
+    }
+
+    // Case 2: object with optional chainIds
+    if (!Array.isArray(accountAccessList) && accountAccessList.chainIds?.length) {
+        return accountAccessList.chainIds[0];
+    }
+
+    throw new Error('Unreachable')
 }

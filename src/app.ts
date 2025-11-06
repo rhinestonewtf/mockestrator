@@ -5,6 +5,7 @@ import { intent_route } from './routes/intent_route';
 import './serializeBigInts';
 import { intent_store } from './routes/intent_store';
 import { intent_status } from './routes/intent_status';
+import { initContexts } from './chains';
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -27,6 +28,11 @@ app.all(/.*/, (req, res) => {
     })
 });
 
-app.listen(port, () => {
-    console.log(`🚀 Server running on http://localhost:${port}`);
-});
+
+
+(async () => {
+    await initContexts()
+    app.listen(port, () => {
+        console.log(`🚀 Server running on http://localhost:${port}`);
+    });
+})();

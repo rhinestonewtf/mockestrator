@@ -3,8 +3,9 @@ import { jsonify, logRequest } from "../log"
 import { Request, Response } from "express"
 import { zPostIntentOperationsData, zPostIntentOperationsResponse } from "../gen/zod.gen"
 import { addNewIntent, IntentData } from "../services/intentRepo"
-import { keccak256 } from "viem"
+import { Address, encodeFunctionData, erc20Abi, getAddress, keccak256, stringToHex, toHex } from "viem"
 import { randomBytes } from "crypto"
+import { chainContexts, NATIVE_TOKEN } from "../chains"
 
 type SignedIntentData = z.infer<typeof zPostIntentOperationsData>
 
@@ -43,25 +44,50 @@ export const intent_store = async (req: Request, resp: Response) => {
 const executeIntent = async (signedIntentData: SignedIntentData): Promise<SignedIntentResponse> => {
     const signedIntent = signedIntentData.body!.signedIntentOp
 
-    let intent: IntentData = {
-        status: "PENDING",
+    const recipient = getAddress(signedIntent.elements[0].mandate.recipient)
+    const destinationChain = Number(signedIntent.elements[0].mandate.destinationChainId)
+
+    const executor = chainContexts()[destinationChain]
+
+    const setupOps = signedIntent.signedMetadata.account.setupOps
+
+    const setupCalls = setupOps ? setupOps.map((op) => {
+        return {
+            to: getAddress(op.to),
+            callData: stringToHex(op.data)
+        }
+    }) : []
+
+    const tokenTransfers = toTokenTransfers(signedIntent.elements)
+    const nativeTransferValue = tokenTransfers.filter((t) => t.address == NATIVE_TOKEN).map((t) => t.value)[0] ?? 0n
+
+    const erc20transfers = tokenTransfers.filter((t) => t.address != NATIVE_TOKEN).map((t) => {
+        return {
+            to: t.address,
+            callData: executor.erc20Transfer(recipient, t.value)
+        }
+    })
+
+    const executions = [...setupCalls, ...erc20transfers]
+
+    const txCallData = (() => {
+        if (executions.length == 1) {
+            return executions[0]
+        } else if (executions.length > 1) {
+            return executor.multicall(executions)
+        } else {
+            throw new Error(`No executions collected from intent`)
+        }
+    })()
+
+    const txHash = executor.execute({ ...txCallData, value: nativeTransferValue })
+
+    await addNewIntent(signedIntent.nonce, {
+        status: "COMPLETED" as const,
+        fillTimestamp: Math.floor(Date.now() / 1000),
+        fillTransactionHash: keccak256(randomBytes(32)),
         claims: []
-    }
-    await addNewIntent(signedIntent.nonce, intent)
-
-    try {
-        // do all the chain work
-        // create tx
-        intent.status = "PRECONFIRMED"
-        intent.fillTimestamp = Date.now() / 1000
-        intent.fillTransactionHash = keccak256(randomBytes(32))
-        // wait for tx to finish
-
-        intent.status = "COMPLETED"
-    } catch (e) {
-        intent.status = "FAILED"
-        throw e
-    }
+    })
 
     return {
         result: {
@@ -69,4 +95,19 @@ const executeIntent = async (signedIntentData: SignedIntentData): Promise<Signed
             status: "PENDING"
         }
     }
+}
+
+type TokenTransfer = {
+    address: Address
+    value: bigint
+}
+
+function toTokenTransfers(elements: { mandate: { tokenOut: unknown } }[]): TokenTransfer[] {
+    return elements.flatMap((element) => (element.mandate.tokenOut as [bigint[]]).map((idAndAmount) => {
+        console.log(idAndAmount[0])
+        return {
+            address: getAddress(toHex(idAndAmount[0])),
+            value: idAndAmount[1],
+        }
+    }))
 }

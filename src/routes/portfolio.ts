@@ -4,7 +4,7 @@ import { jsonify, logRequest } from "../log";
 import { GetAccountsByUserAddressPortfolioResponse } from "../gen";
 import { zGetAccountsByUserAddressPortfolioData } from "../gen/zod.gen";
 import z, { ZodError } from "zod";
-import { chainContexts } from "../chains";
+import { chainContexts, supportedTokens } from "../chains";
 
 type PortfolioRequestData = z.infer<typeof zGetAccountsByUserAddressPortfolioData>
 
@@ -49,7 +49,7 @@ type PortfolioBalance = {
 const getPortfolio = async (params: PortfolioRequestData): Promise<GetAccountsByUserAddressPortfolioResponse> => {
     const userAddress = getAddress(params.path.userAddress)
 
-    const balancesOfBalances = await Promise.all(Object.values(chainContexts).map(async (chainContext) => chainContext.balanceOf(userAddress, ['USDC', 'ETH'])))
+    const balancesOfBalances = await Promise.all(Object.values(chainContexts()).map(async (chainContext) => chainContext.balanceOf(userAddress, supportedTokens)))
 
     const balanceMap = balancesOfBalances.reduce<{ [key: string]: PortfolioBalance }>((outerMap, balances) => {
         return balances.reduce<{ [key: string]: PortfolioBalance }>((innerMap, balance) => {
