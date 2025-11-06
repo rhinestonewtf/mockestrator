@@ -1,10 +1,12 @@
 import { Request, Response } from "express";
 import { getAddress } from "viem";
 import { jsonify, logRequest } from "../log";
-import { GetAccountsByUserAddressPortfolioData, GetAccountsByUserAddressPortfolioResponse } from "../gen";
+import { GetAccountsByUserAddressPortfolioResponse } from "../gen";
 import { zGetAccountsByUserAddressPortfolioData } from "../gen/zod.gen";
-import { ZodError } from "zod";
+import z, { ZodError } from "zod";
 import { chainContexts } from "../chains";
+
+type PortfolioRequestData = z.infer<typeof zGetAccountsByUserAddressPortfolioData>
 
 export const portfolio = async (req: Request, resp: Response) => {
     logRequest(req)
@@ -16,10 +18,7 @@ export const portfolio = async (req: Request, resp: Response) => {
             query: req.query,
             headers: req.headers
         })
-        const body = await getPortfolio({
-            ...params,
-            url: '/accounts/{userAddress}/portfolio'
-        })
+        const body = await getPortfolio(params)
         console.log('Response: ', jsonify(body))
         resp.status(200).json(body)
     } catch (e) {
@@ -47,7 +46,7 @@ type PortfolioBalance = {
     }
 }
 
-const getPortfolio = async (params: GetAccountsByUserAddressPortfolioData): Promise<GetAccountsByUserAddressPortfolioResponse> => {
+const getPortfolio = async (params: PortfolioRequestData): Promise<GetAccountsByUserAddressPortfolioResponse> => {
     const userAddress = getAddress(params.path.userAddress)
 
     const balancesOfBalances = await Promise.all(Object.values(chainContexts).map(async (chainContext) => chainContext.balanceOf(userAddress, ['USDC', 'ETH'])))
@@ -83,7 +82,6 @@ const getPortfolio = async (params: GetAccountsByUserAddressPortfolioData): Prom
         }, outerMap)
     }, {})
 
-    console.log('Fetching balances for ', userAddress)
     return {
         portfolio: Object.entries(balanceMap).map(([symbol, portfolio]) => {
             return {
