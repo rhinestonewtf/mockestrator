@@ -102,6 +102,14 @@ export class ChainContext {
         })
     }
 
+    public transfer(to: Address, amount: bigint): Hex {
+        return encodeFunctionData({
+            abi: erc20Abi,
+            functionName: 'transfer',
+            args: [to, amount]
+        })
+    }
+
     public multicall(calls: { to: Address, callData: Hex }[]): { to: Address, callData: Hex } {
 
         const multicallContract = this.walletClient.chain.contracts?.multicall3
@@ -147,6 +155,7 @@ export class ChainContext {
                 const spender = getAddress(spenderStr)
                 for (const [symbol, value] of Object.entries(tokens)) {
                     await this.approveSpending(owner, spender, symbol as TokenSymbol, value)
+                    await this.approveSpending(owner, this.walletClient.chain.contracts!.multicall3!.address, symbol as TokenSymbol, value)
                 }
             }
         }

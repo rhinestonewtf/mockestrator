@@ -3,7 +3,7 @@ import { jsonify, logRequest } from "../log"
 import { Request, Response } from "express"
 import { zPostIntentOperationsData, zPostIntentOperationsResponse } from "../gen/zod.gen"
 import { addNewIntent, IntentData } from "../services/intentRepo"
-import { Address, encodeFunctionData, erc20Abi, getAddress, keccak256, stringToHex, toHex } from "viem"
+import { Address, encodeFunctionData, erc20Abi, getAddress, Hex, keccak256, pad, stringToHex, toHex } from "viem"
 import { randomBytes } from "crypto"
 import { chainContexts, NATIVE_TOKEN, supportedTokens } from "../chains"
 
@@ -54,7 +54,7 @@ const executeIntent = async (signedIntentData: SignedIntentData): Promise<Signed
     const setupCalls = setupOps ? setupOps.map((op) => {
         return {
             to: getAddress(op.to),
-            callData: stringToHex(op.data)
+            callData: op.data as Hex
         }
     }) : []
 
@@ -64,7 +64,8 @@ const executeIntent = async (signedIntentData: SignedIntentData): Promise<Signed
     const erc20transfers = tokenTransfers.filter((t) => t.address != NATIVE_TOKEN).map((t) => {
         return {
             to: t.address,
-            callData: executor.transferFrom(recipient, t.value)
+            //TODO: tadas, doesn't work - this will fail with multicall
+            callData: executor.transfer(recipient, t.value)
         }
     })
 
@@ -103,11 +104,12 @@ type TokenTransfer = {
 }
 
 function toTokenTransfers(elements: { mandate: { tokenOut: unknown } }[]): TokenTransfer[] {
-    return elements.flatMap((element) => (element.mandate.tokenOut as [bigint[]]).map((idAndAmount) => {
-        console.log(idAndAmount[0])
+    return elements.flatMap((element) => (element.mandate.tokenOut as [string[]]).map((idAndAmount) => {
+        const hex = toHex(BigInt(idAndAmount[0]))
+        const address = pad(hex, { size: 20 }) as Address
         return {
-            address: getAddress(toHex(idAndAmount[0])),
-            value: idAndAmount[1],
+            address,
+            value: BigInt(idAndAmount[1]),
         }
     }))
 }
