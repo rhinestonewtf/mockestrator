@@ -5,7 +5,7 @@ import { zPostIntentOperationsData, zPostIntentOperationsResponse } from "../gen
 import { addNewIntent, IntentData } from "../services/intentRepo"
 import { Address, encodeFunctionData, erc20Abi, getAddress, keccak256, stringToHex, toHex } from "viem"
 import { randomBytes } from "crypto"
-import { chainContexts, NATIVE_TOKEN } from "../chains"
+import { chainContexts, NATIVE_TOKEN, supportedTokens } from "../chains"
 
 type SignedIntentData = z.infer<typeof zPostIntentOperationsData>
 
@@ -64,7 +64,7 @@ const executeIntent = async (signedIntentData: SignedIntentData): Promise<Signed
     const erc20transfers = tokenTransfers.filter((t) => t.address != NATIVE_TOKEN).map((t) => {
         return {
             to: t.address,
-            callData: executor.erc20Transfer(recipient, t.value)
+            callData: executor.transferFrom(recipient, t.value)
         }
     })
 
@@ -80,12 +80,12 @@ const executeIntent = async (signedIntentData: SignedIntentData): Promise<Signed
         }
     })()
 
-    const txHash = executor.execute({ ...txCallData, value: nativeTransferValue })
+    const txHash = await executor.execute({ ...txCallData, value: nativeTransferValue })
 
     await addNewIntent(signedIntent.nonce, {
         status: "COMPLETED" as const,
         fillTimestamp: Math.floor(Date.now() / 1000),
-        fillTransactionHash: keccak256(randomBytes(32)),
+        fillTransactionHash: txHash,
         claims: []
     })
 

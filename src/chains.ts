@@ -1,7 +1,7 @@
 import fs from "fs";
 import path from "path";
 import { ChainEntry, chainRegistry, chains } from "@rhinestone/shared-configs"
-import { Account, Address, Chain, createTestClient, createWalletClient, encodeAbiParameters, encodeFunctionData, erc20Abi, getAddress, Hash, Hex, http, keccak256, multicall3Abi, numberToHex, pad, publicActions, stringToHex, Transport, zeroAddress } from "viem";
+import { Account, Address, Chain, createTestClient, createWalletClient, encodeAbiParameters, encodeFunctionData, encodePacked, erc20Abi, getAddress, Hash, Hex, http, keccak256, multicall3Abi, numberToHex, pad, publicActions, stringToHex, toHex, Transport, zeroAddress } from "viem";
 import { getTokenAddress, TokenSymbol } from "@rhinestone/sdk";
 import z from "zod";
 import { privateKeyToAccount } from 'viem/accounts'
@@ -94,11 +94,11 @@ export class ChainContext {
         return erc20Tokens.map((token, i) => { return { ...token, amount: BigInt(erc20Balances[i]) } }).concat(nativeBalances)
     }
 
-    public erc20Transfer(to: Address, amount: bigint): Hex {
+    public transferFrom(to: Address, amount: bigint): Hex {
         return encodeFunctionData({
             abi: erc20Abi,
-            functionName: 'transfer',
-            args: [to, amount]
+            functionName: 'transferFrom',
+            args: [this.walletClient.account.address, to, amount]
         })
     }
 
@@ -133,9 +133,29 @@ export class ChainContext {
         return receipt.transactionHash
     }
 
+    public async setupAccount(chainConfig: ChainConfig) {
+        for (const [addressStr, tokens] of Object.entries(chainConfig.funding)) {
+            const address = getAddress(addressStr)
+            for (const [symbol, value] of Object.entries(tokens)) {
+                await this.fundAccount(address, symbol as TokenSymbol, value)
+            }
+        }
+
+        for (const [ownerStr, approvals] of Object.entries(chainConfig.erc20approvals)) {
+            const owner = getAddress(ownerStr)
+            for (const [spenderStr, tokens] of Object.entries(approvals)) {
+                const spender = getAddress(spenderStr)
+                for (const [symbol, value] of Object.entries(tokens)) {
+                    await this.approveSpending(owner, spender, symbol as TokenSymbol, value)
+                }
+            }
+        }
+    }
+
     public async fundAccount(account: Address, token: TokenSymbol, value: bigint) {
         const tokenAddress = getTokenAddress(token, this.chainId)
         if (tokenAddress == zeroAddress) {
+            console.log(`${this.walletClient.chain.name}: Native balance for ${account} -> ${value}]`)
             await this.testClient.setBalance({
                 address: account,
                 value,
@@ -148,6 +168,27 @@ export class ChainContext {
             const slot = keccak256(
                 encodeAbiParameters([{ type: 'address' }, { type: 'uint256' }], [account, BigInt(balanceSlot)]),
             );
+            console.log(`${this.walletClient.chain.name}: Erc20 balance for ${account} on ${token} ( ${tokenAddress}) -> ${value}]`)
+            await this.testClient.setStorageAt({
+                address: tokenAddress,
+                index: slot,
+                value: pad(numberToHex(value)),
+            })
+        }
+    }
+    public async approveSpending(owner: Address, spender: Address, token: TokenSymbol, value: bigint) {
+        const tokenAddress = getTokenAddress(token, this.chainId)
+        if (tokenAddress == zeroAddress) {
+            // skip natives
+        } else {
+            const approvalSlot = this.tokens[tokenAddress].approvalSlot
+            if (!approvalSlot) {
+                throw new Error(`${token} at ${tokenAddress} config has undefined approval slot`)
+            }
+
+            const inner = keccak256(encodePacked(["bytes32", "bytes32"], [pad(owner), pad(toHex(approvalSlot))]));
+            const slot = keccak256(encodePacked(["bytes32", "bytes32"], [pad(spender), inner]))
+            console.log(`${this.walletClient.chain.name}: Erc20 approval from ${owner}, to ${spender} on ${token} ( ${tokenAddress}) -> ${value}]`)
             await this.testClient.setStorageAt({
                 address: tokenAddress,
                 index: slot,
@@ -162,13 +203,29 @@ const SupportedTokensSchema = z.union(supportedTokens.map(t => z.literal(t) as z
 
 type ChainContexts = { [key: number]: ChainContext }
 
+const hexString = (numbytes: number) => {
+    return z.string().regex(
+        new RegExp(`^0x[a-fA-F0-9]{${numbytes * 2}}$`),
+        { message: `Expected 0x-prefixed hex string of ${numbytes} bytes` }
+    )
+}
+
+const AddressSchema = hexString(20)
+
+const BigIntSchema = z.coerce.bigint()
+
 const ConfigSchema = z.record(z.string(), z.object({
     rpc: z.string(),
-    relayerKey: z.string(),
-    funding: z.record(z.string(), z.record(SupportedTokensSchema, z.coerce.bigint()))
+    relayerKey: hexString(32),
+    relayerAddress: AddressSchema,
+    funding: z.record(AddressSchema, z.record(SupportedTokensSchema, BigIntSchema)),
+    routerAddress: AddressSchema,
+    erc20approvals: z.record(AddressSchema, z.record(AddressSchema, z.record(z.string(), BigIntSchema)))
 }))
 
 type Config = z.infer<typeof ConfigSchema>
+
+type ChainConfig = Config["rpc"]
 
 async function loadChainContexts(): Promise<ChainContexts> {
     const filePath = process.env.RPCS ?? 'rpcs.json'
@@ -178,7 +235,7 @@ async function loadChainContexts(): Promise<ChainContexts> {
 
     let res: ChainContexts = {}
 
-    for (const [key, value] of Object.entries(config)) {
+    for (const [key, chainConfig] of Object.entries(config)) {
         const chainId = parseInt(key);
 
         const chainEntry = chainRegistry[key]
@@ -186,16 +243,15 @@ async function loadChainContexts(): Promise<ChainContexts> {
             throw new Error(`Unsupported chain ${key} in rpcs file`)
         }
 
-        const account = privateKeyToAccount(value.relayerKey as Hex)
-
-        const chainContext = new ChainContext(chainId, account, chainEntry, http(value.rpc))
-
-        for (const [addressStr, tokens] of Object.entries(value.funding)) {
-            const address = getAddress(addressStr)
-            for (const [symbol, value] of Object.entries(tokens)) {
-                await chainContext.fundAccount(address, symbol as TokenSymbol, value)
-            }
+        const account = privateKeyToAccount(chainConfig.relayerKey as Hex)
+        const accountAddress = getAddress(chainConfig.relayerAddress as Hex)
+        if (account.address != accountAddress) {
+            throw new Error(`Invalid configuration: expected relayer address: ${accountAddress} doesn't match derived from key: ${account.address}`)
         }
+
+        const chainContext = new ChainContext(chainId, account, chainEntry, http(chainConfig.rpc))
+
+        await chainContext.setupAccount(chainConfig)
 
         res[chainId] = chainContext
     }

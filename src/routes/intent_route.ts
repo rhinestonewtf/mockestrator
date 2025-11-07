@@ -4,8 +4,7 @@ import { zPostIntentsRouteData, zPostIntentsRouteResponse } from "../gen/zod.gen
 import { z, ZodError } from "zod";
 import { Address, getAddress, hexToBigInt } from "viem";
 import { randomBytes } from "crypto";
-import { chainContexts, supportedTokens } from "../chains";
-import { TokenSymbol } from "@rhinestone/sdk";
+import { chainContexts } from "../chains";
 
 type UserIntent = z.infer<typeof zPostIntentsRouteData>
 
