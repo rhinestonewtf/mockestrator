@@ -64,22 +64,15 @@ const executeIntent = async (signedIntentData: SignedIntentData): Promise<Signed
     const erc20transfers = tokenTransfers.filter((t) => t.address != NATIVE_TOKEN).map((t) => {
         return {
             to: t.address,
-            //TODO: tadas, doesn't work - this will fail with multicall
-            callData: executor.transfer(recipient, t.value)
+            callData: executor.transferFrom(recipient, t.value)
         }
     })
 
-    const executions = [...setupCalls, ...erc20transfers]
+    const destinationOps = toDestinationOps(signedIntent.elements)
 
-    const txCallData = (() => {
-        if (executions.length == 1) {
-            return executions[0]
-        } else if (executions.length > 1) {
-            return executor.multicall(executions)
-        } else {
-            throw new Error(`No executions collected from intent`)
-        }
-    })()
+    const executions = [...setupCalls, ...erc20transfers, ...destinationOps]
+
+    const txCallData = await executor.callFakeRouter(executions)
 
     const txHash = await executor.execute({ ...txCallData, value: nativeTransferValue })
 
@@ -112,4 +105,9 @@ function toTokenTransfers(elements: { mandate: { tokenOut: unknown } }[]): Token
             value: BigInt(idAndAmount[1]),
         }
     }))
+}
+
+function toDestinationOps(elements: { mandate: { destinationOps: unknown } }[]): { to: Address, callData: Hex }[] {
+
+    throw new Error(`Destination ops extraction not implemented`)
 }

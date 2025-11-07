@@ -5,6 +5,7 @@ import { Account, Address, Chain, createTestClient, createWalletClient, encodeAb
 import { getTokenAddress, TokenSymbol } from "@rhinestone/sdk";
 import z from "zod";
 import { privateKeyToAccount } from 'viem/accounts'
+import { fakeRouterAbi } from "./abi/fakeRouter";
 
 
 const chainMap: Record<number, Chain> = Object.fromEntries(chains.map(c => [c.id, c]));
@@ -29,7 +30,8 @@ export class ChainContext {
 
     private tokens
 
-    constructor(private chainId: number, account: Account, private chainEntry: ChainEntry, transport: Transport) {
+    constructor(private chainId: number, account: Account, private chainEntry: ChainEntry, private chainConfig: ChainConfig) {
+        const transport = http(chainConfig.rpc)
         this.walletClient = createWalletClient({
             account,
             transport,
@@ -155,7 +157,6 @@ export class ChainContext {
                 const spender = getAddress(spenderStr)
                 for (const [symbol, value] of Object.entries(tokens)) {
                     await this.approveSpending(owner, spender, symbol as TokenSymbol, value)
-                    await this.approveSpending(owner, this.walletClient.chain.contracts!.multicall3!.address, symbol as TokenSymbol, value)
                 }
             }
         }
@@ -205,6 +206,26 @@ export class ChainContext {
             })
         }
     }
+
+    public async overrideCode(address: Address, code: Hex) {
+        await this.testClient.setCode({
+            address,
+            bytecode: code
+        })
+    }
+
+    public async callFakeRouter(calls: { to: Address, callData: Hex }[]): Promise<{ to: Address, callData: Hex }> {
+        const encoded = encodeFunctionData({
+            abi: fakeRouterAbi,
+            functionName: 'mockFill',
+            args: [calls.map((call) => { return { target: call.to, callData: call.callData } })]
+        })
+
+        return {
+            to: this.chainConfig.routerAddress as Address,
+            callData: encoded
+        }
+    }
 }
 
 const SupportedTokensSchema = z.union(supportedTokens.map(t => z.literal(t) as z.ZodLiteral<TokenSymbol>))
@@ -212,20 +233,26 @@ const SupportedTokensSchema = z.union(supportedTokens.map(t => z.literal(t) as z
 
 type ChainContexts = { [key: number]: ChainContext }
 
-const hexString = (numbytes: number) => {
+const fixedHex = (numbytes: number) => {
     return z.string().regex(
         new RegExp(`^0x[a-fA-F0-9]{${numbytes * 2}}$`),
         { message: `Expected 0x-prefixed hex string of ${numbytes} bytes` }
     )
 }
 
-const AddressSchema = hexString(20)
+const VarHex = z.string().regex(
+    new RegExp(/^0x[a-fA-F0-9]+$/),
+    { message: `Expected variable length 0x-prefixed hex string` }
+)
+
+
+const AddressSchema = fixedHex(20)
 
 const BigIntSchema = z.coerce.bigint()
 
 const ConfigSchema = z.record(z.string(), z.object({
     rpc: z.string(),
-    relayerKey: hexString(32),
+    relayerKey: fixedHex(32),
     relayerAddress: AddressSchema,
     funding: z.record(AddressSchema, z.record(SupportedTokensSchema, BigIntSchema)),
     routerAddress: AddressSchema,
@@ -236,11 +263,21 @@ type Config = z.infer<typeof ConfigSchema>
 
 type ChainConfig = Config["rpc"]
 
+const CodeSchema = z.record(AddressSchema, VarHex)
+type CodeOverrides = z.infer<typeof CodeSchema>
+
+
 async function loadChainContexts(): Promise<ChainContexts> {
     const filePath = process.env.RPCS ?? 'rpcs.json'
     const rawData = fs.readFileSync(path.resolve(filePath), "utf-8");
     const configJson = JSON.parse(rawData);
     const config: Config = ConfigSchema.parse(configJson)
+
+    const codeFilePath = process.env.CODE ?? 'code.json'
+    const codeRawData = fs.readFileSync(path.resolve(codeFilePath), "utf-8");
+    const codeJson = JSON.parse(codeRawData);
+    const codeOverrides: CodeOverrides = CodeSchema.parse(codeJson)
+
 
     let res: ChainContexts = {}
 
@@ -258,9 +295,13 @@ async function loadChainContexts(): Promise<ChainContexts> {
             throw new Error(`Invalid configuration: expected relayer address: ${accountAddress} doesn't match derived from key: ${account.address}`)
         }
 
-        const chainContext = new ChainContext(chainId, account, chainEntry, http(chainConfig.rpc))
+        const chainContext = new ChainContext(chainId, account, chainEntry, chainConfig)
 
         await chainContext.setupAccount(chainConfig)
+
+        for (const [addressStr, code] of Object.entries(codeOverrides)) {
+            await chainContext.overrideCode(getAddress(addressStr), code as Hex)
+        }
 
         res[chainId] = chainContext
     }
