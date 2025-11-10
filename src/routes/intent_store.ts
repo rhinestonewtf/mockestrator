@@ -5,7 +5,7 @@ import { zPostIntentOperationsData, zPostIntentOperationsResponse } from "../gen
 import { addNewIntent, IntentData } from "../services/intentRepo"
 import { Address, encodeFunctionData, erc20Abi, getAddress, Hex, keccak256, pad, stringToHex, toHex } from "viem"
 import { randomBytes } from "crypto"
-import { chainContexts, NATIVE_TOKEN, supportedTokens } from "../chains"
+import { AddressSchema, BigIntSchema, chainContexts, NATIVE_TOKEN, supportedTokens, VarHex } from "../chains"
 
 type SignedIntentData = z.infer<typeof zPostIntentOperationsData>
 
@@ -96,18 +96,31 @@ type TokenTransfer = {
     value: bigint
 }
 
+const IdAndAmount = z.tuple([BigIntSchema, BigIntSchema]).transform((v) => {
+    return {
+        address: pad(toHex(BigInt(v[0])), { size: 20 }),
+        value: BigInt(v[1])
+    }
+})
+
+const IdsAndAmounts = z.array(IdAndAmount)
+
 function toTokenTransfers(elements: { mandate: { tokenOut: unknown } }[]): TokenTransfer[] {
-    return elements.flatMap((element) => (element.mandate.tokenOut as [string[]]).map((idAndAmount) => {
-        const hex = toHex(BigInt(idAndAmount[0]))
-        const address = pad(hex, { size: 20 }) as Address
-        return {
-            address,
-            value: BigInt(idAndAmount[1]),
-        }
-    }))
+    return elements.flatMap((element) => IdsAndAmounts.parse(element.mandate.tokenOut))
 }
 
-function toDestinationOps(elements: { mandate: { destinationOps: unknown } }[]): { to: Address, callData: Hex }[] {
+const DestinationOp = z.object({
+    to: AddressSchema,
+    data: VarHex
+}).transform((v) => {
+    return {
+        to: v.to,
+        callData: v.data
+    }
+})
 
-    throw new Error(`Destination ops extraction not implemented`)
+const DestinationOps = z.array(DestinationOp)
+
+function toDestinationOps(elements: { mandate: { destinationOps: unknown } }[]): { to: Address, callData: Hex }[] {
+    return elements.flatMap((element) => DestinationOps.parse(element.mandate.destinationOps))
 }

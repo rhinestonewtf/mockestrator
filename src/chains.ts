@@ -151,7 +151,7 @@ export class ChainContext {
             }
         }
 
-        for (const [ownerStr, approvals] of Object.entries(chainConfig.erc20approvals)) {
+        for (const [ownerStr, approvals] of Object.entries(chainConfig.erc20approvals ?? {})) {
             const owner = getAddress(ownerStr)
             for (const [spenderStr, tokens] of Object.entries(approvals)) {
                 const spender = getAddress(spenderStr)
@@ -228,35 +228,32 @@ export class ChainContext {
     }
 }
 
-const SupportedTokensSchema = z.union(supportedTokens.map(t => z.literal(t) as z.ZodLiteral<TokenSymbol>))
-
-
 type ChainContexts = { [key: number]: ChainContext }
 
-const fixedHex = (numbytes: number) => {
+export const fixedHex = (numbytes: number) => {
     return z.string().regex(
         new RegExp(`^0x[a-fA-F0-9]{${numbytes * 2}}$`),
         { message: `Expected 0x-prefixed hex string of ${numbytes} bytes` }
-    )
+    ).transform((v) => v as Hex)
 }
 
-const VarHex = z.string().regex(
+export const VarHex = z.string().regex(
     new RegExp(/^0x[a-fA-F0-9]+$/),
     { message: `Expected variable length 0x-prefixed hex string` }
-)
+).transform((v) => v as Hex)
 
 
-const AddressSchema = fixedHex(20)
+export const AddressSchema = fixedHex(20).transform((v) => v as Address)
 
-const BigIntSchema = z.coerce.bigint()
+export const BigIntSchema = z.coerce.bigint()
 
 const ConfigSchema = z.record(z.string(), z.object({
     rpc: z.string(),
     relayerKey: fixedHex(32),
     relayerAddress: AddressSchema,
-    funding: z.record(AddressSchema, z.record(SupportedTokensSchema, BigIntSchema)),
+    funding: z.record(AddressSchema, z.record(z.string(), BigIntSchema)),
     routerAddress: AddressSchema,
-    erc20approvals: z.record(AddressSchema, z.record(AddressSchema, z.record(z.string(), BigIntSchema)))
+    erc20approvals: z.record(AddressSchema, z.record(AddressSchema, z.record(z.string(), BigIntSchema))).optional()
 }))
 
 type Config = z.infer<typeof ConfigSchema>
@@ -289,8 +286,8 @@ async function loadChainContexts(): Promise<ChainContexts> {
             throw new Error(`Unsupported chain ${key} in rpcs file`)
         }
 
-        const account = privateKeyToAccount(chainConfig.relayerKey as Hex)
-        const accountAddress = getAddress(chainConfig.relayerAddress as Hex)
+        const account = privateKeyToAccount(chainConfig.relayerKey)
+        const accountAddress = chainConfig.relayerAddress
         if (account.address != accountAddress) {
             throw new Error(`Invalid configuration: expected relayer address: ${accountAddress} doesn't match derived from key: ${account.address}`)
         }
@@ -300,7 +297,7 @@ async function loadChainContexts(): Promise<ChainContexts> {
         await chainContext.setupAccount(chainConfig)
 
         for (const [addressStr, code] of Object.entries(codeOverrides)) {
-            await chainContext.overrideCode(getAddress(addressStr), code as Hex)
+            await chainContext.overrideCode(getAddress(addressStr), code)
         }
 
         res[chainId] = chainContext

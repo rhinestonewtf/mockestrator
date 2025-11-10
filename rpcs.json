@@ -3,22 +3,13 @@
         "rpc": "http://localhost:30006",
         "relayerKey": "0x6666e779ddc6eb78f59372f7d4d2ea2179f9d28eeb7071405e3c874653fbc335",
         "relayerAddress": "0x1aF50037fFD325FBC96A2BEFCf4b0d13c94Df0e8",
+        "routerAddress": "0x8a525dc484f893ca64fef507746ebd5036eec256",
         "funding": {
             "0x1aF50037fFD325FBC96A2BEFCf4b0d13c94Df0e8": {
-                "USDC": 1000000000000000000000000000,
                 "ETH": 1000000000000000000000000000
             },
-            "0xa0Ee7A142d267C1f36714E4a8F75612F20a79720": {
-                "USDC": 1000000000000000000000000000,
-                "ETH": 1000000000000000000000000000
-            }
-        },
-        "routerAddress": "0x8a525dc484f893ca64fef507746ebd5036eec256",
-        "erc20approvals": {
-            "0x1aF50037fFD325FBC96A2BEFCf4b0d13c94Df0e8": {
-                "0x8a525dc484f893ca64fef507746ebd5036eec256": {
-                    "USDC": 1000000000000000000000000000
-                }
+            "0x8a525dc484f893ca64fef507746ebd5036eec256": {
+                "USDC": 1000000000000000000000000000
             }
         }
     },
@@ -26,22 +17,13 @@
         "rpc": "http://localhost:30005",
         "relayerKey": "0x6666e779ddc6eb78f59372f7d4d2ea2179f9d28eeb7071405e3c874653fbc335",
         "relayerAddress": "0x1aF50037fFD325FBC96A2BEFCf4b0d13c94Df0e8",
+        "routerAddress": "0x8a525dc484f893ca64fef507746ebd5036eec256",
         "funding": {
             "0x1aF50037fFD325FBC96A2BEFCf4b0d13c94Df0e8": {
-                "USDC": 1000000000000000000000000000,
                 "ETH": 1000000000000000000000000000
             },
-            "0xa0Ee7A142d267C1f36714E4a8F75612F20a79720": {
-                "USDC": 1000000000000000000000000000,
-                "ETH": 1000000000000000000000000000
-            }
-        },
-        "routerAddress": "0x8a525dc484f893ca64fef507746ebd5036eec256",
-        "erc20approvals": {
-            "0x1aF50037fFD325FBC96A2BEFCf4b0d13c94Df0e8": {
-                "0x8a525dc484f893ca64fef507746ebd5036eec256": {
-                    "USDC": 1000000000000000000000000000
-                }
+            "0x8a525dc484f893ca64fef507746ebd5036eec256": {
+                "USDC": 1000000000000000000000000000
             }
         }
     }
