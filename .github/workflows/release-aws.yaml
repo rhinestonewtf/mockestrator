@@ -1,0 +1,35 @@
+name: Push docker images to ECR
+
+on:
+  push:
+    branches: [ "main" ]
+
+jobs:  
+  docker-push-image:
+    name: Build and push docker image to AWS ECR
+    runs-on: ubuntu-latest
+    env:
+      AWS_REGION: us-east-1
+      ECR_REGISTRY: public.ecr.aws/l8u6h3p7
+      APP_NAME: mockestrator
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        aws-access-key-id: ${{ secrets.ECR_AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.ECR_AWS_SECRET_ACCESS_KEY }}
+        aws-region: ${{ env.AWS_REGION }}
+
+    - name: Login to Amazon ECR
+      id: login-ecr
+      uses: aws-actions/amazon-ecr-login@v2
+      with:
+        registry-type: public
+
+    - name: Build and push image
+      run: |
+        docker build -t $ECR_REGISTRY/$APP_NAME:latest .
+        docker push $ECR_REGISTRY/$APP_NAME:latest
