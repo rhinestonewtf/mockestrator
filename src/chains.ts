@@ -1,9 +1,9 @@
-import fs from "fs";
+import fs, { readFileSync } from "fs";
 import path from "path";
 import { ChainEntry, chainRegistry, chains } from "@rhinestone/shared-configs"
 import { Account, Address, Chain, createTestClient, createWalletClient, encodeAbiParameters, encodeFunctionData, encodePacked, erc20Abi, getAddress, Hash, Hex, http, keccak256, multicall3Abi, numberToHex, pad, publicActions, stringToHex, toHex, Transport, zeroAddress } from "viem";
 import { getTokenAddress, TokenSymbol } from "@rhinestone/sdk";
-import z from "zod";
+import z, { ZodSchema } from "zod";
 import { privateKeyToAccount } from 'viem/accounts'
 import { fakeRouterAbi } from "./abi/fakeRouter";
 
@@ -30,8 +30,7 @@ export class ChainContext {
 
     private tokens
 
-    constructor(private chainId: number, account: Account, private chainEntry: ChainEntry, private chainConfig: ChainConfig) {
-        const transport = http(chainConfig.rpc)
+    constructor(private chainId: number, account: Account, private chainEntry: ChainEntry, private chainConfig: Config, transport: Transport) {
         this.walletClient = createWalletClient({
             account,
             transport,
@@ -143,15 +142,15 @@ export class ChainContext {
         return receipt.transactionHash
     }
 
-    public async setupAccount(chainConfig: ChainConfig) {
-        for (const [addressStr, tokens] of Object.entries(chainConfig.funding)) {
+    public async setupAccount(config: Config) {
+        for (const [addressStr, tokens] of Object.entries(config.funding)) {
             const address = getAddress(addressStr)
             for (const [symbol, value] of Object.entries(tokens)) {
                 await this.fundAccount(address, symbol as TokenSymbol, value)
             }
         }
 
-        for (const [ownerStr, approvals] of Object.entries(chainConfig.erc20approvals ?? {})) {
+        for (const [ownerStr, approvals] of Object.entries(config.erc20approvals ?? {})) {
             const owner = getAddress(ownerStr)
             for (const [spenderStr, tokens] of Object.entries(approvals)) {
                 const spender = getAddress(spenderStr)
@@ -247,38 +246,40 @@ export const AddressSchema = fixedHex(20).transform((v) => v as Address)
 
 export const BigIntSchema = z.coerce.bigint()
 
-const ConfigSchema = z.record(z.string(), z.object({
+const RpcSchema = z.record(z.string(), z.object({
     rpc: z.string(),
+}))
+type RpcConfig = z.infer<typeof RpcSchema>
+
+const ConfigSchema = z.object({
     relayerKey: fixedHex(32),
     relayerAddress: AddressSchema,
     funding: z.record(AddressSchema, z.record(z.string(), BigIntSchema)),
     routerAddress: AddressSchema,
     erc20approvals: z.record(AddressSchema, z.record(AddressSchema, z.record(z.string(), BigIntSchema))).optional()
-}))
 
+})
 type Config = z.infer<typeof ConfigSchema>
 
-type ChainConfig = Config["rpc"]
 
 const CodeSchema = z.record(AddressSchema, VarHex)
 type CodeOverrides = z.infer<typeof CodeSchema>
 
 
 async function loadChainContexts(): Promise<ChainContexts> {
-    const filePath = process.env.RPCS ?? 'rpcs.json'
-    const rawData = fs.readFileSync(path.resolve(filePath), "utf-8");
-    const configJson = JSON.parse(rawData);
-    const config: Config = ConfigSchema.parse(configJson)
+    const rpcs: RpcConfig = loadJsonWithSchema('rpcs.json', RpcSchema)
+    const config: Config = loadJsonWithSchema('config.json', ConfigSchema)
+    const codeOverrides: CodeOverrides = loadJsonWithSchema('code.json', CodeSchema)
 
-    const codeFilePath = process.env.CODE ?? 'code.json'
-    const codeRawData = fs.readFileSync(path.resolve(codeFilePath), "utf-8");
-    const codeJson = JSON.parse(codeRawData);
-    const codeOverrides: CodeOverrides = CodeSchema.parse(codeJson)
-
+    const account = privateKeyToAccount(config.relayerKey)
+    const accountAddress = config.relayerAddress
+    if (account.address != accountAddress) {
+        throw new Error(`Invalid configuration: expected relayer address: ${accountAddress} doesn't match derived from key: ${account.address}`)
+    }
 
     let res: ChainContexts = {}
 
-    for (const [key, chainConfig] of Object.entries(config)) {
+    for (const [key, rpcConfig] of Object.entries(rpcs)) {
         const chainId = parseInt(key);
 
         const chainEntry = chainRegistry[key]
@@ -286,15 +287,9 @@ async function loadChainContexts(): Promise<ChainContexts> {
             throw new Error(`Unsupported chain ${key} in rpcs file`)
         }
 
-        const account = privateKeyToAccount(chainConfig.relayerKey)
-        const accountAddress = chainConfig.relayerAddress
-        if (account.address != accountAddress) {
-            throw new Error(`Invalid configuration: expected relayer address: ${accountAddress} doesn't match derived from key: ${account.address}`)
-        }
+        const chainContext = new ChainContext(chainId, account, chainEntry, config, http(rpcConfig.rpc))
 
-        const chainContext = new ChainContext(chainId, account, chainEntry, chainConfig)
-
-        await chainContext.setupAccount(chainConfig)
+        await chainContext.setupAccount(config)
 
         for (const [addressStr, code] of Object.entries(codeOverrides)) {
             await chainContext.overrideCode(getAddress(addressStr), code)
@@ -326,4 +321,14 @@ export function chainContext(chain: number): ChainContext {
         throw new Error('Unsupported chain context ${chain}')
     }
     return chainContext
+}
+
+function loadJsonWithSchema<T extends ZodSchema>(
+    path: string,
+    schema: T
+): z.infer<T> {
+    const raw = readFileSync(path, "utf-8");
+    const json = JSON.parse(raw);
+    const result = schema.parse(json);
+    return result;
 }
