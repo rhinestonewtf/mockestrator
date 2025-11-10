@@ -5,6 +5,7 @@ import { z, ZodError } from "zod";
 import { Address, getAddress, hexToBigInt } from "viem";
 import { randomBytes } from "crypto";
 import { chainContexts } from "../chains";
+import { FundingMethod } from "@rhinestone/sdk/dist/src/orchestrator/types";
 
 type UserIntent = z.infer<typeof zPostIntentsRouteData>
 
@@ -64,14 +65,18 @@ const create_intent_route = async (data: UserIntent): Promise<UserIntentRouteRes
         if (sourceChain == destinatinoChain) {
             return {
                 settlementContext: {
-                    settlementLayer: "SAME_CHAIN" as const
+                    settlementLayer: "SAME_CHAIN" as const,
+                    fundingMethod: "PERMIT2" as const,
+                    using7579: true
                 },
                 encodedVal: "0xff"
             }
         } else {
             return {
                 settlementContext: {
-                    settlementLayer: "ACROSS" as const
+                    settlementLayer: "ACROSS" as const,
+                    fundingMethod: "PERMIT2" as const,
+                    using7579: true
                 },
                 encodedVal: "0xff"
             }
@@ -79,7 +84,7 @@ const create_intent_route = async (data: UserIntent): Promise<UserIntentRouteRes
     })()
 
 
-    const tokenOut = userIntent.tokenTransfers.map((transfer) => {
+    const tokenOut = userIntent.tokenRequests.map((transfer) => {
         // TODO: a check if token is supported by our mock system?
 
         return [hexToBigInt(transfer.tokenAddress as Address), transfer.amount]
@@ -111,14 +116,30 @@ const create_intent_route = async (data: UserIntent): Promise<UserIntentRouteRes
             ],
             serverSignature: "4f8c3b1d2f3a7e61c8f4a9170a4b2f8e5c9d0b6a3c7e8f4a9172b3c1d4e5f6a0",  // random, doesn't mean anything
             signedMetadata: {
-                tokenPrices: {},
+                tokenPrices: {
+                    "ETH": 123,
+                    "WETH": 123,
+                    "USDC": 123,
+                    "POL": 123,
+                    "WPOL": 123,
+                    "S": 123,
+                    "WS": 123
+                },
+
                 gasPrices: {},
-                account: { ...userIntent.account, accountContext: {} }
+                account: { ...userIntent.account, accountContext: {} },
+                opGasParams: {},
+                quotes: {},
             }
         },
         intentCost: {
+            hasFulfilledAll: true,
             tokensSpent: {},
-            tokensReceived: []
+            tokensReceived: [],
+            sponsorFee: {
+                relayer: 0,
+                protocol: 0
+            }
         }
     }
 }

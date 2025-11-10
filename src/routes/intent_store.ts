@@ -77,6 +77,8 @@ const executeIntent = async (signedIntentData: SignedIntentData): Promise<Signed
     const txHash = await executor.execute({ ...txCallData, value: nativeTransferValue })
 
     await addNewIntent(signedIntent.nonce, {
+        userAddress: recipient,
+        destinationChainId: BigInt(destinationChain),
         status: "COMPLETED" as const,
         fillTimestamp: Math.floor(Date.now() / 1000),
         fillTransactionHash: txHash,

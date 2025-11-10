@@ -14,32 +14,41 @@ export type PostIntentsCostData = {
          */
         destinationChainId: number;
         /**
-         * A list of token transfers
+         * A list of token requested on the target chain
          */
-        tokenTransfers: Array<{
+        tokenRequests: Array<{
             /**
-             * The address of the token to be transferred
+             * The address of the requested token
              */
             tokenAddress: string;
             /**
-             * The amount of the token to be transferred (in smallest unit)
+             * The amount of the requested token (in the smallest unit)
+             */
+            amount: number;
+        } | {
+            /**
+             * The address of the requested token
+             */
+            tokenAddress: string;
+            /**
+             * The amount of the requested token (in the smallest unit)
              */
             amount?: number;
         }>;
         /**
-         * Smart account type and optional init data if account is not deployed
+         * Account details
          */
         account: {
             /**
-             * Smart account address
+             * Account address
              */
             address: string;
             /**
-             * Smart account type
+             * Account type
              */
-            accountType: string;
+            accountType?: 'smartAccount' | 'GENERIC' | 'EOA' | 'ERC7579';
             /**
-             * Setup operations for the smart account
+             * Setup operations for the smart account. Only used if the account is not deployed
              */
             setupOps?: Array<{
                 /**
@@ -52,13 +61,9 @@ export type PostIntentsCostData = {
                 data: string;
             }>;
             /**
-             * Emissary configuration for the smart account
+             * Emissary configuration for using resource locking
              */
             emissaryConfig?: {
-                /**
-                 * Unique identifier for the emissary configuration
-                 */
-                configId: number;
                 /**
                  * Address of the validator contract
                  */
@@ -87,7 +92,10 @@ export type PostIntentsCostData = {
                      * Nonce
                      */
                     nonce: number;
-                    allChainIds: unknown;
+                    /**
+                     * All chain IDs
+                     */
+                    allChainIds: Array<number>;
                     /**
                      * Chain index
                      */
@@ -96,7 +104,11 @@ export type PostIntentsCostData = {
                 /**
                  * Emissary configuration
                  */
-                emissaryConfig: {
+                settings: {
+                    /**
+                     * Unique identifier for the emissary configuration
+                     */
+                    configId: number;
                     /**
                      * Address of the allocator
                      */
@@ -120,7 +132,7 @@ export type PostIntentsCostData = {
                 };
             };
             /**
-             * Per-chain specific map to delegated contract address for 7702 delegations. Chain 0 means its default fallback
+             * Per-chain specific map to delegated contract address for 7702 delegations. Use `0` to indicate cross-chain delegation
              */
             delegations?: {
                 [key: string]: {
@@ -132,7 +144,7 @@ export type PostIntentsCostData = {
             };
         };
         /**
-         * Execution calls on the target chain. Cannot be used with userOp
+         * Execution calls on the target chain.
          */
         destinationExecutions?: Array<{
             /**
@@ -149,30 +161,141 @@ export type PostIntentsCostData = {
             data: string;
         }>;
         /**
-         * The gas units for the target chain
+         * The gas limit for the target chain executions
          */
         destinationGasUnits?: number;
         /**
          * Account access list specifying which chains and tokens an account may access
          */
-        accountAccessList?: Array<{
-            chainId: number;
-            tokenAddress: string;
-        }> | {
+        accountAccessList?: {
             chainIds?: Array<number>;
-            tokens?: Array<string>;
+            tokens?: Array<string | 'ETH' | 'WETH' | 'USDC' | 'POL' | 'WPOL' | 'S' | 'WS'>;
             chainTokens?: {
-                [key: string]: Array<string>;
+                [key: string]: Array<string | 'ETH' | 'WETH' | 'USDC' | 'POL' | 'WPOL' | 'S' | 'WS'>;
             };
             exclude?: {
                 chainIds?: Array<number>;
-                tokens?: Array<string>;
+                tokens?: Array<string | 'ETH' | 'WETH' | 'USDC' | 'POL' | 'WPOL' | 'S' | 'WS'>;
                 chainTokens?: {
-                    [key: string]: Array<string>;
+                    [key: string]: Array<string | 'ETH' | 'WETH' | 'USDC' | 'POL' | 'WPOL' | 'S' | 'WS'>;
+                };
+            };
+        } | Array<{
+            chainId: number;
+            tokenAddress: string;
+        }>;
+        /**
+         * Account details
+         */
+        recipient?: {
+            /**
+             * Account address
+             */
+            address: string;
+            /**
+             * Account type
+             */
+            accountType?: 'smartAccount' | 'GENERIC' | 'EOA' | 'ERC7579';
+            /**
+             * Setup operations for the smart account. Only used if the account is not deployed
+             */
+            setupOps?: Array<{
+                /**
+                 * Account deployment factory address
+                 */
+                to: string;
+                /**
+                 * Account deployment data
+                 */
+                data: string;
+            }>;
+            /**
+             * Emissary configuration for using resource locking
+             */
+            emissaryConfig?: {
+                /**
+                 * Address of the validator contract
+                 */
+                validatorAddress: string;
+                /**
+                 * Address of the emissary contract
+                 */
+                emissaryAddress: string;
+                /**
+                 * Emissary enable data
+                 */
+                emissaryEnable: {
+                    /**
+                     * Signature of the allocator
+                     */
+                    allocatorSig: string;
+                    /**
+                     * Signature of the user
+                     */
+                    userSig: string;
+                    /**
+                     * Expiration timestamp
+                     */
+                    expires: number;
+                    /**
+                     * Nonce
+                     */
+                    nonce: number;
+                    /**
+                     * All chain IDs
+                     */
+                    allChainIds: Array<number>;
+                    /**
+                     * Chain index
+                     */
+                    chainIndex: number;
+                };
+                /**
+                 * Emissary configuration
+                 */
+                settings: {
+                    /**
+                     * Unique identifier for the emissary configuration
+                     */
+                    configId: number;
+                    /**
+                     * Address of the allocator
+                     */
+                    allocator?: string;
+                    /**
+                     * Scope of the emissary
+                     */
+                    scope?: number;
+                    /**
+                     * Reset period of the emissary
+                     */
+                    resetPeriod?: number;
+                    /**
+                     * Address of the validator
+                     */
+                    validator: string;
+                    /**
+                     * Validator configuration
+                     */
+                    validatorConfig: string;
+                };
+            };
+            /**
+             * Per-chain specific map to delegated contract address for 7702 delegations. Use `0` to indicate cross-chain delegation
+             */
+            delegations?: {
+                [key: string]: {
+                    /**
+                     * address of contract to which delegation on behalf of sponsor will be assumed for given chain ID
+                     */
+                    contract: string;
                 };
             };
         };
-        options: {
+        /**
+         * Intent options
+         */
+        options?: {
             /**
              * Whether to top up the compact locked balance using unlocked funds
              */
@@ -198,7 +321,7 @@ export type PostIntentsCostData = {
                  */
                 swapFeesSponsored?: boolean;
             };
-            feeToken?: 'ETH' | 'WETH' | 'USDC' | 'USDT' | 'POL' | 'WPOL' | 'S' | 'WS';
+            feeToken?: 'ETH' | 'WETH' | 'USDC' | 'POL' | 'WPOL' | 'S' | 'WS';
         };
     };
     headers: {
@@ -217,10 +340,20 @@ export type PostIntentsCostErrors = {
      * Invalid request parameters
      */
     400: {
+        errors: Array<{
+            /**
+             * Error message
+             */
+            message: string;
+            /**
+             * Additional error context
+             */
+            context?: unknown;
+        }>;
         /**
-         * Error message for invalid request parameters
+         * Trace ID
          */
-        error: string;
+        traceId: string;
     };
     /**
      * Server error
@@ -244,6 +377,9 @@ export type PostIntentsCostResponses = {
          * Indicates that all tokens have been fulfilled
          */
         hasFulfilledAll: true;
+        /**
+         * Tokens spent in the transaction
+         */
         tokensSpent: {
             [key: string]: {
                 [key: string]: {
@@ -252,6 +388,9 @@ export type PostIntentsCostResponses = {
                 };
             };
         };
+        /**
+         * Tokens received in the transaction
+         */
         tokensReceived: Array<{
             tokenAddress: string;
             amountSpent: number;
@@ -259,6 +398,19 @@ export type PostIntentsCostResponses = {
             fee: number;
             hasFulfilled: boolean;
         }>;
+        /**
+         * Transaction fees
+         */
+        sponsorFee: {
+            /**
+             * Fee charged by relayer
+             */
+            relayer: number;
+            /**
+             * Fee charged by Rhinestone
+             */
+            protocol: number;
+        };
     } | {
         /**
          * Indicates that not all tokens have been fulfilled
@@ -312,32 +464,41 @@ export type PostIntentsRouteData = {
          */
         destinationChainId: number;
         /**
-         * A list of token transfers
+         * A list of token requested on the target chain
          */
-        tokenTransfers: Array<{
+        tokenRequests: Array<{
             /**
-             * The address of the token to be transferred
+             * The address of the requested token
              */
             tokenAddress: string;
             /**
-             * The amount of the token to be transferred (in smallest unit)
+             * The amount of the requested token (in the smallest unit)
              */
             amount: number;
+        } | {
+            /**
+             * The address of the requested token
+             */
+            tokenAddress: string;
+            /**
+             * The amount of the requested token (in the smallest unit)
+             */
+            amount?: number;
         }>;
         /**
-         * Smart account type and optional init data if account is not deployed
+         * Account details
          */
         account: {
             /**
-             * Smart account address
+             * Account address
              */
             address: string;
             /**
-             * Smart account type
+             * Account type
              */
-            accountType: string;
+            accountType?: 'smartAccount' | 'GENERIC' | 'EOA' | 'ERC7579';
             /**
-             * Setup operations for the smart account
+             * Setup operations for the smart account. Only used if the account is not deployed
              */
             setupOps?: Array<{
                 /**
@@ -350,13 +511,9 @@ export type PostIntentsRouteData = {
                 data: string;
             }>;
             /**
-             * Emissary configuration for the smart account
+             * Emissary configuration for using resource locking
              */
             emissaryConfig?: {
-                /**
-                 * Unique identifier for the emissary configuration
-                 */
-                configId: number;
                 /**
                  * Address of the validator contract
                  */
@@ -385,7 +542,10 @@ export type PostIntentsRouteData = {
                      * Nonce
                      */
                     nonce: number;
-                    allChainIds: unknown;
+                    /**
+                     * All chain IDs
+                     */
+                    allChainIds: Array<number>;
                     /**
                      * Chain index
                      */
@@ -394,7 +554,11 @@ export type PostIntentsRouteData = {
                 /**
                  * Emissary configuration
                  */
-                emissaryConfig: {
+                settings: {
+                    /**
+                     * Unique identifier for the emissary configuration
+                     */
+                    configId: number;
                     /**
                      * Address of the allocator
                      */
@@ -418,7 +582,7 @@ export type PostIntentsRouteData = {
                 };
             };
             /**
-             * Per-chain specific map to delegated contract address for 7702 delegations. Chain 0 means its default fallback
+             * Per-chain specific map to delegated contract address for 7702 delegations. Use `0` to indicate cross-chain delegation
              */
             delegations?: {
                 [key: string]: {
@@ -430,7 +594,7 @@ export type PostIntentsRouteData = {
             };
         };
         /**
-         * Execution calls on the target chain. Cannot be used with userOp
+         * Execution calls on the target chain.
          */
         destinationExecutions?: Array<{
             /**
@@ -447,26 +611,134 @@ export type PostIntentsRouteData = {
             data: string;
         }>;
         /**
-         * The gas units for the target chain
+         * The gas limit for the target chain executions
          */
         destinationGasUnits?: number;
         /**
          * Account access list specifying which chains and tokens an account may access
          */
-        accountAccessList?: Array<{
-            chainId: number;
-            tokenAddress: string;
-        }> | {
+        accountAccessList?: {
             chainIds?: Array<number>;
-            tokens?: Array<string>;
+            tokens?: Array<string | 'ETH' | 'WETH' | 'USDC' | 'POL' | 'WPOL' | 'S' | 'WS'>;
             chainTokens?: {
-                [key: string]: Array<string>;
+                [key: string]: Array<string | 'ETH' | 'WETH' | 'USDC' | 'POL' | 'WPOL' | 'S' | 'WS'>;
             };
             exclude?: {
                 chainIds?: Array<number>;
-                tokens?: Array<string>;
+                tokens?: Array<string | 'ETH' | 'WETH' | 'USDC' | 'POL' | 'WPOL' | 'S' | 'WS'>;
                 chainTokens?: {
-                    [key: string]: Array<string>;
+                    [key: string]: Array<string | 'ETH' | 'WETH' | 'USDC' | 'POL' | 'WPOL' | 'S' | 'WS'>;
+                };
+            };
+        } | Array<{
+            chainId: number;
+            tokenAddress: string;
+        }>;
+        /**
+         * Account details
+         */
+        recipient?: {
+            /**
+             * Account address
+             */
+            address: string;
+            /**
+             * Account type
+             */
+            accountType?: 'smartAccount' | 'GENERIC' | 'EOA' | 'ERC7579';
+            /**
+             * Setup operations for the smart account. Only used if the account is not deployed
+             */
+            setupOps?: Array<{
+                /**
+                 * Account deployment factory address
+                 */
+                to: string;
+                /**
+                 * Account deployment data
+                 */
+                data: string;
+            }>;
+            /**
+             * Emissary configuration for using resource locking
+             */
+            emissaryConfig?: {
+                /**
+                 * Address of the validator contract
+                 */
+                validatorAddress: string;
+                /**
+                 * Address of the emissary contract
+                 */
+                emissaryAddress: string;
+                /**
+                 * Emissary enable data
+                 */
+                emissaryEnable: {
+                    /**
+                     * Signature of the allocator
+                     */
+                    allocatorSig: string;
+                    /**
+                     * Signature of the user
+                     */
+                    userSig: string;
+                    /**
+                     * Expiration timestamp
+                     */
+                    expires: number;
+                    /**
+                     * Nonce
+                     */
+                    nonce: number;
+                    /**
+                     * All chain IDs
+                     */
+                    allChainIds: Array<number>;
+                    /**
+                     * Chain index
+                     */
+                    chainIndex: number;
+                };
+                /**
+                 * Emissary configuration
+                 */
+                settings: {
+                    /**
+                     * Unique identifier for the emissary configuration
+                     */
+                    configId: number;
+                    /**
+                     * Address of the allocator
+                     */
+                    allocator?: string;
+                    /**
+                     * Scope of the emissary
+                     */
+                    scope?: number;
+                    /**
+                     * Reset period of the emissary
+                     */
+                    resetPeriod?: number;
+                    /**
+                     * Address of the validator
+                     */
+                    validator: string;
+                    /**
+                     * Validator configuration
+                     */
+                    validatorConfig: string;
+                };
+            };
+            /**
+             * Per-chain specific map to delegated contract address for 7702 delegations. Use `0` to indicate cross-chain delegation
+             */
+            delegations?: {
+                [key: string]: {
+                    /**
+                     * address of contract to which delegation on behalf of sponsor will be assumed for given chain ID
+                     */
+                    contract: string;
                 };
             };
         };
@@ -499,7 +771,7 @@ export type PostIntentsRouteData = {
                  */
                 swapFeesSponsored?: boolean;
             };
-            feeToken?: 'ETH' | 'WETH' | 'USDC' | 'USDT' | 'POL' | 'WPOL' | 'S' | 'WS';
+            feeToken?: 'ETH' | 'WETH' | 'USDC' | 'POL' | 'WPOL' | 'S' | 'WS';
         };
     };
     headers: {
@@ -518,10 +790,20 @@ export type PostIntentsRouteErrors = {
      * Invalid request parameters
      */
     400: {
+        errors: Array<{
+            /**
+             * Error message
+             */
+            message: string;
+            /**
+             * Additional error context
+             */
+            context?: unknown;
+        }>;
         /**
-         * Error message for invalid request parameters
+         * Trace ID
          */
-        error: string;
+        traceId: string;
     };
     /**
      * Server error
@@ -613,19 +895,71 @@ export type PostIntentsRouteResponses = {
                             /**
                              * Settlement layer for the qualifier
                              */
-                            settlementLayer: 'INTENT_EXECUTOR' | 'SAME_CHAIN' | 'ACROSS' | 'ECO' | 'RELAY';
+                            settlementLayer: 'INTENT_EXECUTOR';
                             /**
-                             * Whether to use JIT for the qualifier. Only valid for ACROSS and SAME_CHAIN
+                             * Must be true for INTENT_EXECUTOR
                              */
-                            usingJIT?: boolean;
+                            using7579: true;
                             /**
-                             * Whether to use 7579 for the qualifier. Only valid for ACROSS
+                             * Must be NO_FUNDING for INTENT_EXECUTOR
                              */
-                            using7579?: boolean;
+                            fundingMethod: 'NO_FUNDING';
+                        } | {
+                            /**
+                             * Settlement layer for the qualifier
+                             */
+                            settlementLayer: 'SAME_CHAIN';
+                            /**
+                             * Whether to use 7579
+                             */
+                            using7579: boolean;
+                            /**
+                             * The method of funding the intent
+                             */
+                            fundingMethod: 'COMPACT' | 'PERMIT2' | 'NO_FUNDING';
+                        } | {
+                            /**
+                             * Settlement layer for the qualifier
+                             */
+                            settlementLayer: 'ACROSS';
+                            /**
+                             * Whether to use 7579
+                             */
+                            using7579: boolean;
+                            /**
+                             * The method of funding the intent
+                             */
+                            fundingMethod: 'COMPACT' | 'PERMIT2' | 'NO_FUNDING';
+                        } | {
+                            /**
+                             * Settlement layer for the qualifier
+                             */
+                            settlementLayer: 'ECO';
+                            /**
+                             * Whether to use 7579
+                             */
+                            using7579: boolean;
+                            /**
+                             * The method of funding the intent
+                             */
+                            fundingMethod: 'COMPACT' | 'PERMIT2' | 'NO_FUNDING';
+                        } | {
+                            /**
+                             * Settlement layer for the qualifier
+                             */
+                            settlementLayer: 'RELAY';
+                            /**
+                             * Whether to use 7579
+                             */
+                            using7579: boolean;
+                            /**
+                             * The method of funding the intent
+                             */
+                            fundingMethod: 'COMPACT' | 'PERMIT2' | 'NO_FUNDING';
                             /**
                              * Relay settlement layer metadata to be broadcasted
                              */
-                            requestId?: string;
+                            requestId: string;
                         };
                         /**
                          * Encoded qualification value
@@ -641,7 +975,6 @@ export type PostIntentsRouteResponses = {
                      */
                     minGas: number;
                 };
-                beforeFill?: boolean;
             }>;
             /**
              * Intent operation HMAC digest
@@ -651,32 +984,17 @@ export type PostIntentsRouteResponses = {
              * Signed metadata containing prices, fees, and gas parameters
              */
             signedMetadata: {
-                fees?: {
-                    /**
-                     * Protocol fees for the intent
-                     */
-                    protocolFees?: {
-                        [key: string]: number;
-                    };
-                    /**
-                     * Sponsor fee for the intent
-                     */
-                    sponsorFee?: {
-                        /**
-                         * Relayer fee for the intent
-                         */
-                        relayer?: number;
-                        /**
-                         * Protocol fee for the intent
-                         */
-                        protocol?: number;
-                    };
-                };
                 /**
                  * Token prices in USD
                  */
                 tokenPrices: {
-                    [key: string]: number;
+                    ETH: number;
+                    WETH: number;
+                    USDC: number;
+                    POL: number;
+                    WPOL: number;
+                    S: number;
+                    WS: number;
                 };
                 /**
                  * Gas prices per chain in wei
@@ -687,18 +1005,32 @@ export type PostIntentsRouteResponses = {
                 /**
                  * Optimism network gas parameters per chain
                  */
-                opGasParams?: unknown;
+                opGasParams: {
+                    estimatedCalldataSize?: number;
+                    [key: string]: {
+                        l1BaseFee: number;
+                        l1BlobBaseFee: number;
+                        baseFeeScalar: number;
+                        blobFeeScalar: number;
+                    } | number | undefined;
+                };
+                /**
+                 * Swap quotes per token address
+                 */
+                quotes: {
+                    [key: string]: unknown;
+                };
                 account: {
                     /**
-                     * Smart account address
+                     * Account address
                      */
                     address: string;
                     /**
-                     * Smart account type
+                     * Account type
                      */
-                    accountType: string;
+                    accountType?: 'smartAccount' | 'GENERIC' | 'EOA' | 'ERC7579';
                     /**
-                     * Setup operations for the smart account
+                     * Setup operations for the smart account. Only used if the account is not deployed
                      */
                     setupOps?: Array<{
                         /**
@@ -711,13 +1043,9 @@ export type PostIntentsRouteResponses = {
                         data: string;
                     }>;
                     /**
-                     * Emissary configuration for the smart account
+                     * Emissary configuration for using resource locking
                      */
                     emissaryConfig?: {
-                        /**
-                         * Unique identifier for the emissary configuration
-                         */
-                        configId: number;
                         /**
                          * Address of the validator contract
                          */
@@ -746,7 +1074,10 @@ export type PostIntentsRouteResponses = {
                              * Nonce
                              */
                             nonce: number;
-                            allChainIds: unknown;
+                            /**
+                             * All chain IDs
+                             */
+                            allChainIds: Array<number>;
                             /**
                              * Chain index
                              */
@@ -755,7 +1086,11 @@ export type PostIntentsRouteResponses = {
                         /**
                          * Emissary configuration
                          */
-                        emissaryConfig: {
+                        settings: {
+                            /**
+                             * Unique identifier for the emissary configuration
+                             */
+                            configId: number;
                             /**
                              * Address of the allocator
                              */
@@ -786,7 +1121,7 @@ export type PostIntentsRouteResponses = {
                             /**
                              * Type of the account
                              */
-                            accountType: 'eoa';
+                            accountType: 'EOA';
                         } | {
                             /**
                              * Type of the account
@@ -803,7 +1138,7 @@ export type PostIntentsRouteResponses = {
                             /**
                              * Type of ERC7579 account
                              */
-                            erc7579AccountType?: 'Safe' | 'Kernel' | 'Nexus' | 'Prime';
+                            erc7579AccountType?: 'Safe' | 'Kernel' | 'Nexus';
                             /**
                              * Version of the ERC7579 account
                              */
@@ -822,7 +1157,158 @@ export type PostIntentsRouteResponses = {
                         };
                     };
                 };
-                quotes?: unknown;
+                recipient?: {
+                    /**
+                     * Account address
+                     */
+                    address: string;
+                    /**
+                     * Account type
+                     */
+                    accountType?: 'smartAccount' | 'GENERIC' | 'EOA' | 'ERC7579';
+                    /**
+                     * Setup operations for the smart account. Only used if the account is not deployed
+                     */
+                    setupOps?: Array<{
+                        /**
+                         * Account deployment factory address
+                         */
+                        to: string;
+                        /**
+                         * Account deployment data
+                         */
+                        data: string;
+                    }>;
+                    /**
+                     * Emissary configuration for using resource locking
+                     */
+                    emissaryConfig?: {
+                        /**
+                         * Address of the validator contract
+                         */
+                        validatorAddress: string;
+                        /**
+                         * Address of the emissary contract
+                         */
+                        emissaryAddress: string;
+                        /**
+                         * Emissary enable data
+                         */
+                        emissaryEnable: {
+                            /**
+                             * Signature of the allocator
+                             */
+                            allocatorSig: string;
+                            /**
+                             * Signature of the user
+                             */
+                            userSig: string;
+                            /**
+                             * Expiration timestamp
+                             */
+                            expires: number;
+                            /**
+                             * Nonce
+                             */
+                            nonce: number;
+                            /**
+                             * All chain IDs
+                             */
+                            allChainIds: Array<number>;
+                            /**
+                             * Chain index
+                             */
+                            chainIndex: number;
+                        };
+                        /**
+                         * Emissary configuration
+                         */
+                        settings: {
+                            /**
+                             * Unique identifier for the emissary configuration
+                             */
+                            configId: number;
+                            /**
+                             * Address of the allocator
+                             */
+                            allocator?: string;
+                            /**
+                             * Scope of the emissary
+                             */
+                            scope?: number;
+                            /**
+                             * Reset period of the emissary
+                             */
+                            resetPeriod?: number;
+                            /**
+                             * Address of the validator
+                             */
+                            validator: string;
+                            /**
+                             * Validator configuration
+                             */
+                            validatorConfig: string;
+                        };
+                    };
+                    /**
+                     * Account status per chain
+                     */
+                    accountContext: {
+                        [key: string]: {
+                            /**
+                             * Type of the account
+                             */
+                            accountType: 'EOA';
+                        } | {
+                            /**
+                             * Type of the account
+                             */
+                            accountType: 'smartAccount';
+                            /**
+                             * Whether the account is deployed on this chain
+                             */
+                            isDeployed: boolean;
+                            /**
+                             * Whether the account supports ERC7579 standard
+                             */
+                            isERC7579: boolean;
+                            /**
+                             * Type of ERC7579 account
+                             */
+                            erc7579AccountType?: 'Safe' | 'Kernel' | 'Nexus';
+                            /**
+                             * Version of the ERC7579 account
+                             */
+                            erc7579AccountVersion?: string;
+                        };
+                    };
+                    /**
+                     * Map of chain -> EOA and delegated address required for user to sign for 7702 authorizations
+                     */
+                    requiredDelegations?: {
+                        [key: string]: {
+                            /**
+                             * address of contract to which delegation on behalf of sponsor will be assumed for given chain ID
+                             */
+                            contract: string;
+                        };
+                    };
+                };
+                fees?: {
+                    /**
+                     * Transaction fees
+                     */
+                    sponsorFee?: {
+                        /**
+                         * Fee charged by relayer
+                         */
+                        relayer: number;
+                        /**
+                         * Fee charged by Rhinestone
+                         */
+                        protocol: number;
+                    };
+                };
             };
             /**
              * List of 7702 authorizations signed by EOA matching sponsor
@@ -854,10 +1340,11 @@ export type PostIntentsRouteResponses = {
                 s: string;
             }>;
         };
-        /**
-         * Cost breakdown for the intent
-         */
         intentCost: {
+            /**
+             * Indicates that all tokens have been fulfilled
+             */
+            hasFulfilledAll: true;
             /**
              * Tokens spent in the transaction
              */
@@ -879,6 +1366,72 @@ export type PostIntentsRouteResponses = {
                 fee: number;
                 hasFulfilled: boolean;
             }>;
+            /**
+             * Transaction fees
+             */
+            sponsorFee: {
+                /**
+                 * Fee charged by relayer
+                 */
+                relayer: number;
+                /**
+                 * Fee charged by Rhinestone
+                 */
+                protocol: number;
+            };
+        } | {
+            /**
+             * Indicates that not all tokens have been fulfilled
+             */
+            hasFulfilledAll: false;
+            /**
+             * List of tokens that have not been fulfilled
+             */
+            tokenShortfall: Array<{
+                /**
+                 * Address of the token that has not been fulfilled
+                 */
+                tokenAddress: string;
+                /**
+                 * Target amount of the token that has not been fulfilled
+                 */
+                destinationAmount: number;
+                /**
+                 * Amount spent on the token that has not been fulfilled
+                 */
+                amountSpent: number;
+                /**
+                 * Fee associated with the token that has not been fulfilled
+                 */
+                fee: number;
+                /**
+                 * Symbol of the token that has not been fulfilled
+                 */
+                tokenSymbol: string;
+                /**
+                 * Number of decimal places for the token
+                 */
+                tokenDecimals: number;
+            }>;
+            /**
+             * Total shortfall of tokens in USD
+             */
+            totalTokenShortfallInUSD: number;
+        };
+        /**
+         * Token requirements for the intent to pass. For EOAs only.
+         */
+        tokenRequirements?: {
+            [key: string]: {
+                [key: string]: {
+                    type: 'approval';
+                    amount: number;
+                    spender: string;
+                } | {
+                    type: 'wrap';
+                    amount: number;
+                };
+            };
         };
     };
 };
@@ -959,19 +1512,71 @@ export type PostIntentOperationsData = {
                             /**
                              * Settlement layer for the qualifier
                              */
-                            settlementLayer: 'INTENT_EXECUTOR' | 'SAME_CHAIN' | 'ACROSS' | 'ECO' | 'RELAY';
+                            settlementLayer: 'INTENT_EXECUTOR';
                             /**
-                             * Whether to use JIT for the qualifier. Only valid for ACROSS and SAME_CHAIN
+                             * Must be true for INTENT_EXECUTOR
                              */
-                            usingJIT?: boolean;
+                            using7579: true;
                             /**
-                             * Whether to use 7579 for the qualifier. Only valid for ACROSS
+                             * Must be NO_FUNDING for INTENT_EXECUTOR
                              */
-                            using7579?: boolean;
+                            fundingMethod: 'NO_FUNDING';
+                        } | {
+                            /**
+                             * Settlement layer for the qualifier
+                             */
+                            settlementLayer: 'SAME_CHAIN';
+                            /**
+                             * Whether to use 7579
+                             */
+                            using7579: boolean;
+                            /**
+                             * The method of funding the intent
+                             */
+                            fundingMethod: 'COMPACT' | 'PERMIT2' | 'NO_FUNDING';
+                        } | {
+                            /**
+                             * Settlement layer for the qualifier
+                             */
+                            settlementLayer: 'ACROSS';
+                            /**
+                             * Whether to use 7579
+                             */
+                            using7579: boolean;
+                            /**
+                             * The method of funding the intent
+                             */
+                            fundingMethod: 'COMPACT' | 'PERMIT2' | 'NO_FUNDING';
+                        } | {
+                            /**
+                             * Settlement layer for the qualifier
+                             */
+                            settlementLayer: 'ECO';
+                            /**
+                             * Whether to use 7579
+                             */
+                            using7579: boolean;
+                            /**
+                             * The method of funding the intent
+                             */
+                            fundingMethod: 'COMPACT' | 'PERMIT2' | 'NO_FUNDING';
+                        } | {
+                            /**
+                             * Settlement layer for the qualifier
+                             */
+                            settlementLayer: 'RELAY';
+                            /**
+                             * Whether to use 7579
+                             */
+                            using7579: boolean;
+                            /**
+                             * The method of funding the intent
+                             */
+                            fundingMethod: 'COMPACT' | 'PERMIT2' | 'NO_FUNDING';
                             /**
                              * Relay settlement layer metadata to be broadcasted
                              */
-                            requestId?: string;
+                            requestId: string;
                         };
                         /**
                          * Encoded qualification value
@@ -987,7 +1592,6 @@ export type PostIntentOperationsData = {
                      */
                     minGas: number;
                 };
-                beforeFill?: boolean;
             }>;
             /**
              * Intent operation HMAC digest
@@ -997,32 +1601,17 @@ export type PostIntentOperationsData = {
              * Signed metadata containing prices, fees, and gas parameters
              */
             signedMetadata: {
-                fees?: {
-                    /**
-                     * Protocol fees for the intent
-                     */
-                    protocolFees?: {
-                        [key: string]: number;
-                    };
-                    /**
-                     * Sponsor fee for the intent
-                     */
-                    sponsorFee?: {
-                        /**
-                         * Relayer fee for the intent
-                         */
-                        relayer?: number;
-                        /**
-                         * Protocol fee for the intent
-                         */
-                        protocol?: number;
-                    };
-                };
                 /**
                  * Token prices in USD
                  */
                 tokenPrices: {
-                    [key: string]: number;
+                    ETH: number;
+                    WETH: number;
+                    USDC: number;
+                    POL: number;
+                    WPOL: number;
+                    S: number;
+                    WS: number;
                 };
                 /**
                  * Gas prices per chain in wei
@@ -1033,18 +1622,32 @@ export type PostIntentOperationsData = {
                 /**
                  * Optimism network gas parameters per chain
                  */
-                opGasParams?: unknown;
+                opGasParams: {
+                    estimatedCalldataSize?: number;
+                    [key: string]: {
+                        l1BaseFee: number;
+                        l1BlobBaseFee: number;
+                        baseFeeScalar: number;
+                        blobFeeScalar: number;
+                    } | number | undefined;
+                };
+                /**
+                 * Swap quotes per token address
+                 */
+                quotes: {
+                    [key: string]: unknown;
+                };
                 account: {
                     /**
-                     * Smart account address
+                     * Account address
                      */
                     address: string;
                     /**
-                     * Smart account type
+                     * Account type
                      */
-                    accountType: string;
+                    accountType?: 'smartAccount' | 'GENERIC' | 'EOA' | 'ERC7579';
                     /**
-                     * Setup operations for the smart account
+                     * Setup operations for the smart account. Only used if the account is not deployed
                      */
                     setupOps?: Array<{
                         /**
@@ -1057,13 +1660,9 @@ export type PostIntentOperationsData = {
                         data: string;
                     }>;
                     /**
-                     * Emissary configuration for the smart account
+                     * Emissary configuration for using resource locking
                      */
                     emissaryConfig?: {
-                        /**
-                         * Unique identifier for the emissary configuration
-                         */
-                        configId: number;
                         /**
                          * Address of the validator contract
                          */
@@ -1092,7 +1691,10 @@ export type PostIntentOperationsData = {
                              * Nonce
                              */
                             nonce: number;
-                            allChainIds: unknown;
+                            /**
+                             * All chain IDs
+                             */
+                            allChainIds: Array<number>;
                             /**
                              * Chain index
                              */
@@ -1101,7 +1703,11 @@ export type PostIntentOperationsData = {
                         /**
                          * Emissary configuration
                          */
-                        emissaryConfig: {
+                        settings: {
+                            /**
+                             * Unique identifier for the emissary configuration
+                             */
+                            configId: number;
                             /**
                              * Address of the allocator
                              */
@@ -1132,7 +1738,7 @@ export type PostIntentOperationsData = {
                             /**
                              * Type of the account
                              */
-                            accountType: 'eoa';
+                            accountType: 'EOA';
                         } | {
                             /**
                              * Type of the account
@@ -1149,7 +1755,7 @@ export type PostIntentOperationsData = {
                             /**
                              * Type of ERC7579 account
                              */
-                            erc7579AccountType?: 'Safe' | 'Kernel' | 'Nexus' | 'Prime';
+                            erc7579AccountType?: 'Safe' | 'Kernel' | 'Nexus';
                             /**
                              * Version of the ERC7579 account
                              */
@@ -1168,7 +1774,158 @@ export type PostIntentOperationsData = {
                         };
                     };
                 };
-                quotes?: unknown;
+                recipient?: {
+                    /**
+                     * Account address
+                     */
+                    address: string;
+                    /**
+                     * Account type
+                     */
+                    accountType?: 'smartAccount' | 'GENERIC' | 'EOA' | 'ERC7579';
+                    /**
+                     * Setup operations for the smart account. Only used if the account is not deployed
+                     */
+                    setupOps?: Array<{
+                        /**
+                         * Account deployment factory address
+                         */
+                        to: string;
+                        /**
+                         * Account deployment data
+                         */
+                        data: string;
+                    }>;
+                    /**
+                     * Emissary configuration for using resource locking
+                     */
+                    emissaryConfig?: {
+                        /**
+                         * Address of the validator contract
+                         */
+                        validatorAddress: string;
+                        /**
+                         * Address of the emissary contract
+                         */
+                        emissaryAddress: string;
+                        /**
+                         * Emissary enable data
+                         */
+                        emissaryEnable: {
+                            /**
+                             * Signature of the allocator
+                             */
+                            allocatorSig: string;
+                            /**
+                             * Signature of the user
+                             */
+                            userSig: string;
+                            /**
+                             * Expiration timestamp
+                             */
+                            expires: number;
+                            /**
+                             * Nonce
+                             */
+                            nonce: number;
+                            /**
+                             * All chain IDs
+                             */
+                            allChainIds: Array<number>;
+                            /**
+                             * Chain index
+                             */
+                            chainIndex: number;
+                        };
+                        /**
+                         * Emissary configuration
+                         */
+                        settings: {
+                            /**
+                             * Unique identifier for the emissary configuration
+                             */
+                            configId: number;
+                            /**
+                             * Address of the allocator
+                             */
+                            allocator?: string;
+                            /**
+                             * Scope of the emissary
+                             */
+                            scope?: number;
+                            /**
+                             * Reset period of the emissary
+                             */
+                            resetPeriod?: number;
+                            /**
+                             * Address of the validator
+                             */
+                            validator: string;
+                            /**
+                             * Validator configuration
+                             */
+                            validatorConfig: string;
+                        };
+                    };
+                    /**
+                     * Account status per chain
+                     */
+                    accountContext: {
+                        [key: string]: {
+                            /**
+                             * Type of the account
+                             */
+                            accountType: 'EOA';
+                        } | {
+                            /**
+                             * Type of the account
+                             */
+                            accountType: 'smartAccount';
+                            /**
+                             * Whether the account is deployed on this chain
+                             */
+                            isDeployed: boolean;
+                            /**
+                             * Whether the account supports ERC7579 standard
+                             */
+                            isERC7579: boolean;
+                            /**
+                             * Type of ERC7579 account
+                             */
+                            erc7579AccountType?: 'Safe' | 'Kernel' | 'Nexus';
+                            /**
+                             * Version of the ERC7579 account
+                             */
+                            erc7579AccountVersion?: string;
+                        };
+                    };
+                    /**
+                     * Map of chain -> EOA and delegated address required for user to sign for 7702 authorizations
+                     */
+                    requiredDelegations?: {
+                        [key: string]: {
+                            /**
+                             * address of contract to which delegation on behalf of sponsor will be assumed for given chain ID
+                             */
+                            contract: string;
+                        };
+                    };
+                };
+                fees?: {
+                    /**
+                     * Transaction fees
+                     */
+                    sponsorFee?: {
+                        /**
+                         * Fee charged by relayer
+                         */
+                        relayer: number;
+                        /**
+                         * Fee charged by Rhinestone
+                         */
+                        protocol: number;
+                    };
+                };
             };
             /**
              * List of 7702 authorizations signed by EOA matching sponsor
@@ -1200,14 +1957,17 @@ export type PostIntentOperationsData = {
                 s: string;
             }>;
             /**
-             * Target signature
+             * Destination (target chain) signature
              */
             destinationSignature: string;
             /**
-             * Origin signatures
+             * Origin (source chain) signatures
              */
             originSignatures: Array<string>;
             options?: {
+                /**
+                 * Whether to perform a dry run. For internal use only
+                 */
                 dryRun?: boolean;
             };
         };
@@ -1228,10 +1988,20 @@ export type PostIntentOperationsErrors = {
      * Invalid request parameters
      */
     400: {
+        errors: Array<{
+            /**
+             * Error message
+             */
+            message: string;
+            /**
+             * Additional error context
+             */
+            context?: unknown;
+        }>;
         /**
-         * Error message for invalid request parameters
+         * Trace ID
          */
-        error: string;
+        traceId: string;
     };
     /**
      * Server error
@@ -1252,74 +2022,26 @@ export type PostIntentOperationsResponses = {
      */
     201: {
         /**
-         * Results of bundle submissions
+         * Intent operation submission results
          */
         result: {
             /**
-             * Nonce of the bundle, used as identifier
+             * Unique identifier
              */
             id: number;
             /**
-             * Status of the intent operation
+             * Status of the intent operations
              */
             status: 'PENDING';
         } | {
             /**
-             * Nonce of the bundle, used as identifier
+             * Nonce of the intent operations, used as identifier
              */
             id: number;
             /**
-             * Status of the intent operation
+             * Status of the intent operations
              */
             status: 'FAILED';
-            /**
-             * Error details for failed bundles
-             */
-            error: {
-                success: true;
-                chainId: number;
-                gasEstimation: string;
-            } | {
-                success: false;
-                call: {
-                    to: string;
-                    value: number;
-                    data: string;
-                    chainId: number;
-                };
-                details: {
-                    blockNumber: number;
-                    relayer: string;
-                    simulationUrl?: string;
-                };
-            };
-        } | {
-            /**
-             * Nonce of the bundle, used as identifier
-             */
-            id: number;
-            /**
-             * Status of the intent operation
-             */
-            status: 'FAILED';
-            simulations: Array<{
-                success: true;
-                chainId: number;
-                gasEstimation: string;
-            } | {
-                success: false;
-                call: {
-                    to: string;
-                    value: number;
-                    data: string;
-                    chainId: number;
-                };
-                details: {
-                    blockNumber: number;
-                    relayer: string;
-                    simulationUrl?: string;
-                };
-            }>;
         };
     };
 };
@@ -1341,6 +2063,9 @@ export type GetIntentOperationByIdData = {
         id: string;
     };
     query?: {
+        /**
+         * Whether to include intent operation details
+         */
         full?: boolean;
     };
     url: '/intent-operation/{id}';
@@ -1348,13 +2073,42 @@ export type GetIntentOperationByIdData = {
 
 export type GetIntentOperationByIdErrors = {
     /**
-     * Invalid ntent ID
+     * Invalid intent ID
      */
     400: {
+        errors: Array<{
+            /**
+             * Error message
+             */
+            message: string;
+            /**
+             * Additional error context
+             */
+            context?: unknown;
+        }>;
         /**
-         * Error message for invalid intent ID format
+         * Trace ID
          */
-        error: string;
+        traceId: string;
+    };
+    /**
+     * Intent ID not found
+     */
+    404: {
+        errors: Array<{
+            /**
+             * Error message
+             */
+            message: string;
+            /**
+             * Additional error context
+             */
+            context?: unknown;
+        }>;
+        /**
+         * Trace ID
+         */
+        traceId: string;
     };
     /**
      * Server error
@@ -1387,6 +2141,14 @@ export type GetIntentOperationByIdResponses = {
          */
         fillTransactionHash?: string;
         /**
+         * Chain ID of the fill transaction
+         */
+        destinationChainId: number;
+        /**
+         * User address
+         */
+        userAddress: string;
+        /**
          * Array of claims within the intent
          */
         claims: Array<{
@@ -1395,7 +2157,7 @@ export type GetIntentOperationByIdResponses = {
              */
             chainId: number;
             /**
-             * Status of individual claim
+             * Status of the claim
              */
             status: 'PENDING' | 'EXPIRED' | 'PRECONFIRMED' | 'COMPLETED' | 'FAILED';
             /**
@@ -1448,10 +2210,20 @@ export type GetAccountsByUserAddressPortfolioErrors = {
      * Invalid request parameters
      */
     400: {
+        errors: Array<{
+            /**
+             * Error message
+             */
+            message: string;
+            /**
+             * Additional error context
+             */
+            context?: unknown;
+        }>;
         /**
-         * Error message for invalid request parameters
+         * Trace ID
          */
-        error: string;
+        traceId: string;
     };
     /**
      * Server error
@@ -1476,7 +2248,7 @@ export type GetAccountsByUserAddressPortfolioResponses = {
          */
         portfolio: Array<{
             /**
-             * Name of the token
+             * Short name (symbol) of the token
              */
             tokenName: string;
             /**
@@ -1549,10 +2321,20 @@ export type PostWithdrawalsErrors = {
      * Invalid request parameters
      */
     400: {
+        errors: Array<{
+            /**
+             * Error message
+             */
+            message: string;
+            /**
+             * Additional error context
+             */
+            context?: unknown;
+        }>;
         /**
-         * Error message for invalid request parameters
+         * Trace ID
          */
-        error: string;
+        traceId: string;
     };
     /**
      * Server error
@@ -1616,10 +2398,20 @@ export type PostBatchWithdrawalsErrors = {
      * Invalid request parameters
      */
     400: {
+        errors: Array<{
+            /**
+             * Error message
+             */
+            message: string;
+            /**
+             * Additional error context
+             */
+            context?: unknown;
+        }>;
         /**
-         * Error message for invalid request parameters
+         * Trace ID
          */
-        error: string;
+        traceId: string;
     };
     /**
      * Server error
