@@ -64,7 +64,7 @@ const executeIntent = async (signedIntentData: SignedIntentData): Promise<Signed
     const erc20transfers = tokenTransfers.filter((t) => t.address != NATIVE_TOKEN).map((t) => {
         return {
             to: t.address,
-            callData: executor.transferFrom(recipient, t.value)
+            callData: executor.transfer(recipient, t.value)
         }
     })
 
