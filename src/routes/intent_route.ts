@@ -5,7 +5,6 @@ import { z, ZodError } from "zod";
 import { Address, getAddress, hexToBigInt } from "viem";
 import { randomBytes } from "crypto";
 import { chainContexts } from "../chains";
-import { FundingMethod } from "@rhinestone/sdk/dist/src/orchestrator/types";
 
 type UserIntent = z.infer<typeof zPostIntentsRouteData>
 
