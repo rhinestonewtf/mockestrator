@@ -4,5 +4,8 @@
     },
     "84532": {
         "rpc": "http://localhost:30005"
+    },
+    "565656": {
+        "rpc": "http://localhost:30007"
     }
 }

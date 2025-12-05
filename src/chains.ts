@@ -1,18 +1,13 @@
-import fs, { readFileSync } from "fs";
-import path from "path";
-import { ChainEntry, chainRegistry, chains } from "@rhinestone/shared-configs"
+import { readFileSync } from "fs";
 import { Account, Address, Chain, createTestClient, createWalletClient, encodeAbiParameters, encodeFunctionData, encodePacked, erc20Abi, getAddress, Hash, Hex, http, keccak256, multicall3Abi, numberToHex, pad, publicActions, stringToHex, toHex, Transport, zeroAddress } from "viem";
-import { getTokenAddress, TokenSymbol } from "@rhinestone/sdk";
-import z, { ZodSchema } from "zod";
+import z, { symbol, ZodSchema } from "zod";
 import { privateKeyToAccount } from 'viem/accounts'
 import { fakeRouterAbi } from "./abi/fakeRouter";
+import * as chains from "viem/chains"
 
+type TokenSymbol = string
 
-const chainMap: Record<number, Chain> = Object.fromEntries(chains.map(c => [c.id, c]));
-
-export const supportedTokens: TokenSymbol[] = ['ETH', 'USDC']
-
-export const NATIVE_TOKEN: Address = "0x0000000000000000000000000000000000000000"
+const viemChains: Record<number, Chain> = Object.fromEntries(Object.values(chains).map(c => [c.id, c]));
 
 export type Balance = {
     symbol: TokenSymbol
@@ -28,24 +23,25 @@ export class ChainContext {
 
     private testClient
 
-    private tokens
+    private tokens: Record<Address, {
+        decimals: number;
+        balanceSlot?: number;
+        approvalSlot?: number;
+    }> = {}
 
-    constructor(private chainId: number, account: Account, private chainEntry: ChainEntry, private chainConfig: Config, transport: Transport) {
+    private tokenSymbols: TokenSymbol[] = []
+
+    constructor(private chain: Chain, account: Account, private chainConfig: ChainConfig, private fundingConfig: Config, transport: Transport) {
         this.walletClient = createWalletClient({
             account,
             transport,
-            chain: chainMap[chainId]!
+            chain
         }).extend(publicActions)
 
-        let tokens: Record<Address, {
-            decimals: number;
-            balanceSlot: number | null;
-            approvalSlot: number | null;
-        }> = {}
-        for (const tokenEntry of chainEntry.tokens) {
-            tokens[tokenEntry.address] = tokenEntry
+        for (const [symbol, tokenConfig] of Object.entries(chainConfig.tokens)) {
+            this.tokens[tokenConfig.address] = tokenConfig
+            this.tokenSymbols.push(symbol)
         }
-        this.tokens = tokens
 
         this.testClient = createTestClient({
             chain: this.walletClient.chain,
@@ -54,16 +50,31 @@ export class ChainContext {
         });
     }
 
+    maybeAddress(symbol: TokenSymbol): Address | undefined {
+        return this.chainConfig.tokens[symbol]?.address
+    }
+
+    getTokenAddress(symbol: TokenSymbol): Address {
+        let address = this.maybeAddress(symbol)
+        if (!address) {
+            throw new Error(`No token address for ${symbol} on ${this.chain}`)
+        }
+        return address
+    }
+
+    supportedTokens(): TokenSymbol[] {
+        return this.tokenSymbols
+    }
 
     public async balanceOf(address: Address, tokenSymbols: TokenSymbol[]): Promise<Balance[]> {
 
         const tokens = tokenSymbols.map((symbol) => {
-            const tokenAddress = getTokenAddress(symbol, this.chainId)
+            const tokenAddress = this.getTokenAddress(symbol)
             return {
                 symbol,
                 decimals: this.tokens[tokenAddress].decimals,
                 token: tokenAddress,
-                chainId: this.chainId
+                chainId: this.chain.id
             }
         })
 
@@ -162,7 +173,12 @@ export class ChainContext {
     }
 
     public async fundAccount(account: Address, token: TokenSymbol, value: bigint) {
-        const tokenAddress = getTokenAddress(token, this.chainId)
+        const tokenAddress = this.maybeAddress(token)
+        if (!tokenAddress) {
+            console.log(`${token} token is not defined for ${this.chain.name} - cannot fund`)
+            return
+        }
+
         if (tokenAddress == zeroAddress) {
             console.log(`${this.walletClient.chain.name}: Native balance for ${account} -> ${value}]`)
             await this.testClient.setBalance({
@@ -186,7 +202,11 @@ export class ChainContext {
         }
     }
     public async approveSpending(owner: Address, spender: Address, token: TokenSymbol, value: bigint) {
-        const tokenAddress = getTokenAddress(token, this.chainId)
+        const tokenAddress = this.maybeAddress(token)
+        if (!tokenAddress) {
+            console.log(`${token} token is not defined for ${this.chain.name} - cannot approve spending`)
+            return
+        }
         if (tokenAddress == zeroAddress) {
             // skip natives
         } else {
@@ -221,7 +241,7 @@ export class ChainContext {
         })
 
         return {
-            to: this.chainConfig.routerAddress as Address,
+            to: this.fundingConfig.routerAddress as Address,
             callData: encoded
         }
     }
@@ -265,11 +285,26 @@ type Config = z.infer<typeof ConfigSchema>
 const CodeSchema = z.record(AddressSchema, VarHex)
 type CodeOverrides = z.infer<typeof CodeSchema>
 
+const ChainConfigSchema = z.object({
+    multicall3: AddressSchema.optional(),
+    tokens: z.record(z.string(), z.object({
+        address: AddressSchema,
+        decimals: z.number(),
+        approvalSlot: z.number().optional(),
+        balanceSlot: z.number().optional()
+    }))
+})
+type ChainConfig = z.infer<typeof ChainConfigSchema>
+
+const ChainConfigsSchema = z.record(z.string(), ChainConfigSchema)
+type ChainConfigs = z.infer<typeof ChainConfigsSchema>
+
 
 async function loadChainContexts(): Promise<ChainContexts> {
     const rpcs: RpcConfig = loadJsonWithSchema('rpcs.json', RpcSchema)
     const config: Config = loadJsonWithSchema('config.json', ConfigSchema)
     const codeOverrides: CodeOverrides = loadJsonWithSchema('code.json', CodeSchema)
+    const chainConfigs: ChainConfigs = loadJsonWithSchema('chains.json', ChainConfigsSchema)
 
     const account = privateKeyToAccount(config.relayerKey)
     const accountAddress = config.relayerAddress
@@ -282,12 +317,40 @@ async function loadChainContexts(): Promise<ChainContexts> {
     for (const [key, rpcConfig] of Object.entries(rpcs)) {
         const chainId = parseInt(key);
 
-        const chainEntry = chainRegistry[key]
+        const chainEntry = chainConfigs[key]
         if (!chainEntry) {
             throw new Error(`Unsupported chain ${key} in rpcs file`)
         }
 
-        const chainContext = new ChainContext(chainId, account, chainEntry, config, http(rpcConfig.rpc))
+        let chain = viemChains[chainId]
+        if (!chain) {
+
+            const maybeNativeToken = Object.entries(chainEntry.tokens).find(([_, token]) => token.address == zeroAddress)
+            if (!maybeNativeToken) {
+                throw new Error(`No native token defined for custom chain ${chainId}`)
+            }
+
+            const [symbol, token] = maybeNativeToken
+            chain = {
+                id: chainId,
+                name: `Custom ${chainId}`,
+                nativeCurrency: {
+                    name: symbol,
+                    symbol: symbol,
+                    decimals: token.decimals
+                },
+                rpcUrls: {
+                    default: { http: ["http://127.0.0.1:8545"] },
+                },
+                contracts: {
+                    multicall3: chainEntry.multicall3 ? {
+                        address: chainEntry.multicall3
+                    } : undefined
+                }
+            }
+        }
+
+        const chainContext = new ChainContext(chain, account, chainEntry, config, http(rpcConfig.rpc))
 
         await chainContext.setupAccount(config)
 
