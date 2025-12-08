@@ -187,7 +187,7 @@ export class ChainContext {
             })
         } else {
             const balanceSlot = this.tokens[tokenAddress].balanceSlot
-            if (!balanceSlot) {
+            if (balanceSlot == undefined) {
                 throw new Error(`${token} at ${tokenAddress} config has undefined balance slot`)
             }
             const slot = keccak256(

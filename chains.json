@@ -14,8 +14,8 @@
             "MockUSDC": {
                 "address": "0x9028ab8e872af36c30c959a105cb86d1038412ae",
                 "decimals": 6,
-                "balanceSlot": 9,
-                "approvalSlot": 10
+                "balanceSlot": 0,
+                "approvalSlot": 1
             }
         }
     },

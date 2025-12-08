@@ -20,6 +20,7 @@ COPY --from=builder /app/package.json ./
 COPY rpcs.json .
 COPY config.json .
 COPY code.json .
+COPY chains.json .
 
 USER bun
 EXPOSE 3000
