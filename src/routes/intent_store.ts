@@ -3,9 +3,9 @@ import { jsonify, logRequest } from "../log"
 import { Request, Response } from "express"
 import { zPostIntentOperationsData, zPostIntentOperationsResponse } from "../gen/zod.gen"
 import { addNewIntent, IntentData } from "../services/intentRepo"
-import { Address, encodeFunctionData, erc20Abi, getAddress, Hex, keccak256, pad, stringToHex, toHex } from "viem"
+import { Address, encodeFunctionData, erc20Abi, getAddress, Hex, keccak256, pad, stringToHex, toHex, zeroAddress } from "viem"
 import { randomBytes } from "crypto"
-import { AddressSchema, BigIntSchema, chainContexts, NATIVE_TOKEN, supportedTokens, VarHex } from "../chains"
+import { AddressSchema, BigIntSchema, chainContexts, VarHex } from "../chains"
 
 type SignedIntentData = z.infer<typeof zPostIntentOperationsData>
 
@@ -59,9 +59,9 @@ const executeIntent = async (signedIntentData: SignedIntentData): Promise<Signed
     }) : []
 
     const tokenTransfers = toTokenTransfers(signedIntent.elements)
-    const nativeTransferValue = tokenTransfers.filter((t) => t.address == NATIVE_TOKEN).map((t) => t.value)[0] ?? 0n
+    const nativeTransferValue = tokenTransfers.filter((t) => t.address == zeroAddress).map((t) => t.value)[0] ?? 0n
 
-    const erc20transfers = tokenTransfers.filter((t) => t.address != NATIVE_TOKEN).map((t) => {
+    const erc20transfers = tokenTransfers.filter((t) => t.address != zeroAddress).map((t) => {
         return {
             to: t.address,
             callData: executor.transfer(recipient, t.value)
