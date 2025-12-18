@@ -6,7 +6,9 @@
     "build": "tsc",
     "start": "PORT=4000 ts-node src/app.ts",
     "chains": "op run --env-file=.env.sensitive -- docker compose up -d",
-    "generate": "openapi-ts"
+    "generate": "openapi-ts",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "keywords": [],
   "author": "",
