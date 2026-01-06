@@ -70,7 +70,19 @@ const executeIntent = async (signedIntentData: SignedIntentData): Promise<Signed
 
     const destinationOps = toDestinationOps(signedIntent.elements)
 
-    const executions = [...setupCalls, ...erc20transfers, ...destinationOps]
+    // if mock intent executor is configured and there are dest ops, route them through the executor
+    let executions: { to: Address, callData: Hex }[]
+    if (destinationOps.length > 0 && executor.mockIntentExecutorAddress) {
+        const mockExecutorCall = executor.encodeDestOpsForMockIntentExecutor(
+            recipient,
+            destinationOps.map(op => ({ to: op.to, callData: op.callData, value: 0n }))
+        )
+        executions = mockExecutorCall
+            ? [...setupCalls, ...erc20transfers, mockExecutorCall]
+            : [...setupCalls, ...erc20transfers, ...destinationOps]
+    } else {
+        executions = [...setupCalls, ...erc20transfers, ...destinationOps]
+    }
 
     const txCallData = await executor.callFakeRouter(executions)
 

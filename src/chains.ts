@@ -1,8 +1,9 @@
 import { readFileSync } from "fs";
-import { Account, Address, Chain, createTestClient, createWalletClient, encodeAbiParameters, encodeFunctionData, encodePacked, erc20Abi, getAddress, Hash, Hex, http, keccak256, multicall3Abi, numberToHex, pad, publicActions, stringToHex, toHex, Transport, zeroAddress } from "viem";
+import { Account, Address, Chain, createTestClient, createWalletClient, encodeAbiParameters, encodeFunctionData, encodePacked, erc20Abi, getAddress, Hash, Hex, http, keccak256, multicall3Abi, numberToHex, pad, publicActions, stringToHex, toHex, Transport, zeroAddress, concat } from "viem";
 import z, { symbol, ZodSchema } from "zod";
 import { privateKeyToAccount } from 'viem/accounts'
 import { fakeRouterAbi } from "./abi/fakeRouter";
+import { mockIntentExecutorAbi } from "./abi/mockIntentExecutor";
 import * as chains from "viem/chains"
 
 type TokenSymbol = string
@@ -245,6 +246,54 @@ export class ChainContext {
             callData: encoded
         }
     }
+
+    public get mockIntentExecutorAddress(): Address | undefined {
+        return this.fundingConfig.mockIntentExecutorAddress as Address | undefined
+    }
+
+    // encode dest op for mock intent executor
+    public encodeDestOpsForMockIntentExecutor(
+        account: Address,
+        destOps: { to: Address, callData: Hex, value?: bigint }[]
+    ): { to: Address, callData: Hex } | null {
+        const executorAddress = this.mockIntentExecutorAddress
+        if (!executorAddress) {
+            return null
+        }
+
+        const executionsEncoded = encodeAbiParameters(
+            [{
+                type: 'tuple[]',
+                components: [
+                    { name: 'target', type: 'address' },
+                    { name: 'value', type: 'uint256' },
+                    { name: 'callData', type: 'bytes' }
+                ]
+            }],
+            [destOps.map(op => ({
+                target: op.to,
+                value: op.value ?? 0n,
+                callData: op.callData
+            }))]
+        )
+
+        const operationData = concat([
+            '0x02' as Hex,
+            '0x00' as Hex,
+            executionsEncoded
+        ])
+
+        const encoded = encodeFunctionData({
+            abi: mockIntentExecutorAbi,
+            functionName: 'mockFill',
+            args: [account, { data: operationData }]
+        })
+
+        return {
+            to: executorAddress,
+            callData: encoded
+        }
+    }
 }
 
 type ChainContexts = { [key: number]: ChainContext }
@@ -276,6 +325,7 @@ const ConfigSchema = z.object({
     relayerAddress: AddressSchema,
     funding: z.record(AddressSchema, z.record(z.string(), BigIntSchema)),
     routerAddress: AddressSchema,
+    mockIntentExecutorAddress: AddressSchema.optional(),
     erc20approvals: z.record(AddressSchema, z.record(AddressSchema, z.record(z.string(), BigIntSchema))).optional()
 
 })

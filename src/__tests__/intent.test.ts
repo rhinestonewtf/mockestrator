@@ -386,8 +386,7 @@ describe("Mockestrator Intent Flow", () => {
   describe("call flow verification (router → account → target)", () => {
     // verify dest op are executed with the correct
     // call flow: router → account → target
-    // todo: fix and later remove the .fails
-    it.fails(
+    it(
       "should execute destination ops through the account (msg.sender = account)",
       async () => {
         const userAccount = USER_ADDRESS;
@@ -499,8 +498,7 @@ describe("Mockestrator Intent Flow", () => {
       }
     );
 
-    // todo; this test currently fails because MockRouter calls targets directly
-    it.fails(
+    it(
       "should preserve msg.sender as account when calling target contracts",
       async () => {
         // encode approve call, this sets allowance[msg.sender][spender] = amount
