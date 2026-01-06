@@ -124,5 +124,11 @@ const DestinationOp = z.object({
 const DestinationOps = z.array(DestinationOp)
 
 function toDestinationOps(elements: { mandate: { destinationOps: unknown } }[]): { to: Address, callData: Hex }[] {
-    return elements.flatMap((element) => DestinationOps.parse(element.mandate.destinationOps))
+    return elements.flatMap((element) => {
+        const destOps = element.mandate.destinationOps as unknown[] | { vt: string; ops: unknown[] } | undefined
+        // SDK 1.1.0 sends destinationOps as { vt, ops } instead of array
+        // Handle both old format (array) and new format ({ vt, ops })
+        const opsArray = Array.isArray(destOps) ? destOps : ((destOps as { ops?: unknown[] })?.ops ?? [])
+        return DestinationOps.parse(opsArray)
+    })
 }

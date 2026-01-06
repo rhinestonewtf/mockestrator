@@ -105,8 +105,9 @@ const create_intent_route = async (data: UserIntent): Promise<UserIntentRouteRes
                         tokenOut,
                         destinationChainId: BigInt(userIntent.destinationChainId),
                         fillDeadline: BigInt(expires),
-                        preClaimOps: [],
-                        destinationOps: userIntent.destinationExecutions ?? [],
+                        // SDK 1.1.0 expects Op struct with { vt, ops } format
+                        preClaimOps: { vt: "0x0000000000000000000000000000000000000000000000000000000000000000", ops: [] },
+                        destinationOps: { vt: "0x0000000000000000000000000000000000000000000000000000000000000000", ops: userIntent.destinationExecutions ?? [] },
                         qualifier,
                         v: 0,
                         minGas: 0n
