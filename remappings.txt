@@ -1,0 +1,16 @@
+@rhinestone/=./lib/modulekit/node_modules/@rhinestone/
+sentinellist/=./lib/modulekit/node_modules/@rhinestone/sentinellist/src/
+erc4337-validation/=./lib/modulekit/node_modules/@rhinestone/erc4337-validation/src/
+modulekit/=./lib/modulekit/src/
+
+@ERC4337/=./lib/modulekit/node_modules/@ERC4337/
+account-abstraction/=./lib/modulekit/node_modules/@ERC4337/account-abstraction/contracts/
+account-abstraction-v0.6/=./lib/modulekit/node_modules/@ERC4337/account-abstraction-v0.6/contracts/
+
+@openzeppelin/=./lib/modulekit/node_modules/@openzeppelin/
+ds-test/=./lib/modulekit/node_modules/ds-test/src/
+forge-std/=./lib/modulekit/node_modules/forge-std/src/
+solady/=./lib/modulekit/node_modules/solady/src/
+solarray/=./lib/modulekit/node_modules/solarray/src/
+@prb/math/=./lib/modulekit/node_modules/@prb/math/src/
+ExcessivelySafeCall/=./lib/modulekit/node_modules/excessively-safe-call/src/
