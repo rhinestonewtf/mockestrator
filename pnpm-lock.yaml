@@ -21,6 +21,9 @@ importers:
       '@hey-api/openapi-ts':
         specifier: ^0.87.0
         version: 0.87.0(typescript@5.9.3)
+      '@rhinestone/sdk':
+        specifier: ^1.1.0
+        version: 1.1.0(typescript@5.9.3)(viem@2.38.6(typescript@5.9.3)(zod@4.1.12))(zod@4.1.12)
       '@types/express':
         specifier: ^5.0.5
         version: 5.0.5
@@ -243,6 +246,17 @@ packages:
   '@noble/hashes@1.8.0':
     resolution: {integrity: sha512-jCs9ldd7NwzpgXDIf6P3+NrHh9/sD6CQdxHyjQI+h/6rDNo88ypBxxz45UDuZHz9r3tNz7N/VInSVoVdtXEI4A==}
     engines: {node: ^14.21.3 || >=16}
+
+  '@rhinestone/sdk@1.1.0':
+    resolution: {integrity: sha512-hcQyXl3WvY4siT/+SRAHYEAQzIol9nDQ+/TcajO2c+kCFzOew4N3YufTmim3OMkcnLbiuauXGVbiuLwa7bA9hQ==}
+    peerDependencies:
+      viem: ^2.38.0
+
+  '@rhinestone/shared-configs@1.4.52':
+    resolution: {integrity: sha512-MzXjrXBEe2jlAHCcMyyyO7jOJRdzk+5ylA28pFISO3gV+YeKuqhZx5A91QRIvgYJSznX+jTPRW/xpfjYM2J9EA==}
+    peerDependencies:
+      typescript: ^5
+      viem: ^2.38.0
 
   '@rollup/rollup-android-arm-eabi@4.52.5':
     resolution: {integrity: sha512-8c1vW4ocv3UOMp9K+gToY5zL2XiiVw3k7f1ksf4yO1FlDFQ1C2u72iACFnSOceJFsWskc2WZNqeRhFRPzv+wtQ==}
@@ -829,6 +843,14 @@ packages:
     resolution: {integrity: sha512-YgBpdJHPyQ2UE5x+hlSXcnejzAvD0b22U2OuAP+8OnlJT+PjWPxtgmGqKKc+RgTM63U9gN0YzrYc71R2WT/hTA==}
     engines: {node: '>=18'}
 
+  ox@0.9.17:
+    resolution: {integrity: sha512-rKAnhzhRU3Xh3hiko+i1ZxywZ55eWQzeS/Q4HRKLx2PqfHOolisZHErSsJVipGlmQKHW5qwOED/GighEw9dbLg==}
+    peerDependencies:
+      typescript: '>=5.4.0'
+    peerDependenciesMeta:
+      typescript:
+        optional: true
+
   ox@0.9.6:
     resolution: {integrity: sha512-8SuCbHPvv2eZLYXrNmC0EC12rdzXQLdhnOMlHDW2wiCPLxBrOOJwX5L5E61by+UjTPOryqQiRSnjIKCI+GykKg==}
     peerDependencies:
@@ -940,6 +962,9 @@ packages:
 
   siginfo@2.0.0:
     resolution: {integrity: sha512-ybx0WO1/8bSBLEWXZvEd7gMW3Sn3JFlW3TvX1nREbDLRNQNaeNN8WK0meBwPdAaOI7TtRRRJn/Es1zhrrCHu7g==}
+
+  solady@0.1.26:
+    resolution: {integrity: sha512-dhGr/ptJFdea/1KE6xgqgwEdbMhUiSfRc6A+jLeltPe16zyt9qtED3PElIBVRnzEmUO5aZTjKVAr6SlqXBBcIw==}
 
   source-map-js@1.2.1:
     resolution: {integrity: sha512-UXWMKhLOwVKb728IUtQPXxfYU+usdybtUrK/8uGE8CQMvrhOpwvzDBwj0QhSL7MQc7vIsISBG8VQ8+IDQxpfQA==}
@@ -1264,6 +1289,21 @@ snapshots:
       '@noble/hashes': 1.8.0
 
   '@noble/hashes@1.8.0': {}
+
+  '@rhinestone/sdk@1.1.0(typescript@5.9.3)(viem@2.38.6(typescript@5.9.3)(zod@4.1.12))(zod@4.1.12)':
+    dependencies:
+      '@rhinestone/shared-configs': 1.4.52(typescript@5.9.3)(viem@2.38.6(typescript@5.9.3)(zod@4.1.12))
+      ox: 0.9.17(typescript@5.9.3)(zod@4.1.12)
+      solady: 0.1.26
+      viem: 2.38.6(typescript@5.9.3)(zod@4.1.12)
+    transitivePeerDependencies:
+      - typescript
+      - zod
+
+  '@rhinestone/shared-configs@1.4.52(typescript@5.9.3)(viem@2.38.6(typescript@5.9.3)(zod@4.1.12))':
+    dependencies:
+      typescript: 5.9.3
+      viem: 2.38.6(typescript@5.9.3)(zod@4.1.12)
 
   '@rollup/rollup-android-arm-eabi@4.52.5':
     optional: true
@@ -1826,6 +1866,21 @@ snapshots:
       is-inside-container: 1.0.0
       wsl-utils: 0.1.0
 
+  ox@0.9.17(typescript@5.9.3)(zod@4.1.12):
+    dependencies:
+      '@adraffy/ens-normalize': 1.11.1
+      '@noble/ciphers': 1.3.0
+      '@noble/curves': 1.9.1
+      '@noble/hashes': 1.8.0
+      '@scure/bip32': 1.7.0
+      '@scure/bip39': 1.6.0
+      abitype: 1.1.0(typescript@5.9.3)(zod@4.1.12)
+      eventemitter3: 5.0.1
+    optionalDependencies:
+      typescript: 5.9.3
+    transitivePeerDependencies:
+      - zod
+
   ox@0.9.6(typescript@5.9.3)(zod@4.1.12):
     dependencies:
       '@adraffy/ens-normalize': 1.11.1
@@ -1992,6 +2047,8 @@ snapshots:
       side-channel-weakmap: 1.0.2
 
   siginfo@2.0.0: {}
+
+  solady@0.1.26: {}
 
   source-map-js@1.2.1: {}
 

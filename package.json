@@ -16,6 +16,7 @@
   "packageManager": "pnpm@10.13.1",
   "devDependencies": {
     "@hey-api/openapi-ts": "^0.87.0",
+    "@rhinestone/sdk": "^1.1.0",
     "@types/express": "^5.0.5",
     "@types/node": "^24.10.0",
     "ts-node": "^10.9.2",

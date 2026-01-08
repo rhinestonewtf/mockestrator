@@ -64,9 +64,9 @@ const create_intent_route = async (data: UserIntent): Promise<UserIntentRouteRes
         if (sourceChain == destinatinoChain) {
             return {
                 settlementContext: {
-                    settlementLayer: "SAME_CHAIN" as const,
-                    fundingMethod: "PERMIT2" as const,
-                    using7579: true
+                    settlementLayer: "INTENT_EXECUTOR" as const,
+                    fundingMethod: "NO_FUNDING" as const,
+                    using7579: true as const
                 },
                 encodedVal: "0xff"
             }
@@ -107,7 +107,7 @@ const create_intent_route = async (data: UserIntent): Promise<UserIntentRouteRes
                         fillDeadline: BigInt(expires),
                         // SDK 1.1.0 expects Op struct with { vt, ops } format
                         preClaimOps: { vt: "0x0000000000000000000000000000000000000000000000000000000000000000", ops: [] },
-                        destinationOps: { vt: "0x0000000000000000000000000000000000000000000000000000000000000000", ops: userIntent.destinationExecutions ?? [] },
+                        destinationOps: { vt: "0x0201000000000000000000000000000000000000000000000000000000000000", ops: userIntent.destinationExecutions ?? [] },
                         qualifier,
                         v: 0,
                         minGas: 0n
@@ -146,7 +146,7 @@ const create_intent_route = async (data: UserIntent): Promise<UserIntentRouteRes
 
 function extractSourceChain(accountAccessList: AccountAccessListType | undefined): number {
     if (!accountAccessList) {
-        return parseInt(Object.keys(chainContexts)[0])
+        return parseInt(Object.keys(chainContexts())[0])
     }
 
 

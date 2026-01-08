@@ -2,9 +2,8 @@ import { ZodError, z } from "zod"
 import { jsonify, logRequest } from "../log"
 import { Request, Response } from "express"
 import { zPostIntentOperationsData, zPostIntentOperationsResponse } from "../gen/zod.gen"
-import { addNewIntent, IntentData } from "../services/intentRepo"
-import { Address, encodeFunctionData, erc20Abi, getAddress, Hex, keccak256, pad, stringToHex, toHex, zeroAddress } from "viem"
-import { randomBytes } from "crypto"
+import { addNewIntent } from "../services/intentRepo"
+import { Address, encodeAbiParameters, encodePacked, fromHex, getAddress, Hex, pad, slice, toHex, zeroAddress } from "viem"
 import { AddressSchema, BigIntSchema, chainContexts, VarHex } from "../chains"
 
 type SignedIntentData = z.infer<typeof zPostIntentOperationsData>
@@ -44,37 +43,55 @@ export const intent_store = async (req: Request, resp: Response) => {
 const executeIntent = async (signedIntentData: SignedIntentData): Promise<SignedIntentResponse> => {
     const signedIntent = signedIntentData.body!.signedIntentOp
 
+    const sponsor = getAddress(signedIntent.sponsor)
     const recipient = getAddress(signedIntent.elements[0].mandate.recipient)
     const destinationChain = Number(signedIntent.elements[0].mandate.destinationChainId)
+    const nonce = BigInt(signedIntent.nonce)
 
     const executor = chainContexts()[destinationChain]
 
-    const setupOps = signedIntent.signedMetadata.account.setupOps
+    // destination ops and raw signature for IntentExecutor
+    const destinationOps = toDestinationOpsEncoded(signedIntent.elements)
+    const rawDestinationSignature = (signedIntent.destinationSignature ?? '0x') as Hex
 
-    const setupCalls = setupOps ? setupOps.map((op) => {
-        return {
-            to: getAddress(op.to),
-            callData: op.data as Hex
-        }
-    }) : []
+    console.log('Account (sponsor):', sponsor)
+    console.log('Nonce:', nonce.toString())
+    const rawDestOps = signedIntent.elements[0]?.mandate?.destinationOps
+    console.log('Raw destinationOps from intent:', JSON.stringify(rawDestOps, (_, v) => typeof v === 'bigint' ? v.toString() : v, 2))
+    console.log('Encoded destinationOps:', destinationOps)
+    console.log('Encoded ops length:', destinationOps.length, 'bytes:', (destinationOps.length - 2) / 2)
+    console.log('Raw destinationSignature from SDK:', rawDestinationSignature)
+    console.log('Signature length:', rawDestinationSignature.length, 'bytes:', (rawDestinationSignature.length - 2) / 2)
+    const destinationSignature = rawDestinationSignature
+    console.log('Using raw destinationSignature (not fixed):', destinationSignature)
 
-    const tokenTransfers = toTokenTransfers(signedIntent.elements)
-    const nativeTransferValue = tokenTransfers.filter((t) => t.address == zeroAddress).map((t) => t.value)[0] ?? 0n
+    const hasDestinationOps = destinationOps && destinationOps !== '0x'
+    const hasValidDestinationSignature = destinationSignature &&
+        destinationSignature !== '0x' &&
+        destinationSignature.length > 2 &&
+        !isFakeSignature(destinationSignature)
 
-    const erc20transfers = tokenTransfers.filter((t) => t.address != zeroAddress).map((t) => {
-        return {
-            to: t.address,
-            callData: executor.transfer(recipient, t.value)
-        }
-    })
+    if (hasDestinationOps && !hasValidDestinationSignature) {
+        throw new Error('Destination signature required for destination operations')
+    }
 
-    const destinationOps = toDestinationOps(signedIntent.elements)
+    let txHash: Hex
 
-    const executions = [...setupCalls, ...erc20transfers, ...destinationOps]
-
-    const txCallData = await executor.callFakeRouter(executions)
-
-    const txHash = await executor.execute({ ...txCallData, value: nativeTransferValue })
+    if (hasDestinationOps) {
+        console.log('Executing via IntentExecutor with signature verification')
+        txHash = await executeIntentExecutorFlow(
+            executor,
+            signedIntent,
+            sponsor,
+            nonce,
+            recipient,
+            destinationOps,
+            destinationSignature
+        )
+    } else {
+        console.log('Executing via FakeRouter')
+        txHash = await executeLegacyFlow(executor, signedIntent, recipient)
+    }
 
     await addNewIntent(signedIntent.nonce, {
         userAddress: recipient,
@@ -91,6 +108,84 @@ const executeIntent = async (signedIntentData: SignedIntentData): Promise<Signed
             status: "PENDING"
         }
     }
+}
+
+// todo: dont need this will remove once everything works with intent executor
+const executeLegacyFlow = async (
+    executor: ReturnType<typeof chainContexts>[number],
+    signedIntent: any,
+    recipient: Address
+): Promise<Hex> => {
+    const setupOps = signedIntent.signedMetadata?.account?.setupOps
+
+    const setupCalls = setupOps ? setupOps.map((op: any) => {
+        return {
+            to: getAddress(op.to),
+            callData: op.data as Hex
+        }
+    }) : []
+
+    const tokenTransfers = toTokenTransfers(signedIntent.elements)
+    const tokenTransferCalls = tokenTransfers
+        .filter((t) => t.address != zeroAddress)
+        .map((transfer) => ({
+            to: transfer.address,
+            callData: executor.transfer(recipient, transfer.value)
+        }))
+
+    const destinationOps = toDestinationOps(signedIntent.elements)
+    const executions = [...setupCalls, ...tokenTransferCalls, ...destinationOps]
+
+    const nativeTransferValue = tokenTransfers.filter((t) => t.address == zeroAddress).map((t) => t.value)[0] ?? 0n
+
+    if (executions.length === 0 && nativeTransferValue === 0n) {
+        return '0x0000000000000000000000000000000000000000000000000000000000000000' as Hex
+    }
+
+    if (executions.length === 0 && nativeTransferValue > 0n) {
+        return executor.execute({ to: recipient, callData: '0x' as Hex, value: nativeTransferValue })
+    }
+
+    const txCallData = await executor.callFakeRouter(executions)
+    return executor.execute({ ...txCallData, value: nativeTransferValue })
+}
+
+const executeIntentExecutorFlow = async (
+    executor: ReturnType<typeof chainContexts>[number],
+    signedIntent: any,
+    sponsor: Address,
+    nonce: bigint,
+    recipient: Address,
+    destinationOps: Hex,
+    destinationSignature: Hex
+): Promise<Hex> => {
+    const setupOps = signedIntent.signedMetadata?.account?.setupOps
+
+    const setupCalls = setupOps ? setupOps.map((op: any) => ({
+        to: getAddress(op.to),
+        callData: op.data as Hex
+    })) : []
+
+    const tokenTransfers = toTokenTransfers(signedIntent.elements)
+    const tokenTransferCalls = tokenTransfers
+        .filter((t) => t.address != zeroAddress)
+        .map((transfer) => ({
+            to: transfer.address,
+            callData: executor.transfer(recipient, transfer.value)
+        }))
+
+    const nativeTransferValue = tokenTransfers.filter((t) => t.address == zeroAddress).map((t) => t.value)[0] ?? 0n
+
+    const routerCalls = [
+        ...setupCalls,
+        ...tokenTransferCalls,
+        executor.intentExecutorCall(sponsor, nonce, destinationOps, destinationSignature)
+    ]
+
+    const txCallData = await executor.callFakeRouter(routerCalls)
+    const routerTxHash = await executor.execute({ ...txCallData, value: nativeTransferValue })
+
+    return routerTxHash
 }
 
 type TokenTransfer = {
@@ -132,3 +227,69 @@ function toDestinationOps(elements: { mandate: { destinationOps: unknown } }[]):
         return DestinationOps.parse(opsArray)
     })
 }
+
+function toDestinationOpsEncoded(elements: { mandate: { destinationOps: unknown } }[]): Hex {
+    const allOps: { to: Address; value: bigint; data: Hex }[] = []
+    let execType = 0x02  
+    let sigMode = 0x01   
+
+    for (const element of elements) {
+        const destOps = element.mandate.destinationOps as { vt?: string; ops?: unknown[] } | undefined
+        if (!destOps || !destOps.ops || destOps.ops.length === 0) {
+            continue
+        }
+
+        // extract execType and sigMode from the first element's vt field
+        if (allOps.length === 0 && destOps.vt) {
+            const vt = destOps.vt as Hex
+            execType = fromHex(slice(vt, 0, 1), 'number')
+            sigMode = fromHex(slice(vt, 1, 2), 'number')
+        }
+
+        for (const op of destOps.ops) {
+            const parsed = DestinationOpWithValue.parse(op)
+            allOps.push(parsed)
+        }
+    }
+
+    if (allOps.length === 0) {
+        return '0x' as Hex
+    }
+
+    const encodedExecs = encodeAbiParameters(
+        [
+            {
+                type: 'tuple[]',
+                components: [
+                    { type: 'address', name: 'to' },
+                    { type: 'uint256', name: 'value' },
+                    { type: 'bytes', name: 'data' },
+                ],
+            },
+        ],
+        [allOps]
+    )
+
+    return encodePacked(
+        ['uint8', 'uint8', 'bytes'],
+        [execType, sigMode, encodedExecs]
+    )
+}
+
+const DestinationOpWithValue = z.object({
+    to: AddressSchema,
+    value: z.union([BigIntSchema, z.string()]).transform((v) => BigInt(v)),
+    data: VarHex
+}).transform((v) => ({
+    to: v.to,
+    value: v.value,
+    data: v.data
+}))
+
+function isFakeSignature(signature: Hex): boolean {
+    if (!signature || signature === '0x') return true
+    const sigWithoutPrefix = signature.slice(2)
+    return /^0+$/.test(sigWithoutPrefix)
+}
+
+const ECDSA_VALIDATOR_ADDRESS = '0x000000000013fdb5234e4e3162a810f54d9f7e98'
