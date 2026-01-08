@@ -345,7 +345,9 @@ describe("Mockestrator Intent Flow", () => {
         ],
       };
 
-      const preparedTx = await rhinestoneAccount.prepareTransaction(transaction);
+      const preparedTx = await rhinestoneAccount.prepareTransaction(
+        transaction
+      );
       const signedTx = await rhinestoneAccount.signTransaction(preparedTx);
       const result = await rhinestoneAccount.submitTransaction(signedTx);
 
@@ -388,8 +390,7 @@ describe("Mockestrator Intent Flow", () => {
 
       // verify we have transfers to both recipients
       const transferToUser = decodedTransfers.find(
-        (t: any) =>
-          t?.args?.to?.toLowerCase() === accountAddress.toLowerCase()
+        (t: any) => t?.args?.to?.toLowerCase() === accountAddress.toLowerCase()
       );
       const transferToFinal = decodedTransfers.find(
         (t: any) => t?.args?.to?.toLowerCase() === finalRecipient.toLowerCase()

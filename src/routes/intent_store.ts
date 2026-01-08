@@ -50,20 +50,8 @@ const executeIntent = async (signedIntentData: SignedIntentData): Promise<Signed
 
     const executor = chainContexts()[destinationChain]
 
-    // destination ops and raw signature for IntentExecutor
     const destinationOps = toDestinationOpsEncoded(signedIntent.elements)
-    const rawDestinationSignature = (signedIntent.destinationSignature ?? '0x') as Hex
-
-    console.log('Account (sponsor):', sponsor)
-    console.log('Nonce:', nonce.toString())
-    const rawDestOps = signedIntent.elements[0]?.mandate?.destinationOps
-    console.log('Raw destinationOps from intent:', JSON.stringify(rawDestOps, (_, v) => typeof v === 'bigint' ? v.toString() : v, 2))
-    console.log('Encoded destinationOps:', destinationOps)
-    console.log('Encoded ops length:', destinationOps.length, 'bytes:', (destinationOps.length - 2) / 2)
-    console.log('Raw destinationSignature from SDK:', rawDestinationSignature)
-    console.log('Signature length:', rawDestinationSignature.length, 'bytes:', (rawDestinationSignature.length - 2) / 2)
-    const destinationSignature = rawDestinationSignature
-    console.log('Using raw destinationSignature (not fixed):', destinationSignature)
+    const destinationSignature = (signedIntent.destinationSignature ?? '0x') as Hex
 
     const hasDestinationOps = destinationOps && destinationOps !== '0x'
     const hasValidDestinationSignature = destinationSignature &&
@@ -291,5 +279,3 @@ function isFakeSignature(signature: Hex): boolean {
     const sigWithoutPrefix = signature.slice(2)
     return /^0+$/.test(sigWithoutPrefix)
 }
-
-const ECDSA_VALIDATOR_ADDRESS = '0x000000000013fdb5234e4e3162a810f54d9f7e98'
