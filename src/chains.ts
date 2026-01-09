@@ -1,8 +1,9 @@
 import { readFileSync } from "fs";
-import { Account, Address, Chain, createTestClient, createWalletClient, encodeAbiParameters, encodeFunctionData, encodePacked, erc20Abi, getAddress, Hash, Hex, http, keccak256, multicall3Abi, numberToHex, pad, publicActions, stringToHex, toHex, Transport, zeroAddress } from "viem";
+import { Account, Address, Chain, createTestClient, createWalletClient, encodeAbiParameters, encodeFunctionData, encodePacked, erc20Abi, getAddress, Hash, Hex, http, keccak256, multicall3Abi, NonceTooLowError, numberToHex, pad, publicActions, stringToHex, toHex, Transport, zeroAddress } from "viem";
 import z, { symbol, ZodSchema } from "zod";
 import { privateKeyToAccount } from 'viem/accounts'
 import { fakeRouterAbi } from "./abi/fakeRouter";
+import { intentExecutorAbi, INTENT_EXECUTOR_ADDRESS } from "./abi/intentExecutor";
 import * as chains from "viem/chains"
 
 type TokenSymbol = string
@@ -142,15 +143,33 @@ export class ChainContext {
     }
 
     public async execute(execution: { to: Address, callData: Hex, value: bigint }): Promise<Hash> {
-        const receipt = await this.walletClient.sendTransactionSync({
-            to: execution.to,
-            value: execution.value,
-            data: execution.callData,
-        })
-        if (receipt.status == 'reverted') {
-            throw new Error(`Transaction ${receipt.transactionHash} reverted`)
+        try {
+            const receipt = await this.walletClient.sendTransactionSync({
+                to: execution.to,
+                value: execution.value,
+                data: execution.callData,
+            })
+            if (receipt.status == 'reverted') {
+                throw new Error(`Transaction ${receipt.transactionHash} reverted`)
+            }
+            return receipt.transactionHash
+        } catch (error: any) {
+            const isNonceError = error instanceof NonceTooLowError || error?.cause instanceof NonceTooLowError
+            if (isNonceError) {
+                const nextNonce = await this.walletClient.getTransactionCount({ address: this.walletClient.account.address })
+                const receipt = await this.walletClient.sendTransactionSync({
+                    to: execution.to,
+                    value: execution.value,
+                    data: execution.callData,
+                    nonce: nextNonce,
+                })
+                if (receipt.status == 'reverted') {
+                    throw new Error(`Transaction ${receipt.transactionHash} reverted`)
+                }
+                return receipt.transactionHash
+            }
+            throw error
         }
-        return receipt.transactionHash
     }
 
     public async setupAccount(config: Config) {
@@ -244,6 +263,44 @@ export class ChainContext {
             to: this.fundingConfig.routerAddress as Address,
             callData: encoded
         }
+    }
+
+    public intentExecutorCall(
+        account: Address,
+        nonce: bigint,
+        opsData: Hex,
+        signature: Hex
+    ): { to: Address; callData: Hex } {
+        const callData = encodeFunctionData({
+            abi: intentExecutorAbi,
+            functionName: 'executeSinglechainOps',
+            args: [{
+                account,
+                nonce,
+                ops: { data: opsData },
+                signature,
+            }],
+        })
+
+        return {
+            to: INTENT_EXECUTOR_ADDRESS,
+            callData,
+        }
+    }
+
+    public async executeViaIntentExecutor(
+        account: Address,
+        nonce: bigint,
+        opsData: Hex,
+        signature: Hex
+    ): Promise<Hash> {
+        const { to, callData } = this.intentExecutorCall(account, nonce, opsData, signature)
+
+        return this.execute({
+            to,
+            callData,
+            value: 0n,
+        })
     }
 }
 
