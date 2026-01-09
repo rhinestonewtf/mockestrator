@@ -52,7 +52,8 @@ const create_intent_route = async (data: UserIntent): Promise<UserIntentRouteRes
     // do we need it or we can put to random value
     const arbiter = "0xdead00000000000000000000000000000000beef"
 
-    const randomBigInt = hexToBigInt('0x' + randomBytes(32).toString('hex') as `0x${string}`);
+    const maxNonce = (1n << 63n) - 1n
+    const randomBigInt = (hexToBigInt('0x' + randomBytes(8).toString('hex') as `0x${string}`) % maxNonce) + 1n
 
     const currentDate = Math.floor(Date.now() / 1000);
     const expires = currentDate + 3600 // expires in 1h
@@ -118,12 +119,16 @@ const create_intent_route = async (data: UserIntent): Promise<UserIntentRouteRes
             signedMetadata: {
                 tokenPrices: {
                     "ETH": 123,
-                    "WETH": 123,
                     "USDC": 123,
+                    "WETH": 123,
+                    "USDT0": 123,
+                    "XDAI": 123,
                     "POL": 123,
                     "WPOL": 123,
                     "S": 123,
-                    "WS": 123
+                    "USDT": 123,
+                    "XPL": 123,
+                    "WXPL": 123
                 },
 
                 gasPrices: {},
