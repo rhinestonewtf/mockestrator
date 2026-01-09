@@ -169,15 +169,15 @@ export type PostIntentsCostData = {
          */
         accountAccessList?: {
             chainIds?: Array<number>;
-            tokens?: Array<string | 'ETH' | 'WETH' | 'USDC' | 'POL' | 'WPOL' | 'S' | 'WS'>;
+            tokens?: Array<string | 'ETH' | 'USDC' | 'WETH' | 'USDT0' | 'XDAI' | 'POL' | 'WPOL' | 'S' | 'USDT' | 'XPL' | 'WXPL'>;
             chainTokens?: {
-                [key: string]: Array<string | 'ETH' | 'WETH' | 'USDC' | 'POL' | 'WPOL' | 'S' | 'WS'>;
+                [key: string]: Array<string | 'ETH' | 'USDC' | 'WETH' | 'USDT0' | 'XDAI' | 'POL' | 'WPOL' | 'S' | 'USDT' | 'XPL' | 'WXPL'>;
             };
             exclude?: {
                 chainIds?: Array<number>;
-                tokens?: Array<string | 'ETH' | 'WETH' | 'USDC' | 'POL' | 'WPOL' | 'S' | 'WS'>;
+                tokens?: Array<string | 'ETH' | 'USDC' | 'WETH' | 'USDT0' | 'XDAI' | 'POL' | 'WPOL' | 'S' | 'USDT' | 'XPL' | 'WXPL'>;
                 chainTokens?: {
-                    [key: string]: Array<string | 'ETH' | 'WETH' | 'USDC' | 'POL' | 'WPOL' | 'S' | 'WS'>;
+                    [key: string]: Array<string | 'ETH' | 'USDC' | 'WETH' | 'USDT0' | 'XDAI' | 'POL' | 'WPOL' | 'S' | 'USDT' | 'XPL' | 'WXPL'>;
                 };
             };
         } | Array<{
@@ -321,7 +321,7 @@ export type PostIntentsCostData = {
                  */
                 swapFeesSponsored?: boolean;
             };
-            feeToken?: 'ETH' | 'WETH' | 'USDC' | 'POL' | 'WPOL' | 'S' | 'WS';
+            feeToken?: 'ETH' | 'USDC' | 'WETH' | 'USDT0' | 'XDAI' | 'POL' | 'WPOL' | 'S' | 'USDT' | 'XPL' | 'WXPL';
         };
     };
     headers: {
@@ -619,15 +619,15 @@ export type PostIntentsRouteData = {
          */
         accountAccessList?: {
             chainIds?: Array<number>;
-            tokens?: Array<string | 'ETH' | 'WETH' | 'USDC' | 'POL' | 'WPOL' | 'S' | 'WS'>;
+            tokens?: Array<string | 'ETH' | 'USDC' | 'WETH' | 'USDT0' | 'XDAI' | 'POL' | 'WPOL' | 'S' | 'USDT' | 'XPL' | 'WXPL'>;
             chainTokens?: {
-                [key: string]: Array<string | 'ETH' | 'WETH' | 'USDC' | 'POL' | 'WPOL' | 'S' | 'WS'>;
+                [key: string]: Array<string | 'ETH' | 'USDC' | 'WETH' | 'USDT0' | 'XDAI' | 'POL' | 'WPOL' | 'S' | 'USDT' | 'XPL' | 'WXPL'>;
             };
             exclude?: {
                 chainIds?: Array<number>;
-                tokens?: Array<string | 'ETH' | 'WETH' | 'USDC' | 'POL' | 'WPOL' | 'S' | 'WS'>;
+                tokens?: Array<string | 'ETH' | 'USDC' | 'WETH' | 'USDT0' | 'XDAI' | 'POL' | 'WPOL' | 'S' | 'USDT' | 'XPL' | 'WXPL'>;
                 chainTokens?: {
-                    [key: string]: Array<string | 'ETH' | 'WETH' | 'USDC' | 'POL' | 'WPOL' | 'S' | 'WS'>;
+                    [key: string]: Array<string | 'ETH' | 'USDC' | 'WETH' | 'USDT0' | 'XDAI' | 'POL' | 'WPOL' | 'S' | 'USDT' | 'XPL' | 'WXPL'>;
                 };
             };
         } | Array<{
@@ -771,7 +771,7 @@ export type PostIntentsRouteData = {
                  */
                 swapFeesSponsored?: boolean;
             };
-            feeToken?: 'ETH' | 'WETH' | 'USDC' | 'POL' | 'WPOL' | 'S' | 'WS';
+            feeToken?: 'ETH' | 'USDC' | 'WETH' | 'USDT0' | 'XDAI' | 'POL' | 'WPOL' | 'S' | 'USDT' | 'XPL' | 'WXPL';
         };
     };
     headers: {
@@ -989,12 +989,16 @@ export type PostIntentsRouteResponses = {
                  */
                 tokenPrices: {
                     ETH: number;
-                    WETH: number;
                     USDC: number;
+                    WETH: number;
+                    USDT0: number;
+                    XDAI: number;
                     POL: number;
                     WPOL: number;
                     S: number;
-                    WS: number;
+                    USDT: number;
+                    XPL: number;
+                    WXPL: number;
                 };
                 /**
                  * Gas prices per chain in wei
@@ -1339,6 +1343,35 @@ export type PostIntentsRouteResponses = {
                  */
                 s: string;
             }>;
+            /**
+             * List of 7702 authorizations signed by EOA matching recipient account (if present)
+             */
+            recipientSignedAuthorizations?: Array<{
+                /**
+                 * Chain ID for EIP-7702 delegation, 0 means it can be applied to any chain
+                 */
+                chainId: number;
+                /**
+                 * Address of the delegate for EIP-7702 delegation
+                 */
+                address: string;
+                /**
+                 * Nonce for EIP-7702 delegation
+                 */
+                nonce: number;
+                /**
+                 * Y parity for EIP-7702 delegation
+                 */
+                yParity: number;
+                /**
+                 * R value for EIP-7702 delegation
+                 */
+                r: string;
+                /**
+                 * S value for EIP-7702 delegation
+                 */
+                s: string;
+            }>;
         };
         intentCost: {
             /**
@@ -1606,12 +1639,16 @@ export type PostIntentOperationsData = {
                  */
                 tokenPrices: {
                     ETH: number;
-                    WETH: number;
                     USDC: number;
+                    WETH: number;
+                    USDT0: number;
+                    XDAI: number;
                     POL: number;
                     WPOL: number;
                     S: number;
-                    WS: number;
+                    USDT: number;
+                    XPL: number;
+                    WXPL: number;
                 };
                 /**
                  * Gas prices per chain in wei
@@ -1931,6 +1968,35 @@ export type PostIntentOperationsData = {
              * List of 7702 authorizations signed by EOA matching sponsor
              */
             signedAuthorizations?: Array<{
+                /**
+                 * Chain ID for EIP-7702 delegation, 0 means it can be applied to any chain
+                 */
+                chainId: number;
+                /**
+                 * Address of the delegate for EIP-7702 delegation
+                 */
+                address: string;
+                /**
+                 * Nonce for EIP-7702 delegation
+                 */
+                nonce: number;
+                /**
+                 * Y parity for EIP-7702 delegation
+                 */
+                yParity: number;
+                /**
+                 * R value for EIP-7702 delegation
+                 */
+                r: string;
+                /**
+                 * S value for EIP-7702 delegation
+                 */
+                s: string;
+            }>;
+            /**
+             * List of 7702 authorizations signed by EOA matching recipient account (if present)
+             */
+            recipientSignedAuthorizations?: Array<{
                 /**
                  * Chain ID for EIP-7702 delegation, 0 means it can be applied to any chain
                  */
@@ -2447,3 +2513,32 @@ export type PostBatchWithdrawalsResponses = {
 };
 
 export type PostBatchWithdrawalsResponse = PostBatchWithdrawalsResponses[keyof PostBatchWithdrawalsResponses];
+
+export type GetChainsData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/chains';
+};
+
+export type GetChainsResponses = {
+    /**
+     * The supported chains and tokens with additional metadata
+     */
+    200: {
+        [key: string]: {
+            /**
+             * The name of the chain
+             */
+            name: string;
+            settlementLayers: Array<'INTENT_EXECUTOR' | 'SAME_CHAIN' | 'ACROSS' | 'ECO' | 'RELAY'>;
+            supportedTokens: Array<{
+                symbol: string;
+                address: string;
+                decimals: number;
+            }>;
+        };
+    };
+};
+
+export type GetChainsResponse = GetChainsResponses[keyof GetChainsResponses];

@@ -98,7 +98,7 @@ const executeIntent = async (signedIntentData: SignedIntentData): Promise<Signed
     }
 }
 
-// todo: dont need this will remove once everything works with intent executor
+// fallback path for intents without destination ops, intent executor requires a destination signature
 const executeLegacyFlow = async (
     executor: ReturnType<typeof chainContexts>[number],
     signedIntent: any,

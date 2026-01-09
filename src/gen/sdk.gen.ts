@@ -2,8 +2,8 @@
 
 import type { Client, Options as Options2, TDataShape } from './client';
 import { client } from './client.gen';
-import type { GetAccountsByUserAddressPortfolioData, GetAccountsByUserAddressPortfolioErrors, GetAccountsByUserAddressPortfolioResponses, GetIntentOperationByIdData, GetIntentOperationByIdErrors, GetIntentOperationByIdResponses, PostBatchWithdrawalsData, PostBatchWithdrawalsErrors, PostBatchWithdrawalsResponses, PostIntentOperationsData, PostIntentOperationsErrors, PostIntentOperationsResponses, PostIntentsCostData, PostIntentsCostErrors, PostIntentsCostResponses, PostIntentsRouteData, PostIntentsRouteErrors, PostIntentsRouteResponses, PostWithdrawalsData, PostWithdrawalsErrors, PostWithdrawalsResponses } from './types.gen';
-import { zGetAccountsByUserAddressPortfolioData, zGetAccountsByUserAddressPortfolioResponse, zGetIntentOperationByIdData, zGetIntentOperationByIdResponse, zPostBatchWithdrawalsData, zPostBatchWithdrawalsResponse, zPostIntentOperationsData, zPostIntentOperationsResponse, zPostIntentsCostData, zPostIntentsCostResponse, zPostIntentsRouteData, zPostIntentsRouteResponse, zPostWithdrawalsData, zPostWithdrawalsResponse } from './zod.gen';
+import type { GetAccountsByUserAddressPortfolioData, GetAccountsByUserAddressPortfolioErrors, GetAccountsByUserAddressPortfolioResponses, GetChainsData, GetChainsResponses, GetIntentOperationByIdData, GetIntentOperationByIdErrors, GetIntentOperationByIdResponses, PostBatchWithdrawalsData, PostBatchWithdrawalsErrors, PostBatchWithdrawalsResponses, PostIntentOperationsData, PostIntentOperationsErrors, PostIntentOperationsResponses, PostIntentsCostData, PostIntentsCostErrors, PostIntentsCostResponses, PostIntentsRouteData, PostIntentsRouteErrors, PostIntentsRouteResponses, PostWithdrawalsData, PostWithdrawalsErrors, PostWithdrawalsResponses } from './types.gen';
+import { zGetAccountsByUserAddressPortfolioData, zGetAccountsByUserAddressPortfolioResponse, zGetChainsData, zGetChainsResponse, zGetIntentOperationByIdData, zGetIntentOperationByIdResponse, zPostBatchWithdrawalsData, zPostBatchWithdrawalsResponse, zPostIntentOperationsData, zPostIntentOperationsResponse, zPostIntentsCostData, zPostIntentsCostResponse, zPostIntentsRouteData, zPostIntentsRouteResponse, zPostWithdrawalsData, zPostWithdrawalsResponse } from './zod.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean> = Options2<TData, ThrowOnError> & {
     /**
@@ -24,143 +24,113 @@ export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends 
  *
  * Calculates the cost of executing a route based on the provided user address and intent.
  */
-export const postIntentsCost = <ThrowOnError extends boolean = false>(options: Options<PostIntentsCostData, ThrowOnError>) => {
-    return (options.client ?? client).post<PostIntentsCostResponses, PostIntentsCostErrors, ThrowOnError>({
-        requestValidator: async (data) => {
-            return await zPostIntentsCostData.parseAsync(data);
-        },
-        responseValidator: async (data) => {
-            return await zPostIntentsCostResponse.parseAsync(data);
-        },
-        url: '/intents/cost',
-        ...options,
-        headers: {
-            'Content-Type': 'application/json',
-            ...options.headers
-        }
-    });
-};
+export const postIntentsCost = <ThrowOnError extends boolean = false>(options: Options<PostIntentsCostData, ThrowOnError>) => (options.client ?? client).post<PostIntentsCostResponses, PostIntentsCostErrors, ThrowOnError>({
+    requestValidator: async (data) => await zPostIntentsCostData.parseAsync(data),
+    responseValidator: async (data) => await zPostIntentsCostResponse.parseAsync(data),
+    url: '/intents/cost',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
 
 /**
  * Get Intent Route
  *
  * Retrieves the route token transfers and target executions based on the provided user address and intent.
  */
-export const postIntentsRoute = <ThrowOnError extends boolean = false>(options: Options<PostIntentsRouteData, ThrowOnError>) => {
-    return (options.client ?? client).post<PostIntentsRouteResponses, PostIntentsRouteErrors, ThrowOnError>({
-        requestValidator: async (data) => {
-            return await zPostIntentsRouteData.parseAsync(data);
-        },
-        responseValidator: async (data) => {
-            return await zPostIntentsRouteResponse.parseAsync(data);
-        },
-        url: '/intents/route',
-        ...options,
-        headers: {
-            'Content-Type': 'application/json',
-            ...options.headers
-        }
-    });
-};
+export const postIntentsRoute = <ThrowOnError extends boolean = false>(options: Options<PostIntentsRouteData, ThrowOnError>) => (options.client ?? client).post<PostIntentsRouteResponses, PostIntentsRouteErrors, ThrowOnError>({
+    requestValidator: async (data) => await zPostIntentsRouteData.parseAsync(data),
+    responseValidator: async (data) => await zPostIntentsRouteResponse.parseAsync(data),
+    url: '/intents/route',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
 
 /**
  * Submit Intent Operations
  *
  * Submit signed intent operations for processing. This endpoint accepts signed intent operations containing cross-chain token transfers and executions.
  */
-export const postIntentOperations = <ThrowOnError extends boolean = false>(options: Options<PostIntentOperationsData, ThrowOnError>) => {
-    return (options.client ?? client).post<PostIntentOperationsResponses, PostIntentOperationsErrors, ThrowOnError>({
-        requestValidator: async (data) => {
-            return await zPostIntentOperationsData.parseAsync(data);
-        },
-        responseValidator: async (data) => {
-            return await zPostIntentOperationsResponse.parseAsync(data);
-        },
-        url: '/intent-operations',
-        ...options,
-        headers: {
-            'Content-Type': 'application/json',
-            ...options.headers
-        }
-    });
-};
+export const postIntentOperations = <ThrowOnError extends boolean = false>(options: Options<PostIntentOperationsData, ThrowOnError>) => (options.client ?? client).post<PostIntentOperationsResponses, PostIntentOperationsErrors, ThrowOnError>({
+    requestValidator: async (data) => await zPostIntentOperationsData.parseAsync(data),
+    responseValidator: async (data) => await zPostIntentOperationsResponse.parseAsync(data),
+    url: '/intent-operations',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
 
 /**
  * Get Intent Operation
  *
  * Retrieve the status of a specific intent operation along with the status of each operation within the intent.
  */
-export const getIntentOperationById = <ThrowOnError extends boolean = false>(options: Options<GetIntentOperationByIdData, ThrowOnError>) => {
-    return (options.client ?? client).get<GetIntentOperationByIdResponses, GetIntentOperationByIdErrors, ThrowOnError>({
-        requestValidator: async (data) => {
-            return await zGetIntentOperationByIdData.parseAsync(data);
-        },
-        responseValidator: async (data) => {
-            return await zGetIntentOperationByIdResponse.parseAsync(data);
-        },
-        url: '/intent-operation/{id}',
-        ...options
-    });
-};
+export const getIntentOperationById = <ThrowOnError extends boolean = false>(options: Options<GetIntentOperationByIdData, ThrowOnError>) => (options.client ?? client).get<GetIntentOperationByIdResponses, GetIntentOperationByIdErrors, ThrowOnError>({
+    requestValidator: async (data) => await zGetIntentOperationByIdData.parseAsync(data),
+    responseValidator: async (data) => await zGetIntentOperationByIdResponse.parseAsync(data),
+    url: '/intent-operation/{id}',
+    ...options
+});
 
 /**
  * Get User Portfolio
  *
  * Retrieves the token balances across all supported chains for a user's abstracted account
  */
-export const getAccountsByUserAddressPortfolio = <ThrowOnError extends boolean = false>(options: Options<GetAccountsByUserAddressPortfolioData, ThrowOnError>) => {
-    return (options.client ?? client).get<GetAccountsByUserAddressPortfolioResponses, GetAccountsByUserAddressPortfolioErrors, ThrowOnError>({
-        requestValidator: async (data) => {
-            return await zGetAccountsByUserAddressPortfolioData.parseAsync(data);
-        },
-        responseValidator: async (data) => {
-            return await zGetAccountsByUserAddressPortfolioResponse.parseAsync(data);
-        },
-        url: '/accounts/{userAddress}/portfolio',
-        ...options
-    });
-};
+export const getAccountsByUserAddressPortfolio = <ThrowOnError extends boolean = false>(options: Options<GetAccountsByUserAddressPortfolioData, ThrowOnError>) => (options.client ?? client).get<GetAccountsByUserAddressPortfolioResponses, GetAccountsByUserAddressPortfolioErrors, ThrowOnError>({
+    requestValidator: async (data) => await zGetAccountsByUserAddressPortfolioData.parseAsync(data),
+    responseValidator: async (data) => await zGetAccountsByUserAddressPortfolioResponse.parseAsync(data),
+    url: '/accounts/{userAddress}/portfolio',
+    ...options
+});
 
 /**
  * Request Single Withdrawal
  *
  * Gets the orchestrator signature to perform a withdrawal from The Compact
  */
-export const postWithdrawals = <ThrowOnError extends boolean = false>(options: Options<PostWithdrawalsData, ThrowOnError>) => {
-    return (options.client ?? client).post<PostWithdrawalsResponses, PostWithdrawalsErrors, ThrowOnError>({
-        requestValidator: async (data) => {
-            return await zPostWithdrawalsData.parseAsync(data);
-        },
-        responseValidator: async (data) => {
-            return await zPostWithdrawalsResponse.parseAsync(data);
-        },
-        url: '/withdrawals',
-        ...options,
-        headers: {
-            'Content-Type': 'application/json',
-            ...options.headers
-        }
-    });
-};
+export const postWithdrawals = <ThrowOnError extends boolean = false>(options: Options<PostWithdrawalsData, ThrowOnError>) => (options.client ?? client).post<PostWithdrawalsResponses, PostWithdrawalsErrors, ThrowOnError>({
+    requestValidator: async (data) => await zPostWithdrawalsData.parseAsync(data),
+    responseValidator: async (data) => await zPostWithdrawalsResponse.parseAsync(data),
+    url: '/withdrawals',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
 
 /**
  * Request Batch Withdrawals
  *
  * Gets the orchestrator signature to perform a compact withdrawal
  */
-export const postBatchWithdrawals = <ThrowOnError extends boolean = false>(options: Options<PostBatchWithdrawalsData, ThrowOnError>) => {
-    return (options.client ?? client).post<PostBatchWithdrawalsResponses, PostBatchWithdrawalsErrors, ThrowOnError>({
-        requestValidator: async (data) => {
-            return await zPostBatchWithdrawalsData.parseAsync(data);
-        },
-        responseValidator: async (data) => {
-            return await zPostBatchWithdrawalsResponse.parseAsync(data);
-        },
-        url: '/batch-withdrawals',
-        ...options,
-        headers: {
-            'Content-Type': 'application/json',
-            ...options.headers
-        }
-    });
-};
+export const postBatchWithdrawals = <ThrowOnError extends boolean = false>(options: Options<PostBatchWithdrawalsData, ThrowOnError>) => (options.client ?? client).post<PostBatchWithdrawalsResponses, PostBatchWithdrawalsErrors, ThrowOnError>({
+    requestValidator: async (data) => await zPostBatchWithdrawalsData.parseAsync(data),
+    responseValidator: async (data) => await zPostBatchWithdrawalsResponse.parseAsync(data),
+    url: '/batch-withdrawals',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Supported chains and tokens
+ *
+ * Get supported chains and tokens with additional metadata
+ */
+export const getChains = <ThrowOnError extends boolean = false>(options?: Options<GetChainsData, ThrowOnError>) => (options?.client ?? client).get<GetChainsResponses, unknown, ThrowOnError>({
+    requestValidator: async (data) => await zGetChainsData.parseAsync(data),
+    responseValidator: async (data) => await zGetChainsResponse.parseAsync(data),
+    url: '/chains',
+    ...options
+});
