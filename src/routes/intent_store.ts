@@ -119,32 +119,30 @@ const executeIntentExecutorFlow = async (
     recipient: Address,
 ): Promise<Hex> => {
     const tokenTransfers = toTokenTransfers(signedIntent.elements)
-    const tokenTransferCalls = tokenTransfers
-        .filter((t) => t.address != zeroAddress)
-        .map((transfer) => ({
-            to: transfer.address,
-            callData: executor.transfer(recipient, transfer.value)
-        }))
-
+    const erc20Transfers = tokenTransfers.filter((t) => t.address != zeroAddress)
     const nativeTransferValue = tokenTransfers.filter((t) => t.address == zeroAddress).map((t) => t.value)[0] ?? 0n
 
-    // Execute token transfers via FakeRouter (as relayer)
-    if (tokenTransferCalls.length > 0 || nativeTransferValue > 0n) {
-        const txCallData = await executor.callFakeRouter(tokenTransferCalls)
-        await executor.execute({ ...txCallData, value: nativeTransferValue })
+    // Approve router's tokens for the recipient so it can transferFrom
+    for (const transfer of erc20Transfers) {
+        await executor.approveByTokenAddress(executor.routerAddr, recipient, transfer.address, transfer.value)
     }
 
-    // Execute destination ops by impersonating the recipient address.
-    // The real IntentExecutor delegates these calls to the user's smart account,
-    // but smart accounts are counterfactual on anvil forks. Impersonation achieves
-    // the same effect: calls execute as the recipient.
+    // Build calls: transferFrom(router → recipient) for each ERC-20 + dest ops
+    const transferFromCalls = erc20Transfers.map((transfer) => ({
+        to: transfer.address,
+        callData: executor.encodeTransferFrom(executor.routerAddr, recipient, transfer.value)
+    }))
+
     const destOpCalls = toDestinationOps(signedIntent.elements)
-    let lastTxHash: Hex = '0x0000000000000000000000000000000000000000000000000000000000000000' as Hex
-    for (const call of destOpCalls) {
-        lastTxHash = await executor.executeAs(recipient, call)
+    const allCalls = [...transferFromCalls, ...destOpCalls]
+
+    if (allCalls.length === 0 && nativeTransferValue === 0n) {
+        return '0x0000000000000000000000000000000000000000000000000000000000000000' as Hex
     }
 
-    return lastTxHash
+    // Deploy FakeRouter code at recipient address to simulate smart account batching.
+    // All calls execute with msg.sender = recipient, matching real IntentExecutor behavior.
+    return executor.executeAsSmartAccount(recipient, allCalls, nativeTransferValue)
 }
 
 type TokenTransfer = {

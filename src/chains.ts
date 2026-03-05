@@ -180,29 +180,6 @@ export class ChainContext {
         }
     }
 
-    // Execute a call impersonating the given address (uses anvil_impersonateAccount).
-    // Used for destination ops that need to run as the user's account.
-    public async executeAs(from: Address, call: { to: Address, callData: Hex }): Promise<Hash> {
-        await this.testClient.impersonateAccount({ address: from })
-        try {
-            const hash = await this.walletClient.sendTransaction({
-                account: from,
-                to: call.to,
-                data: call.callData,
-                value: 0n,
-                maxFeePerGas: 10n * 10n ** 9n,
-                maxPriorityFeePerGas: 0n,
-            })
-            const receipt = await this.walletClient.waitForTransactionReceipt({ hash })
-            if (receipt.status == 'reverted') {
-                throw new Error(`Transaction ${hash} reverted`)
-            }
-            return hash
-        } finally {
-            await this.testClient.stopImpersonatingAccount({ address: from })
-        }
-    }
-
     public async setupAccount(config: Config) {
         for (const [addressStr, tokens] of Object.entries(config.funding)) {
             const address = getAddress(addressStr)
@@ -274,6 +251,54 @@ export class ChainContext {
                 value: pad(numberToHex(value)),
             })
         }
+    }
+
+    public get routerAddr(): Address {
+        return this.fundingConfig.routerAddress as Address
+    }
+
+    // Set ERC-20 approval by token address (not symbol) using storage slot manipulation
+    public async approveByTokenAddress(owner: Address, spender: Address, tokenAddress: Address, amount: bigint) {
+        const token = this.tokens[tokenAddress]
+        if (!token || token.approvalSlot === undefined) {
+            return
+        }
+        const inner = keccak256(encodePacked(["bytes32", "bytes32"], [pad(owner), pad(toHex(token.approvalSlot))]))
+        const slot = keccak256(encodePacked(["bytes32", "bytes32"], [pad(spender), inner]))
+        await this.testClient.setStorageAt({
+            address: tokenAddress,
+            index: slot,
+            value: pad(numberToHex(amount)),
+        })
+    }
+
+    public encodeTransferFrom(from: Address, to: Address, amount: bigint): Hex {
+        return encodeFunctionData({
+            abi: erc20Abi,
+            functionName: 'transferFrom',
+            args: [from, to, amount]
+        })
+    }
+
+    // Deploy FakeRouter bytecode at the given address and execute calls as that address.
+    // This simulates a smart account batching calls — msg.sender for each call is `account`.
+    public async executeAsSmartAccount(account: Address, calls: { to: Address, callData: Hex }[], value: bigint = 0n): Promise<Hash> {
+        const code = await this.walletClient.getCode({ address: this.fundingConfig.routerAddress as Address })
+        if (!code) throw new Error('FakeRouter has no code')
+        await this.testClient.setCode({ address: account, bytecode: code })
+
+        const callData = encodeFunctionData({
+            abi: fakeRouterAbi,
+            functionName: 'mockFill',
+            args: [calls.map((call) => ({ target: call.to, callData: call.callData }))]
+        })
+
+        // Send native value to account first if needed (mockFill is nonpayable)
+        if (value > 0n) {
+            await this.execute({ to: account, callData: '0x' as Hex, value })
+        }
+
+        return this.execute({ to: account, callData, value: 0n })
     }
 
     public async overrideCode(address: Address, code: Hex) {
