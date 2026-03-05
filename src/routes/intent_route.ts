@@ -67,7 +67,12 @@ const create_intent_route = async (data: UserIntent): Promise<UserIntentRouteRes
                 settlementContext: {
                     settlementLayer: "INTENT_EXECUTOR" as const,
                     fundingMethod: "NO_FUNDING" as const,
-                    using7579: true as const
+                    using7579: true as const,
+                    gasRefund: {
+                        token: "0x0000000000000000000000000000000000000000",
+                        exchangeRate: 0,
+                        overhead: 0
+                    }
                 },
                 encodedVal: "0xff"
             }

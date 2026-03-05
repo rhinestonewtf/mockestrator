@@ -104,7 +104,13 @@ const executeLegacyFlow = async (
     signedIntent: any,
     recipient: Address
 ): Promise<Hex> => {
-    const setupOps = signedIntent.signedMetadata?.account?.setupOps
+    // setupOps install modules on the source chain — skip for cross-chain intents
+    // where execution happens on the destination chain
+    const sourceChain = Number(signedIntent.elements[0].chainId)
+    const destChain = Number(signedIntent.elements[0].mandate.destinationChainId)
+    const isCrossChain = sourceChain !== destChain
+
+    const setupOps = isCrossChain ? undefined : signedIntent.signedMetadata?.account?.setupOps
 
     const setupCalls = setupOps ? setupOps.map((op: any) => {
         return {
