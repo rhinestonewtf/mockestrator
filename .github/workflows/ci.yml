@@ -1,0 +1,145 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  unit-tests:
+    name: Registry & Admin API Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - run: bun install --frozen-lockfile
+
+      - name: Run error scenario registry tests
+        run: bun vitest run src/__tests__/error-scenarios.test.ts
+
+  integration-tests:
+    name: SDK Integration Tests
+    runs-on: ubuntu-latest
+    services:
+      base-sepolia-fork:
+        image: ghcr.io/foundry-rs/foundry
+        ports:
+          - '30005:8545'
+        options: >-
+          --health-cmd "cast rpc eth_blockNumber"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        env:
+          ANVIL_IP_ADDR: 0.0.0.0
+        command: >-
+          anvil
+          --fork-url https://sepolia.base.org
+          --host 0.0.0.0
+          --hardfork prague
+          --no-priority-fee
+          --gas-price 12000000
+          --base-fee 12000000
+
+      sepolia-fork:
+        image: ghcr.io/foundry-rs/foundry
+        ports:
+          - '30006:8545'
+        options: >-
+          --health-cmd "cast rpc eth_blockNumber"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        env:
+          ANVIL_IP_ADDR: 0.0.0.0
+        command: >-
+          anvil
+          --fork-url https://rpc.sepolia.org
+          --host 0.0.0.0
+          --hardfork prague
+          --no-priority-fee
+          --gas-price 12000000
+          --base-fee 12000000
+
+      custom-fork:
+        image: ghcr.io/foundry-rs/foundry
+        ports:
+          - '30007:8545'
+        options: >-
+          --health-cmd "cast rpc eth_blockNumber"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        env:
+          ANVIL_IP_ADDR: 0.0.0.0
+        command: >-
+          anvil
+          --fork-url https://sepolia.base.org
+          --chain-id 565656
+          --host 0.0.0.0
+          --hardfork prague
+          --no-priority-fee
+          --gas-price 12000000
+          --base-fee 12000000
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - run: bun install --frozen-lockfile
+
+      - name: Build mockestrator Docker image
+        run: docker build -t mockestrator:test .
+
+      - name: Start mockestrator
+        run: |
+          docker run -d --name mockestrator \
+            --network host \
+            -e PORT=4000 \
+            mockestrator:test
+
+      - name: Wait for mockestrator
+        run: |
+          for i in $(seq 1 30); do
+            if curl -sf "http://localhost:4000/__admin/errors/catalog" > /dev/null 2>&1; then
+              echo "Mockestrator is ready!"
+              exit 0
+            fi
+            echo "Attempt $i/30 - waiting 2s..."
+            sleep 2
+          done
+          echo "::error::Mockestrator failed to start"
+          docker logs mockestrator
+          exit 1
+
+      - name: Run error injection integration tests
+        run: bun vitest run src/__tests__/error-scenarios.test.ts
+        env:
+          MOCKESTRATOR_URL: http://localhost:4000
+
+      - name: Run SDK client tests
+        run: bun vitest run src/__tests__/sdk-client.test.ts
+        env:
+          MOCKESTRATOR_URL: http://localhost:4000
+
+      - name: Run existing intent tests
+        run: bun vitest run src/__tests__/intent.test.ts
+        env:
+          MOCKESTRATOR_URL: http://localhost:4000
+
+      - name: Run existing account deployment tests
+        run: bun vitest run src/__tests__/account-deployment.test.ts
+        env:
+          MOCKESTRATOR_URL: http://localhost:4000
+
+      - name: Show mockestrator logs on failure
+        if: failure()
+        run: docker logs mockestrator
