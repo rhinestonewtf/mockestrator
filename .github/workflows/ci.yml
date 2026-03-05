@@ -25,70 +25,51 @@ jobs:
   integration-tests:
     name: SDK Integration Tests
     runs-on: ubuntu-latest
-    services:
-      base-sepolia-fork:
-        image: ghcr.io/foundry-rs/foundry
-        ports:
-          - '30005:8545'
-        options: >-
-          --health-cmd "cast rpc eth_blockNumber"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-        env:
-          ANVIL_IP_ADDR: 0.0.0.0
-        command: >-
-          anvil
-          --fork-url https://sepolia.base.org
-          --host 0.0.0.0
-          --hardfork prague
-          --no-priority-fee
-          --gas-price 12000000
-          --base-fee 12000000
-
-      sepolia-fork:
-        image: ghcr.io/foundry-rs/foundry
-        ports:
-          - '30006:8545'
-        options: >-
-          --health-cmd "cast rpc eth_blockNumber"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-        env:
-          ANVIL_IP_ADDR: 0.0.0.0
-        command: >-
-          anvil
-          --fork-url https://rpc.sepolia.org
-          --host 0.0.0.0
-          --hardfork prague
-          --no-priority-fee
-          --gas-price 12000000
-          --base-fee 12000000
-
-      custom-fork:
-        image: ghcr.io/foundry-rs/foundry
-        ports:
-          - '30007:8545'
-        options: >-
-          --health-cmd "cast rpc eth_blockNumber"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-        env:
-          ANVIL_IP_ADDR: 0.0.0.0
-        command: >-
-          anvil
-          --fork-url https://sepolia.base.org
-          --chain-id 565656
-          --host 0.0.0.0
-          --hardfork prague
-          --no-priority-fee
-          --gas-price 12000000
-          --base-fee 12000000
-
     steps:
       - uses: actions/checkout@v4
+
+      - name: Start base-sepolia-fork (anvil on port 30005)
+        run: |
+          docker run -d --name base-sepolia-fork \
+            --network host \
+            -e ANVIL_IP_ADDR=0.0.0.0 \
+            ghcr.io/foundry-rs/foundry \
+            "anvil --fork-url https://sepolia.base.org --host 0.0.0.0 --port 30005 --hardfork prague --no-priority-fee --gas-price 12000000 --base-fee 12000000"
+
+      - name: Start sepolia-fork (anvil on port 30006)
+        run: |
+          docker run -d --name sepolia-fork \
+            --network host \
+            -e ANVIL_IP_ADDR=0.0.0.0 \
+            ghcr.io/foundry-rs/foundry \
+            "anvil --fork-url https://rpc.sepolia.org --host 0.0.0.0 --port 30006 --hardfork prague --no-priority-fee --gas-price 12000000 --base-fee 12000000"
+
+      - name: Start custom-fork (anvil on port 30007)
+        run: |
+          docker run -d --name custom-fork \
+            --network host \
+            -e ANVIL_IP_ADDR=0.0.0.0 \
+            ghcr.io/foundry-rs/foundry \
+            "anvil --fork-url https://sepolia.base.org --chain-id 565656 --host 0.0.0.0 --port 30007 --hardfork prague --no-priority-fee --gas-price 12000000 --base-fee 12000000"
+
+      - name: Wait for anvil forks
+        run: |
+          for port in 30005 30006 30007; do
+            for i in $(seq 1 30); do
+              if curl -sf -X POST -H "Content-Type: application/json" \
+                -d '{"jsonrpc":"2.0","method":"eth_blockNumber","params":[],"id":1}' \
+                "http://localhost:$port" > /dev/null 2>&1; then
+                echo "Anvil on port $port is ready!"
+                break
+              fi
+              echo "Port $port - attempt $i/30 - waiting 2s..."
+              sleep 2
+              if [ "$i" -eq 30 ]; then
+                echo "::error::Anvil on port $port failed to start"
+                exit 1
+              fi
+            done
+          done
 
       - uses: oven-sh/setup-bun@v2
         with:
