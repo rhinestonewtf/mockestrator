@@ -59,6 +59,10 @@ const executeIntent = async (signedIntentData: SignedIntentData): Promise<Signed
         destinationSignature.length > 2 &&
         !isFakeSignature(destinationSignature)
 
+    console.log(`[intent_store] sponsor=${sponsor}, recipient=${recipient}, chain=${destinationChain}`)
+    console.log(`[intent_store] destinationOps=${destinationOps}, hasDestOps=${hasDestinationOps}`)
+    console.log(`[intent_store] destSig=${destinationSignature.slice(0, 10)}..., hasValidDestSig=${hasValidDestinationSignature}`)
+
     if (hasDestinationOps && !hasValidDestinationSignature) {
         throw new Error('Destination signature required for destination operations')
     }
@@ -109,6 +113,7 @@ const executeLegacyFlow = async (
     const setupCalls: { to: Address; callData: Hex }[] = []
 
     const tokenTransfers = toTokenTransfers(signedIntent.elements)
+    console.log(`[legacy] tokenTransfers: ${JSON.stringify(tokenTransfers.map(t => ({ addr: t.address, val: t.value.toString() })))}`)
     const tokenTransferCalls = tokenTransfers
         .filter((t) => t.address != zeroAddress)
         .map((transfer) => ({
@@ -117,18 +122,24 @@ const executeLegacyFlow = async (
         }))
 
     const destinationOps = toDestinationOps(signedIntent.elements)
+    console.log(`[legacy] destinationOps count: ${destinationOps.length}`)
     const executions = [...setupCalls, ...tokenTransferCalls, ...destinationOps]
+    console.log(`[legacy] total executions: ${executions.length}, calls: ${JSON.stringify(executions.map(e => e.to))}`)
 
     const nativeTransferValue = tokenTransfers.filter((t) => t.address == zeroAddress).map((t) => t.value)[0] ?? 0n
+    console.log(`[legacy] nativeTransferValue: ${nativeTransferValue}`)
 
     if (executions.length === 0 && nativeTransferValue === 0n) {
+        console.log('[legacy] no executions, no native transfer — returning zero hash')
         return '0x0000000000000000000000000000000000000000000000000000000000000000' as Hex
     }
 
     if (executions.length === 0 && nativeTransferValue > 0n) {
+        console.log('[legacy] native-only transfer')
         return executor.execute({ to: recipient, callData: '0x' as Hex, value: nativeTransferValue })
     }
 
+    console.log('[legacy] executing via FakeRouter')
     const txCallData = await executor.callFakeRouter(executions)
     return executor.execute({ ...txCallData, value: nativeTransferValue })
 }
