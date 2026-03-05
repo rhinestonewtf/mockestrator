@@ -143,11 +143,18 @@ export class ChainContext {
     }
 
     public async execute(execution: { to: Address, callData: Hex, value: bigint }): Promise<Hash> {
+        // Explicit gas params to avoid maxPriorityFeePerGas > maxFeePerGas errors
+        // on anvil forks with low base fees
+        const gasParams = {
+            maxFeePerGas: 10n * 10n ** 9n, // 10 gwei
+            maxPriorityFeePerGas: 0n,
+        }
         try {
             const receipt = await this.walletClient.sendTransactionSync({
                 to: execution.to,
                 value: execution.value,
                 data: execution.callData,
+                ...gasParams,
             })
             if (receipt.status == 'reverted') {
                 throw new Error(`Transaction ${receipt.transactionHash} reverted`)
@@ -162,6 +169,7 @@ export class ChainContext {
                     value: execution.value,
                     data: execution.callData,
                     nonce: nextNonce,
+                    ...gasParams,
                 })
                 if (receipt.status == 'reverted') {
                     throw new Error(`Transaction ${receipt.transactionHash} reverted`)

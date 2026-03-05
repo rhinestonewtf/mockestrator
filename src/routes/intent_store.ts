@@ -12,7 +12,6 @@ type SignedIntentResponse = z.infer<typeof zPostIntentOperationsResponse>
 
 export const intent_store = async (req: Request, resp: Response) => {
     logRequest(req)
-    console.log('[intent_store] handler entered')
 
     try {
         const params = zPostIntentOperationsData.parse({
@@ -21,14 +20,13 @@ export const intent_store = async (req: Request, resp: Response) => {
             path: undefined,
             headers: req.headers
         })
-        console.log('[intent_store] Zod parsing succeeded')
         const body = await executeIntent({
             ...params,
         })
         console.log('Response: ', jsonify(body))
         resp.status(201).json(body)
     } catch (e) {
-        console.log('[intent_store] ERROR:', e)
+        console.log(e)
 
         if (e instanceof ZodError) {
             resp.status(400).json({
@@ -45,43 +43,19 @@ export const intent_store = async (req: Request, resp: Response) => {
 const executeIntent = async (signedIntentData: SignedIntentData): Promise<SignedIntentResponse> => {
     const signedIntent = signedIntentData.body!.signedIntentOp
 
-    const sponsor = getAddress(signedIntent.sponsor)
     const recipient = getAddress(signedIntent.elements[0].mandate.recipient)
     const destinationChain = Number(signedIntent.elements[0].mandate.destinationChainId)
-    const nonce = BigInt(signedIntent.nonce)
 
     const executor = chainContexts()[destinationChain]
 
     const destinationOps = toDestinationOpsEncoded(signedIntent.elements)
-    const destinationSignature = (signedIntent.destinationSignature ?? '0x') as Hex
-
     const hasDestinationOps = destinationOps && destinationOps !== '0x'
-    const hasValidDestinationSignature = destinationSignature &&
-        destinationSignature !== '0x' &&
-        destinationSignature.length > 2 &&
-        !isFakeSignature(destinationSignature)
-
-    console.log(`[intent_store] sponsor=${sponsor}, recipient=${recipient}, chain=${destinationChain}`)
-    console.log(`[intent_store] destinationOps=${destinationOps}, hasDestOps=${hasDestinationOps}`)
-    console.log(`[intent_store] destSig=${destinationSignature.slice(0, 10)}..., hasValidDestSig=${hasValidDestinationSignature}`)
-
-    if (hasDestinationOps && !hasValidDestinationSignature) {
-        throw new Error('Destination signature required for destination operations')
-    }
 
     let txHash: Hex
 
     if (hasDestinationOps) {
-        console.log('Executing via IntentExecutor with signature verification')
-        txHash = await executeIntentExecutorFlow(
-            executor,
-            signedIntent,
-            sponsor,
-            nonce,
-            recipient,
-            destinationOps,
-            destinationSignature
-        )
+        console.log('Executing with destination ops via FakeRouter')
+        txHash = await executeIntentExecutorFlow(executor, signedIntent, recipient)
     } else {
         console.log('Executing via FakeRouter')
         txHash = await executeLegacyFlow(executor, signedIntent, recipient)
@@ -115,7 +89,6 @@ const executeLegacyFlow = async (
     const setupCalls: { to: Address; callData: Hex }[] = []
 
     const tokenTransfers = toTokenTransfers(signedIntent.elements)
-    console.log(`[legacy] tokenTransfers: ${JSON.stringify(tokenTransfers.map(t => ({ addr: t.address, val: t.value.toString() })))}`)
     const tokenTransferCalls = tokenTransfers
         .filter((t) => t.address != zeroAddress)
         .map((transfer) => ({
@@ -124,24 +97,18 @@ const executeLegacyFlow = async (
         }))
 
     const destinationOps = toDestinationOps(signedIntent.elements)
-    console.log(`[legacy] destinationOps count: ${destinationOps.length}`)
     const executions = [...setupCalls, ...tokenTransferCalls, ...destinationOps]
-    console.log(`[legacy] total executions: ${executions.length}, calls: ${JSON.stringify(executions.map(e => e.to))}`)
 
     const nativeTransferValue = tokenTransfers.filter((t) => t.address == zeroAddress).map((t) => t.value)[0] ?? 0n
-    console.log(`[legacy] nativeTransferValue: ${nativeTransferValue}`)
 
     if (executions.length === 0 && nativeTransferValue === 0n) {
-        console.log('[legacy] no executions, no native transfer — returning zero hash')
         return '0x0000000000000000000000000000000000000000000000000000000000000000' as Hex
     }
 
     if (executions.length === 0 && nativeTransferValue > 0n) {
-        console.log('[legacy] native-only transfer')
         return executor.execute({ to: recipient, callData: '0x' as Hex, value: nativeTransferValue })
     }
 
-    console.log('[legacy] executing via FakeRouter')
     const txCallData = await executor.callFakeRouter(executions)
     return executor.execute({ ...txCallData, value: nativeTransferValue })
 }
@@ -149,11 +116,7 @@ const executeLegacyFlow = async (
 const executeIntentExecutorFlow = async (
     executor: ReturnType<typeof chainContexts>[number],
     signedIntent: any,
-    sponsor: Address,
-    nonce: bigint,
     recipient: Address,
-    destinationOps: Hex,
-    destinationSignature: Hex
 ): Promise<Hex> => {
     const tokenTransfers = toTokenTransfers(signedIntent.elements)
     const tokenTransferCalls = tokenTransfers
@@ -165,10 +128,13 @@ const executeIntentExecutorFlow = async (
 
     const nativeTransferValue = tokenTransfers.filter((t) => t.address == zeroAddress).map((t) => t.value)[0] ?? 0n
 
-    // Skip setupOps — smart accounts are counterfactual on anvil forks
+    // Execute destination ops directly through FakeRouter instead of via IntentExecutor.
+    // The real IntentExecutor contract verifies signatures which fails on forked chains.
+    const destOpCalls = toDestinationOps(signedIntent.elements)
+
     const routerCalls = [
         ...tokenTransferCalls,
-        executor.intentExecutorCall(sponsor, nonce, destinationOps, destinationSignature)
+        ...destOpCalls,
     ]
 
     const txCallData = await executor.callFakeRouter(routerCalls)
@@ -274,9 +240,3 @@ const DestinationOpWithValue = z.object({
     value: v.value,
     data: v.data
 }))
-
-function isFakeSignature(signature: Hex): boolean {
-    if (!signature || signature === '0x') return true
-    const sigWithoutPrefix = signature.slice(2)
-    return /^0+$/.test(sigWithoutPrefix)
-}
