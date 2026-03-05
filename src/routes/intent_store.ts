@@ -104,20 +104,9 @@ const executeLegacyFlow = async (
     signedIntent: any,
     recipient: Address
 ): Promise<Hex> => {
-    // setupOps install modules on the source chain — skip for cross-chain intents
-    // where execution happens on the destination chain
-    const sourceChain = Number(signedIntent.elements[0].chainId)
-    const destChain = Number(signedIntent.elements[0].mandate.destinationChainId)
-    const isCrossChain = sourceChain !== destChain
-
-    const setupOps = isCrossChain ? undefined : signedIntent.signedMetadata?.account?.setupOps
-
-    const setupCalls = setupOps ? setupOps.map((op: any) => {
-        return {
-            to: getAddress(op.to),
-            callData: op.data as Hex
-        }
-    }) : []
+    // Skip setupOps from the SDK — they install ERC-7579 modules on smart accounts
+    // that don't exist on the anvil forks (accounts are virtual/counterfactual)
+    const setupCalls: { to: Address; callData: Hex }[] = []
 
     const tokenTransfers = toTokenTransfers(signedIntent.elements)
     const tokenTransferCalls = tokenTransfers
@@ -153,13 +142,6 @@ const executeIntentExecutorFlow = async (
     destinationOps: Hex,
     destinationSignature: Hex
 ): Promise<Hex> => {
-    const setupOps = signedIntent.signedMetadata?.account?.setupOps
-
-    const setupCalls = setupOps ? setupOps.map((op: any) => ({
-        to: getAddress(op.to),
-        callData: op.data as Hex
-    })) : []
-
     const tokenTransfers = toTokenTransfers(signedIntent.elements)
     const tokenTransferCalls = tokenTransfers
         .filter((t) => t.address != zeroAddress)
@@ -170,8 +152,8 @@ const executeIntentExecutorFlow = async (
 
     const nativeTransferValue = tokenTransfers.filter((t) => t.address == zeroAddress).map((t) => t.value)[0] ?? 0n
 
+    // Skip setupOps — smart accounts are counterfactual on anvil forks
     const routerCalls = [
-        ...setupCalls,
         ...tokenTransferCalls,
         executor.intentExecutorCall(sponsor, nonce, destinationOps, destinationSignature)
     ]
