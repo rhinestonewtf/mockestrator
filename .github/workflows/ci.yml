@@ -120,7 +120,7 @@ jobs:
       - name: Show logs on failure
         if: failure()
         run: |
-          echo "=== mockestrator ===" && docker logs mockestrator 2>&1 | tail -500 || true
+          echo "=== mockestrator ===" && docker logs mockestrator 2>&1 | tail -2000 || true
           echo "=== base-sepolia-fork ===" && docker logs base-sepolia-fork 2>&1 | tail -30 || true
           echo "=== sepolia-fork ===" && docker logs sepolia-fork 2>&1 | tail -30 || true
           echo "=== custom-fork ===" && docker logs custom-fork 2>&1 | tail -30 || true

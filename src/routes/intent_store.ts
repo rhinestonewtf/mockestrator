@@ -12,6 +12,7 @@ type SignedIntentResponse = z.infer<typeof zPostIntentOperationsResponse>
 
 export const intent_store = async (req: Request, resp: Response) => {
     logRequest(req)
+    console.log('[intent_store] handler entered')
 
     try {
         const params = zPostIntentOperationsData.parse({
@@ -20,13 +21,14 @@ export const intent_store = async (req: Request, resp: Response) => {
             path: undefined,
             headers: req.headers
         })
+        console.log('[intent_store] Zod parsing succeeded')
         const body = await executeIntent({
             ...params,
         })
         console.log('Response: ', jsonify(body))
         resp.status(201).json(body)
     } catch (e) {
-        console.log(e)
+        console.log('[intent_store] ERROR:', e)
 
         if (e instanceof ZodError) {
             resp.status(400).json({
