@@ -128,19 +128,23 @@ const executeIntentExecutorFlow = async (
 
     const nativeTransferValue = tokenTransfers.filter((t) => t.address == zeroAddress).map((t) => t.value)[0] ?? 0n
 
-    // Execute destination ops directly through FakeRouter instead of via IntentExecutor.
-    // The real IntentExecutor contract verifies signatures which fails on forked chains.
+    // Execute token transfers via FakeRouter (as relayer)
+    if (tokenTransferCalls.length > 0 || nativeTransferValue > 0n) {
+        const txCallData = await executor.callFakeRouter(tokenTransferCalls)
+        await executor.execute({ ...txCallData, value: nativeTransferValue })
+    }
+
+    // Execute destination ops by impersonating the recipient address.
+    // The real IntentExecutor delegates these calls to the user's smart account,
+    // but smart accounts are counterfactual on anvil forks. Impersonation achieves
+    // the same effect: calls execute as the recipient.
     const destOpCalls = toDestinationOps(signedIntent.elements)
+    let lastTxHash: Hex = '0x0000000000000000000000000000000000000000000000000000000000000000' as Hex
+    for (const call of destOpCalls) {
+        lastTxHash = await executor.executeAs(recipient, call)
+    }
 
-    const routerCalls = [
-        ...tokenTransferCalls,
-        ...destOpCalls,
-    ]
-
-    const txCallData = await executor.callFakeRouter(routerCalls)
-    const routerTxHash = await executor.execute({ ...txCallData, value: nativeTransferValue })
-
-    return routerTxHash
+    return lastTxHash
 }
 
 type TokenTransfer = {
