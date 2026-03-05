@@ -31,17 +31,17 @@ jobs:
       - name: Start anvil forks
         run: |
           docker run -d --name base-sepolia-fork --network host \
-            ghcr.io/foundry-rs/foundry \
+            --entrypoint anvil ghcr.io/foundry-rs/foundry \
             --fork-url https://sepolia.base.org --host 0.0.0.0 --port 30005 \
             --hardfork prague --no-priority-fee --gas-price 12000000 --base-fee 12000000
 
           docker run -d --name sepolia-fork --network host \
-            ghcr.io/foundry-rs/foundry \
+            --entrypoint anvil ghcr.io/foundry-rs/foundry \
             --fork-url https://rpc.sepolia.org --host 0.0.0.0 --port 30006 \
             --hardfork prague --no-priority-fee --gas-price 12000000 --base-fee 12000000
 
           docker run -d --name custom-fork --network host \
-            ghcr.io/foundry-rs/foundry \
+            --entrypoint anvil ghcr.io/foundry-rs/foundry \
             --fork-url https://sepolia.base.org --chain-id 565656 --host 0.0.0.0 --port 30007 \
             --hardfork prague --no-priority-fee --gas-price 12000000 --base-fee 12000000
 
