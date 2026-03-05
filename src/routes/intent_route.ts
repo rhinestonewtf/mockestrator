@@ -1,14 +1,12 @@
 import { Request, Response } from "express";
 import { jsonify, logRequest } from "../log";
-import { zPostIntentsRouteData, zPostIntentsRouteResponse } from "../gen/zod.gen";
+import { zPostIntentsRouteData } from "../gen/zod.gen";
 import { z, ZodError } from "zod";
 import { Address, getAddress, hexToBigInt } from "viem";
 import { randomBytes } from "crypto";
 import { chainContexts } from "../chains";
 
 type UserIntent = z.infer<typeof zPostIntentsRouteData>
-
-type UserIntentRouteResponse = z.infer<typeof zPostIntentsRouteResponse>
 
 type AccountAccessListType = NonNullable<UserIntent["body"]>["accountAccessList"];
 
@@ -42,7 +40,7 @@ export const intent_route = async (req: Request, resp: Response) => {
     }
 }
 
-const create_intent_route = async (data: UserIntent): Promise<UserIntentRouteResponse> => {
+const create_intent_route = async (data: UserIntent): Promise<any> => {
 
     const userIntent = data.body!
 
@@ -67,7 +65,12 @@ const create_intent_route = async (data: UserIntent): Promise<UserIntentRouteRes
                 settlementContext: {
                     settlementLayer: "INTENT_EXECUTOR" as const,
                     fundingMethod: "NO_FUNDING" as const,
-                    using7579: true as const
+                    using7579: true as const,
+                    gasRefund: {
+                        token: "0x0000000000000000000000000000000000000000",
+                        exchangeRate: 0,
+                        overhead: 0
+                    }
                 },
                 encodedVal: "0xff"
             }
@@ -90,10 +93,25 @@ const create_intent_route = async (data: UserIntent): Promise<UserIntentRouteRes
         return [hexToBigInt(transfer.tokenAddress as Address), transfer.amount]
     })
 
+    // Map destinationExecutions to the Op format expected by the SDK.
+    // Each execution must have { to, value, data } — the SDK's Execution type.
+    const destOps = (userIntent.destinationExecutions ?? []).map((exec: any) => ({
+        to: exec.to,
+        value: exec.value ?? 0n,
+        data: exec.data,
+    }))
+
+    // The vt field encodes execType (byte 0) and sigMode (byte 1).
+    // 0x02 = batch execution, 0x01 = ERC-1271 signature mode.
+    const destOpsVt = destOps.length > 0
+        ? "0x0201000000000000000000000000000000000000000000000000000000000000"
+        : "0x0000000000000000000000000000000000000000000000000000000000000000"
+
     return {
         intentOp: {
             sponsor,
             nonce: randomBigInt,
+            targetExecutionNonce: randomBigInt,
             expires: BigInt(expires),
             elements: [
                 {
@@ -101,21 +119,21 @@ const create_intent_route = async (data: UserIntent): Promise<UserIntentRouteRes
                     chainId: BigInt(sourceChain),
                     idsAndAmounts: [],
                     spendTokens: [],
+                    beforeFill: false,
                     mandate: {
                         recipient,
                         tokenOut,
                         destinationChainId: BigInt(userIntent.destinationChainId),
                         fillDeadline: BigInt(expires),
-                        // SDK 1.1.0 expects Op struct with { vt, ops } format
                         preClaimOps: { vt: "0x0000000000000000000000000000000000000000000000000000000000000000", ops: [] },
-                        destinationOps: { vt: "0x0201000000000000000000000000000000000000000000000000000000000000", ops: userIntent.destinationExecutions ?? [] },
+                        destinationOps: { vt: destOpsVt, ops: destOps },
                         qualifier,
                         v: 0,
                         minGas: 0n
                     }
                 }
             ],
-            serverSignature: "4f8c3b1d2f3a7e61c8f4a9170a4b2f8e5c9d0b6a3c7e8f4a9172b3c1d4e5f6a0",  // random, doesn't mean anything
+            serverSignature: "4f8c3b1d2f3a7e61c8f4a9170a4b2f8e5c9d0b6a3c7e8f4a9172b3c1d4e5f6a0",
             signedMetadata: {
                 tokenPrices: {
                     "ETH": 123,
@@ -130,10 +148,21 @@ const create_intent_route = async (data: UserIntent): Promise<UserIntentRouteRes
                     "XPL": 123,
                     "WXPL": 123
                 },
-
+                fees: {},
                 gasPrices: {},
-                account: { ...userIntent.account, accountContext: {} },
-                opGasParams: {},
+                account: {
+                    ...userIntent.account,
+                    accountContext: {
+                        [destinatinoChain]: {
+                            accountType: "smartAccount" as const,
+                            isDeployed: false,
+                            isERC7579: true,
+                            erc7579AccountType: "Nexus",
+                            erc7579AccountVersion: "1.0.0",
+                        }
+                    },
+                },
+                opGasParams: { estimatedCalldataSize: 0 },
                 quotes: {},
             }
         },

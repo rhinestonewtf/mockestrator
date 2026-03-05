@@ -6,12 +6,17 @@ import './serializeBigInts';
 import { intent_store } from './routes/intent_store';
 import { intent_status } from './routes/intent_status';
 import { initContexts } from './chains';
+import { errorInjectionMiddleware } from './errors/middleware';
+import { setupAdminRoutes } from './errors/admin';
+import { initFromEnv } from './errors/config';
 
 const app = express();
 const port = process.env.PORT || 3000;
 
 
 app.use(express.json())
+app.use(errorInjectionMiddleware)
+setupAdminRoutes(app)
 
 app.get('/accounts/:userAddress/portfolio', portfolio)
 app.post('/intents/route', intent_route)
@@ -31,6 +36,7 @@ app.all(/.*/, (req, res) => {
 
 
 (async () => {
+    initFromEnv()
     await initContexts()
     app.listen(port, () => {
         console.log(`🚀 Server running on http://localhost:${port}`);

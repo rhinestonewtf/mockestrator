@@ -43,39 +43,19 @@ export const intent_store = async (req: Request, resp: Response) => {
 const executeIntent = async (signedIntentData: SignedIntentData): Promise<SignedIntentResponse> => {
     const signedIntent = signedIntentData.body!.signedIntentOp
 
-    const sponsor = getAddress(signedIntent.sponsor)
     const recipient = getAddress(signedIntent.elements[0].mandate.recipient)
     const destinationChain = Number(signedIntent.elements[0].mandate.destinationChainId)
-    const nonce = BigInt(signedIntent.nonce)
 
     const executor = chainContexts()[destinationChain]
 
     const destinationOps = toDestinationOpsEncoded(signedIntent.elements)
-    const destinationSignature = (signedIntent.destinationSignature ?? '0x') as Hex
-
     const hasDestinationOps = destinationOps && destinationOps !== '0x'
-    const hasValidDestinationSignature = destinationSignature &&
-        destinationSignature !== '0x' &&
-        destinationSignature.length > 2 &&
-        !isFakeSignature(destinationSignature)
-
-    if (hasDestinationOps && !hasValidDestinationSignature) {
-        throw new Error('Destination signature required for destination operations')
-    }
 
     let txHash: Hex
 
     if (hasDestinationOps) {
-        console.log('Executing via IntentExecutor with signature verification')
-        txHash = await executeIntentExecutorFlow(
-            executor,
-            signedIntent,
-            sponsor,
-            nonce,
-            recipient,
-            destinationOps,
-            destinationSignature
-        )
+        console.log('Executing with destination ops via FakeRouter')
+        txHash = await executeIntentExecutorFlow(executor, signedIntent, recipient)
     } else {
         console.log('Executing via FakeRouter')
         txHash = await executeLegacyFlow(executor, signedIntent, recipient)
@@ -104,14 +84,9 @@ const executeLegacyFlow = async (
     signedIntent: any,
     recipient: Address
 ): Promise<Hex> => {
-    const setupOps = signedIntent.signedMetadata?.account?.setupOps
-
-    const setupCalls = setupOps ? setupOps.map((op: any) => {
-        return {
-            to: getAddress(op.to),
-            callData: op.data as Hex
-        }
-    }) : []
+    // Skip setupOps from the SDK — they install ERC-7579 modules on smart accounts
+    // that don't exist on the anvil forks (accounts are virtual/counterfactual)
+    const setupCalls: { to: Address; callData: Hex }[] = []
 
     const tokenTransfers = toTokenTransfers(signedIntent.elements)
     const tokenTransferCalls = tokenTransfers
@@ -141,39 +116,33 @@ const executeLegacyFlow = async (
 const executeIntentExecutorFlow = async (
     executor: ReturnType<typeof chainContexts>[number],
     signedIntent: any,
-    sponsor: Address,
-    nonce: bigint,
     recipient: Address,
-    destinationOps: Hex,
-    destinationSignature: Hex
 ): Promise<Hex> => {
-    const setupOps = signedIntent.signedMetadata?.account?.setupOps
-
-    const setupCalls = setupOps ? setupOps.map((op: any) => ({
-        to: getAddress(op.to),
-        callData: op.data as Hex
-    })) : []
-
     const tokenTransfers = toTokenTransfers(signedIntent.elements)
-    const tokenTransferCalls = tokenTransfers
-        .filter((t) => t.address != zeroAddress)
-        .map((transfer) => ({
-            to: transfer.address,
-            callData: executor.transfer(recipient, transfer.value)
-        }))
-
+    const erc20Transfers = tokenTransfers.filter((t) => t.address != zeroAddress)
     const nativeTransferValue = tokenTransfers.filter((t) => t.address == zeroAddress).map((t) => t.value)[0] ?? 0n
 
-    const routerCalls = [
-        ...setupCalls,
-        ...tokenTransferCalls,
-        executor.intentExecutorCall(sponsor, nonce, destinationOps, destinationSignature)
-    ]
+    // Approve router's tokens for the recipient so it can transferFrom
+    for (const transfer of erc20Transfers) {
+        await executor.approveByTokenAddress(executor.routerAddr, recipient, transfer.address, transfer.value)
+    }
 
-    const txCallData = await executor.callFakeRouter(routerCalls)
-    const routerTxHash = await executor.execute({ ...txCallData, value: nativeTransferValue })
+    // Build calls: transferFrom(router → recipient) for each ERC-20 + dest ops
+    const transferFromCalls = erc20Transfers.map((transfer) => ({
+        to: transfer.address,
+        callData: executor.encodeTransferFrom(executor.routerAddr, recipient, transfer.value)
+    }))
 
-    return routerTxHash
+    const destOpCalls = toDestinationOps(signedIntent.elements)
+    const allCalls = [...transferFromCalls, ...destOpCalls]
+
+    if (allCalls.length === 0 && nativeTransferValue === 0n) {
+        return '0x0000000000000000000000000000000000000000000000000000000000000000' as Hex
+    }
+
+    // Deploy FakeRouter code at recipient address to simulate smart account batching.
+    // All calls execute with msg.sender = recipient, matching real IntentExecutor behavior.
+    return executor.executeAsSmartAccount(recipient, allCalls, nativeTransferValue)
 }
 
 type TokenTransfer = {
@@ -273,9 +242,3 @@ const DestinationOpWithValue = z.object({
     value: v.value,
     data: v.data
 }))
-
-function isFakeSignature(signature: Hex): boolean {
-    if (!signature || signature === '0x') return true
-    const sigWithoutPrefix = signature.slice(2)
-    return /^0+$/.test(sigWithoutPrefix)
-}

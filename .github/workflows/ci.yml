@@ -1,0 +1,126 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  unit-tests:
+    name: Registry Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - run: bun install --frozen-lockfile
+
+      - name: Run error scenario registry tests
+        run: bun vitest run src/__tests__/error-scenarios.test.ts -t "Error Scenario Registry"
+
+  integration-tests:
+    name: SDK Integration Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Start anvil forks
+        run: |
+          docker run -d --name base-sepolia-fork --network host \
+            --entrypoint anvil ghcr.io/foundry-rs/foundry \
+            --fork-url https://sepolia.base.org --host 0.0.0.0 --port 30005 \
+            --hardfork prague --no-priority-fee --gas-price 12000000 --base-fee 12000000
+
+          docker run -d --name sepolia-fork --network host \
+            --entrypoint anvil ghcr.io/foundry-rs/foundry \
+            --fork-url https://ethereum-sepolia-rpc.publicnode.com --host 0.0.0.0 --port 30006 \
+            --hardfork prague --no-priority-fee --gas-price 12000000 --base-fee 12000000
+
+          docker run -d --name custom-fork --network host \
+            --entrypoint anvil ghcr.io/foundry-rs/foundry \
+            --fork-url https://sepolia.base.org --chain-id 565656 --host 0.0.0.0 --port 30007 \
+            --hardfork prague --no-priority-fee --gas-price 12000000 --base-fee 12000000
+
+      - name: Wait for anvil forks
+        run: |
+          for port in 30005 30006 30007; do
+            for i in $(seq 1 30); do
+              if curl -sf -X POST -H "Content-Type: application/json" \
+                -d '{"jsonrpc":"2.0","method":"eth_blockNumber","params":[],"id":1}' \
+                "http://localhost:$port" > /dev/null 2>&1; then
+                echo "Anvil on port $port is ready!"
+                break
+              fi
+              echo "Port $port - attempt $i/30 - waiting 2s..."
+              sleep 2
+              if [ "$i" -eq 30 ]; then
+                echo "::error::Anvil on port $port failed to start"
+                docker logs base-sepolia-fork 2>&1 | tail -20 || true
+                docker logs sepolia-fork 2>&1 | tail -20 || true
+                docker logs custom-fork 2>&1 | tail -20 || true
+                exit 1
+              fi
+            done
+          done
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - run: bun install --frozen-lockfile
+
+      - name: Build mockestrator Docker image
+        run: docker build -t mockestrator:test .
+
+      - name: Start mockestrator
+        run: |
+          docker run -d --name mockestrator \
+            --network host \
+            -e PORT=4000 \
+            mockestrator:test
+
+      - name: Wait for mockestrator
+        run: |
+          for i in $(seq 1 30); do
+            if curl -sf "http://localhost:4000/__admin/errors/catalog" > /dev/null 2>&1; then
+              echo "Mockestrator is ready!"
+              exit 0
+            fi
+            echo "Attempt $i/30 - waiting 2s..."
+            sleep 2
+          done
+          echo "::error::Mockestrator failed to start"
+          docker logs mockestrator
+          exit 1
+
+      - name: Run error injection integration tests
+        run: bun vitest run src/__tests__/error-scenarios.test.ts
+        env:
+          MOCKESTRATOR_URL: http://localhost:4000
+
+      - name: Run SDK client tests
+        run: bun vitest run src/__tests__/sdk-client.test.ts
+        env:
+          MOCKESTRATOR_URL: http://localhost:4000
+
+      - name: Run existing intent tests
+        run: bun vitest run src/__tests__/intent.test.ts
+        env:
+          MOCKESTRATOR_URL: http://localhost:4000
+
+      - name: Run existing account deployment tests
+        run: bun vitest run src/__tests__/account-deployment.test.ts
+        env:
+          MOCKESTRATOR_URL: http://localhost:4000
+
+      - name: Show logs on failure
+        if: failure()
+        run: |
+          echo "=== mockestrator ===" && docker logs mockestrator 2>&1 | tail -200 || true
+          echo "=== base-sepolia-fork ===" && docker logs base-sepolia-fork 2>&1 | tail -30 || true
+          echo "=== sepolia-fork ===" && docker logs sepolia-fork 2>&1 | tail -30 || true
+          echo "=== custom-fork ===" && docker logs custom-fork 2>&1 | tail -30 || true

@@ -1,0 +1,103 @@
+name: 'Setup Mockestrator'
+description: 'Start the mockestrator mock orchestrator for integration testing with error injection support'
+
+inputs:
+  rpc-urls:
+    description: 'JSON mapping of chainId to RPC URL, e.g. {"84532": "http://localhost:8545"}'
+    required: true
+  mock-errors:
+    description: 'Comma-separated error scenario IDs to pre-activate, e.g. auth.invalid-api-key,infra.rate-limit:0.3'
+    required: false
+    default: ''
+  version:
+    description: 'Mockestrator Docker image tag from ECR'
+    required: false
+    default: 'latest'
+  port:
+    description: 'Port to expose the mockestrator on'
+    required: false
+    default: '3000'
+  chains-config:
+    description: 'Path to custom chains.json (token definitions per chain)'
+    required: false
+    default: ''
+  funding-config:
+    description: 'Path to custom config.json (relayer key, funding amounts)'
+    required: false
+    default: ''
+
+outputs:
+  url:
+    description: 'Mockestrator base URL'
+    value: ${{ steps.start.outputs.url }}
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Generate rpcs.json from input
+      shell: bash
+      run: |
+        echo '${{ inputs.rpc-urls }}' | jq 'to_entries | map({(.key): {rpc: .value}}) | add' > /tmp/mockestrator-rpcs.json
+        echo "Generated rpcs.json:"
+        cat /tmp/mockestrator-rpcs.json
+
+    - name: Pull mockestrator image
+      shell: bash
+      run: docker pull public.ecr.aws/l8u6h3p7/mockestrator:${{ inputs.version }}
+
+    - name: Start mockestrator
+      id: start
+      shell: bash
+      run: |
+        VOLUMES="-v /tmp/mockestrator-rpcs.json:/app/rpcs.json:ro"
+
+        if [ -n "${{ inputs.chains-config }}" ]; then
+          VOLUMES="$VOLUMES -v $(realpath ${{ inputs.chains-config }}):/app/chains.json:ro"
+        fi
+        if [ -n "${{ inputs.funding-config }}" ]; then
+          VOLUMES="$VOLUMES -v $(realpath ${{ inputs.funding-config }}):/app/config.json:ro"
+        fi
+
+        docker run -d --name mockestrator \
+          --network host \
+          -e PORT=${{ inputs.port }} \
+          -e MOCK_ERRORS="${{ inputs.mock-errors }}" \
+          $VOLUMES \
+          public.ecr.aws/l8u6h3p7/mockestrator:${{ inputs.version }}
+
+        echo "url=http://localhost:${{ inputs.port }}" >> "$GITHUB_OUTPUT"
+
+    - name: Wait for mockestrator to be ready
+      shell: bash
+      run: |
+        URL="http://localhost:${{ inputs.port }}"
+        echo "Waiting for mockestrator at $URL..."
+        for i in $(seq 1 30); do
+          if curl -sf "$URL/__admin/errors/catalog" > /dev/null 2>&1; then
+            echo "Mockestrator is ready!"
+            exit 0
+          fi
+          echo "  Attempt $i/30 - waiting 2s..."
+          sleep 2
+        done
+        echo "::error::Mockestrator failed to start within 60s"
+        echo "Container logs:"
+        docker logs mockestrator
+        exit 1
+
+    - name: Pre-configure error scenarios
+      if: inputs.mock-errors != ''
+      shell: bash
+      run: |
+        URL="http://localhost:${{ inputs.port }}"
+        SCENARIOS=$(echo "${{ inputs.mock-errors }}" | tr ',' '\n' | while IFS=: read -r id prob; do
+          prob=${prob:-1.0}
+          echo "{\"id\":\"$id\",\"enabled\":true,\"probability\":$prob}"
+        done | jq -s '.')
+
+        echo "Activating error scenarios:"
+        echo "$SCENARIOS" | jq .
+
+        curl -sf -X PUT "$URL/__admin/errors" \
+          -H 'Content-Type: application/json' \
+          -d "{\"scenarios\": $SCENARIOS}"
