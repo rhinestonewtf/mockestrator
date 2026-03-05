@@ -259,10 +259,13 @@ export class ChainContext {
 
     // Set ERC-20 approval by token address (not symbol) using storage slot manipulation
     public async approveByTokenAddress(owner: Address, spender: Address, tokenAddress: Address, amount: bigint) {
-        const token = this.tokens[tokenAddress]
-        if (!token || token.approvalSlot === undefined) {
-            return
-        }
+        // Normalize: tokens map keys may be checksummed while tokenAddress may be lowercase
+        const normalizedAddr = tokenAddress.toLowerCase()
+        const entry = Object.entries(this.tokens).find(([addr]) => addr.toLowerCase() === normalizedAddr)
+        if (!entry) return
+        const [, token] = entry
+        if (token.approvalSlot === undefined) return
+
         const inner = keccak256(encodePacked(["bytes32", "bytes32"], [pad(owner), pad(toHex(token.approvalSlot))]))
         const slot = keccak256(encodePacked(["bytes32", "bytes32"], [pad(spender), inner]))
         await this.testClient.setStorageAt({
