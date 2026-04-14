@@ -5,6 +5,7 @@ import { intent_route } from './routes/intent_route';
 import './serializeBigInts';
 import { intent_store } from './routes/intent_store';
 import { intent_status } from './routes/intent_status';
+import { intent_split } from './routes/intent_split';
 import { initContexts } from './chains';
 
 const app = express();
@@ -15,6 +16,7 @@ app.use(express.json())
 
 app.get('/accounts/:userAddress/portfolio', portfolio)
 app.post('/intents/route', intent_route)
+app.post('/intents/split', intent_split)
 app.post('/intent-operations', intent_store)
 app.get('/intent-operation/:id', intent_status)
 

@@ -67,7 +67,12 @@ const create_intent_route = async (data: UserIntent): Promise<UserIntentRouteRes
                 settlementContext: {
                     settlementLayer: "INTENT_EXECUTOR" as const,
                     fundingMethod: "NO_FUNDING" as const,
-                    using7579: true as const
+                    using7579: true as const,
+                    gasRefund: {
+                        overhead: 0n,
+                        exchangeRate: 0n,
+                        token: "0x0000000000000000000000000000000000000000"
+                    }
                 },
                 encodedVal: "0xff"
             }
@@ -110,7 +115,6 @@ const create_intent_route = async (data: UserIntent): Promise<UserIntentRouteRes
                         preClaimOps: { vt: "0x0000000000000000000000000000000000000000000000000000000000000000", ops: [] },
                         destinationOps: { vt: "0x0201000000000000000000000000000000000000000000000000000000000000", ops: userIntent.destinationExecutions ?? [] },
                         qualifier,
-                        v: 0,
                         minGas: 0n
                     }
                 }
@@ -122,19 +126,24 @@ const create_intent_route = async (data: UserIntent): Promise<UserIntentRouteRes
                     "USDC": 123,
                     "WETH": 123,
                     "USDT0": 123,
+                    "USDT": 123,
+                    "BNB": 123,
+                    "WBNB": 123,
                     "XDAI": 123,
                     "POL": 123,
                     "WPOL": 123,
                     "S": 123,
-                    "USDT": 123,
+                    "WS": 123,
+                    "HYPE": 123,
+                    "WHYPE": 123,
                     "XPL": 123,
-                    "WXPL": 123
+                    "WXPL": 123,
+                    "MockUSD": 123
                 },
 
                 gasPrices: {},
                 account: { ...userIntent.account, accountContext: {} },
                 opGasParams: {},
-                quotes: {},
             }
         },
         intentCost: {
@@ -144,6 +153,11 @@ const create_intent_route = async (data: UserIntent): Promise<UserIntentRouteRes
             sponsorFee: {
                 relayer: 0,
                 protocol: 0
+            },
+            gasCost: {
+                originChains: [],
+                destination: { chainId: destinatinoChain, gasUSD: 0 },
+                totalUSD: 0
             }
         }
     }

@@ -2,232 +2,6 @@
 
 import { z } from 'zod';
 
-export const zPostIntentsCostData = z.object({
-    body: z.optional(z.object({
-        destinationChainId: z.number().gte(0),
-        tokenRequests: z.array(z.union([z.object({
-                tokenAddress: z.string(),
-                amount: z.coerce.bigint().min(BigInt('-9223372036854775808'), { error: 'Invalid value: Expected int64 to be >= -9223372036854775808' }).max(BigInt('9223372036854775807'), { error: 'Invalid value: Expected int64 to be <= 9223372036854775807' })
-            }), z.object({
-                tokenAddress: z.string(),
-                amount: z.optional(z.coerce.bigint().min(BigInt('-9223372036854775808'), { error: 'Invalid value: Expected int64 to be >= -9223372036854775808' }).max(BigInt('9223372036854775807'), { error: 'Invalid value: Expected int64 to be <= 9223372036854775807' }))
-            })])),
-        account: z.object({
-            address: z.string(),
-            accountType: z.optional(z.enum([
-                'smartAccount',
-                'GENERIC',
-                'EOA',
-                'ERC7579'
-            ])),
-            setupOps: z.optional(z.array(z.object({
-                to: z.string(),
-                data: z.string().regex(/^0x[a-fA-F0-9]*$/)
-            }))),
-            emissaryConfig: z.optional(z.object({
-                validatorAddress: z.string(),
-                emissaryAddress: z.string(),
-                emissaryEnable: z.object({
-                    allocatorSig: z.string().regex(/^0x[a-fA-F0-9]*$/),
-                    userSig: z.string().regex(/^0x[a-fA-F0-9]*$/),
-                    expires: z.coerce.bigint().min(BigInt('-9223372036854775808'), { error: 'Invalid value: Expected int64 to be >= -9223372036854775808' }).max(BigInt('9223372036854775807'), { error: 'Invalid value: Expected int64 to be <= 9223372036854775807' }),
-                    nonce: z.coerce.bigint().min(BigInt('-9223372036854775808'), { error: 'Invalid value: Expected int64 to be >= -9223372036854775808' }).max(BigInt('9223372036854775807'), { error: 'Invalid value: Expected int64 to be <= 9223372036854775807' }),
-                    allChainIds: z.array(z.coerce.bigint().min(BigInt('-9223372036854775808'), { error: 'Invalid value: Expected int64 to be >= -9223372036854775808' }).max(BigInt('9223372036854775807'), { error: 'Invalid value: Expected int64 to be <= 9223372036854775807' })),
-                    chainIndex: z.coerce.bigint().min(BigInt('-9223372036854775808'), { error: 'Invalid value: Expected int64 to be >= -9223372036854775808' }).max(BigInt('9223372036854775807'), { error: 'Invalid value: Expected int64 to be <= 9223372036854775807' })
-                }),
-                settings: z.object({
-                    configId: z.number().lte(255),
-                    allocator: z.optional(z.string()).default('0x1fcaa96c3aa5bbb0af8d89211cc8954c170d5903'),
-                    scope: z.optional(z.number()).default(0),
-                    resetPeriod: z.optional(z.number()).default(6),
-                    validator: z.string(),
-                    validatorConfig: z.string().regex(/^0x[a-fA-F0-9]*$/)
-                })
-            })),
-            delegations: z.optional(z.record(z.string(), z.object({
-                contract: z.string()
-            })))
-        }),
-        destinationExecutions: z.optional(z.array(z.object({
-            to: z.string(),
-            value: z.coerce.bigint().min(BigInt('-9223372036854775808'), { error: 'Invalid value: Expected int64 to be >= -9223372036854775808' }).max(BigInt('9223372036854775807'), { error: 'Invalid value: Expected int64 to be <= 9223372036854775807' }),
-            data: z.string().regex(/^0x[a-fA-F0-9]*$/)
-        }))),
-        destinationGasUnits: z.optional(z.coerce.bigint().min(BigInt('-9223372036854775808'), { error: 'Invalid value: Expected int64 to be >= -9223372036854775808' }).max(BigInt('9223372036854775807'), { error: 'Invalid value: Expected int64 to be <= 9223372036854775807' })),
-        accountAccessList: z.optional(z.union([
-            z.object({
-                chainIds: z.optional(z.array(z.number().gte(0))),
-                tokens: z.optional(z.array(z.union([
-                    z.string(),
-                    z.literal('ETH'),
-                    z.literal('USDC'),
-                    z.literal('WETH'),
-                    z.literal('USDT0'),
-                    z.literal('XDAI'),
-                    z.literal('POL'),
-                    z.literal('WPOL'),
-                    z.literal('S'),
-                    z.literal('USDT'),
-                    z.literal('XPL'),
-                    z.literal('WXPL')
-                ]))),
-                chainTokens: z.optional(z.record(z.string(), z.array(z.union([
-                    z.string(),
-                    z.literal('ETH'),
-                    z.literal('USDC'),
-                    z.literal('WETH'),
-                    z.literal('USDT0'),
-                    z.literal('XDAI'),
-                    z.literal('POL'),
-                    z.literal('WPOL'),
-                    z.literal('S'),
-                    z.literal('USDT'),
-                    z.literal('XPL'),
-                    z.literal('WXPL')
-                ])))),
-                exclude: z.optional(z.object({
-                    chainIds: z.optional(z.array(z.number().gte(0))),
-                    tokens: z.optional(z.array(z.union([
-                        z.string(),
-                        z.literal('ETH'),
-                        z.literal('USDC'),
-                        z.literal('WETH'),
-                        z.literal('USDT0'),
-                        z.literal('XDAI'),
-                        z.literal('POL'),
-                        z.literal('WPOL'),
-                        z.literal('S'),
-                        z.literal('USDT'),
-                        z.literal('XPL'),
-                        z.literal('WXPL')
-                    ]))),
-                    chainTokens: z.optional(z.record(z.string(), z.array(z.union([
-                        z.string(),
-                        z.literal('ETH'),
-                        z.literal('USDC'),
-                        z.literal('WETH'),
-                        z.literal('USDT0'),
-                        z.literal('XDAI'),
-                        z.literal('POL'),
-                        z.literal('WPOL'),
-                        z.literal('S'),
-                        z.literal('USDT'),
-                        z.literal('XPL'),
-                        z.literal('WXPL')
-                    ]))))
-                }))
-            }),
-            z.array(z.object({
-                chainId: z.number().gte(0),
-                tokenAddress: z.string()
-            }))
-        ])),
-        recipient: z.optional(z.object({
-            address: z.string(),
-            accountType: z.optional(z.enum([
-                'smartAccount',
-                'GENERIC',
-                'EOA',
-                'ERC7579'
-            ])),
-            setupOps: z.optional(z.array(z.object({
-                to: z.string(),
-                data: z.string().regex(/^0x[a-fA-F0-9]*$/)
-            }))),
-            emissaryConfig: z.optional(z.object({
-                validatorAddress: z.string(),
-                emissaryAddress: z.string(),
-                emissaryEnable: z.object({
-                    allocatorSig: z.string().regex(/^0x[a-fA-F0-9]*$/),
-                    userSig: z.string().regex(/^0x[a-fA-F0-9]*$/),
-                    expires: z.coerce.bigint().min(BigInt('-9223372036854775808'), { error: 'Invalid value: Expected int64 to be >= -9223372036854775808' }).max(BigInt('9223372036854775807'), { error: 'Invalid value: Expected int64 to be <= 9223372036854775807' }),
-                    nonce: z.coerce.bigint().min(BigInt('-9223372036854775808'), { error: 'Invalid value: Expected int64 to be >= -9223372036854775808' }).max(BigInt('9223372036854775807'), { error: 'Invalid value: Expected int64 to be <= 9223372036854775807' }),
-                    allChainIds: z.array(z.coerce.bigint().min(BigInt('-9223372036854775808'), { error: 'Invalid value: Expected int64 to be >= -9223372036854775808' }).max(BigInt('9223372036854775807'), { error: 'Invalid value: Expected int64 to be <= 9223372036854775807' })),
-                    chainIndex: z.coerce.bigint().min(BigInt('-9223372036854775808'), { error: 'Invalid value: Expected int64 to be >= -9223372036854775808' }).max(BigInt('9223372036854775807'), { error: 'Invalid value: Expected int64 to be <= 9223372036854775807' })
-                }),
-                settings: z.object({
-                    configId: z.number().lte(255),
-                    allocator: z.optional(z.string()).default('0x1fcaa96c3aa5bbb0af8d89211cc8954c170d5903'),
-                    scope: z.optional(z.number()).default(0),
-                    resetPeriod: z.optional(z.number()).default(6),
-                    validator: z.string(),
-                    validatorConfig: z.string().regex(/^0x[a-fA-F0-9]*$/)
-                })
-            })),
-            delegations: z.optional(z.record(z.string(), z.object({
-                contract: z.string()
-            })))
-        })),
-        options: z.optional(z.object({
-            topupCompact: z.optional(z.boolean()).default(false),
-            settlementLayers: z.optional(z.array(z.enum([
-                'ACROSS',
-                'ECO',
-                'RELAY'
-            ]))),
-            sponsorSettings: z.optional(z.object({
-                gasSponsored: z.optional(z.boolean()).default(false),
-                bridgeFeesSponsored: z.optional(z.boolean()).default(false),
-                swapFeesSponsored: z.optional(z.boolean()).default(false)
-            })),
-            feeToken: z.optional(z.enum([
-                'ETH',
-                'USDC',
-                'WETH',
-                'USDT0',
-                'XDAI',
-                'POL',
-                'WPOL',
-                'S',
-                'USDT',
-                'XPL',
-                'WXPL'
-            ]))
-        }))
-    })),
-    path: z.optional(z.never()),
-    query: z.optional(z.never()),
-    headers: z.object({
-        'x-api-key': z.string()
-    })
-});
-
-/**
- * Successfully retrieved the order path
- */
-export const zPostIntentsCostResponse = z.union([
-    z.object({
-        hasFulfilledAll: z.literal(true),
-        tokensSpent: z.record(z.string(), z.record(z.string(), z.object({
-            locked: z.coerce.bigint().min(BigInt('-9223372036854775808'), { error: 'Invalid value: Expected int64 to be >= -9223372036854775808' }).max(BigInt('9223372036854775807'), { error: 'Invalid value: Expected int64 to be <= 9223372036854775807' }),
-            unlocked: z.coerce.bigint().min(BigInt('-9223372036854775808'), { error: 'Invalid value: Expected int64 to be >= -9223372036854775808' }).max(BigInt('9223372036854775807'), { error: 'Invalid value: Expected int64 to be <= 9223372036854775807' })
-        }))),
-        tokensReceived: z.array(z.object({
-            tokenAddress: z.string(),
-            amountSpent: z.coerce.bigint().min(BigInt('-9223372036854775808'), { error: 'Invalid value: Expected int64 to be >= -9223372036854775808' }).max(BigInt('9223372036854775807'), { error: 'Invalid value: Expected int64 to be <= 9223372036854775807' }),
-            targetAmount: z.coerce.bigint().min(BigInt('-9223372036854775808'), { error: 'Invalid value: Expected int64 to be >= -9223372036854775808' }).max(BigInt('9223372036854775807'), { error: 'Invalid value: Expected int64 to be <= 9223372036854775807' }),
-            fee: z.coerce.bigint().min(BigInt('-9223372036854775808'), { error: 'Invalid value: Expected int64 to be >= -9223372036854775808' }).max(BigInt('9223372036854775807'), { error: 'Invalid value: Expected int64 to be <= 9223372036854775807' }),
-            hasFulfilled: z.boolean()
-        })),
-        sponsorFee: z.object({
-            relayer: z.number(),
-            protocol: z.number()
-        })
-    }),
-    z.object({
-        hasFulfilledAll: z.literal(false),
-        tokenShortfall: z.array(z.object({
-            tokenAddress: z.string(),
-            destinationAmount: z.coerce.bigint().min(BigInt('-9223372036854775808'), { error: 'Invalid value: Expected int64 to be >= -9223372036854775808' }).max(BigInt('9223372036854775807'), { error: 'Invalid value: Expected int64 to be <= 9223372036854775807' }),
-            amountSpent: z.coerce.bigint().min(BigInt('-9223372036854775808'), { error: 'Invalid value: Expected int64 to be >= -9223372036854775808' }).max(BigInt('9223372036854775807'), { error: 'Invalid value: Expected int64 to be <= 9223372036854775807' }),
-            fee: z.coerce.bigint().min(BigInt('-9223372036854775808'), { error: 'Invalid value: Expected int64 to be >= -9223372036854775808' }).max(BigInt('9223372036854775807'), { error: 'Invalid value: Expected int64 to be <= 9223372036854775807' }),
-            tokenSymbol: z.string(),
-            tokenDecimals: z.number().gte(0)
-        })),
-        totalTokenShortfallInUSD: z.number().gte(0)
-    })
-]);
-
 export const zPostIntentsRouteData = z.object({
     body: z.optional(z.object({
         destinationChainId: z.number().gte(0),
@@ -263,7 +37,7 @@ export const zPostIntentsRouteData = z.object({
                 }),
                 settings: z.object({
                     configId: z.number().lte(255),
-                    allocator: z.optional(z.string()).default('0x1fcaa96c3aa5bbb0af8d89211cc8954c170d5903'),
+                    allocator: z.optional(z.string()).default('0xc7732071e3a1be6cfce6d13bb05699a31a457679'),
                     scope: z.optional(z.number()).default(0),
                     resetPeriod: z.optional(z.number()).default(6),
                     validator: z.string(),
@@ -289,13 +63,19 @@ export const zPostIntentsRouteData = z.object({
                     z.literal('USDC'),
                     z.literal('WETH'),
                     z.literal('USDT0'),
+                    z.literal('USDT'),
+                    z.literal('BNB'),
+                    z.literal('WBNB'),
                     z.literal('XDAI'),
                     z.literal('POL'),
                     z.literal('WPOL'),
                     z.literal('S'),
-                    z.literal('USDT'),
+                    z.literal('WS'),
+                    z.literal('HYPE'),
+                    z.literal('WHYPE'),
                     z.literal('XPL'),
-                    z.literal('WXPL')
+                    z.literal('WXPL'),
+                    z.literal('MockUSD')
                 ]))),
                 chainTokens: z.optional(z.record(z.string(), z.array(z.union([
                     z.string(),
@@ -303,13 +83,19 @@ export const zPostIntentsRouteData = z.object({
                     z.literal('USDC'),
                     z.literal('WETH'),
                     z.literal('USDT0'),
+                    z.literal('USDT'),
+                    z.literal('BNB'),
+                    z.literal('WBNB'),
                     z.literal('XDAI'),
                     z.literal('POL'),
                     z.literal('WPOL'),
                     z.literal('S'),
-                    z.literal('USDT'),
+                    z.literal('WS'),
+                    z.literal('HYPE'),
+                    z.literal('WHYPE'),
                     z.literal('XPL'),
-                    z.literal('WXPL')
+                    z.literal('WXPL'),
+                    z.literal('MockUSD')
                 ])))),
                 exclude: z.optional(z.object({
                     chainIds: z.optional(z.array(z.number().gte(0))),
@@ -319,13 +105,19 @@ export const zPostIntentsRouteData = z.object({
                         z.literal('USDC'),
                         z.literal('WETH'),
                         z.literal('USDT0'),
+                        z.literal('USDT'),
+                        z.literal('BNB'),
+                        z.literal('WBNB'),
                         z.literal('XDAI'),
                         z.literal('POL'),
                         z.literal('WPOL'),
                         z.literal('S'),
-                        z.literal('USDT'),
+                        z.literal('WS'),
+                        z.literal('HYPE'),
+                        z.literal('WHYPE'),
                         z.literal('XPL'),
-                        z.literal('WXPL')
+                        z.literal('WXPL'),
+                        z.literal('MockUSD')
                     ]))),
                     chainTokens: z.optional(z.record(z.string(), z.array(z.union([
                         z.string(),
@@ -333,19 +125,26 @@ export const zPostIntentsRouteData = z.object({
                         z.literal('USDC'),
                         z.literal('WETH'),
                         z.literal('USDT0'),
+                        z.literal('USDT'),
+                        z.literal('BNB'),
+                        z.literal('WBNB'),
                         z.literal('XDAI'),
                         z.literal('POL'),
                         z.literal('WPOL'),
                         z.literal('S'),
-                        z.literal('USDT'),
+                        z.literal('WS'),
+                        z.literal('HYPE'),
+                        z.literal('WHYPE'),
                         z.literal('XPL'),
-                        z.literal('WXPL')
+                        z.literal('WXPL'),
+                        z.literal('MockUSD')
                     ]))))
                 }))
             }),
             z.array(z.object({
                 chainId: z.number().gte(0),
-                tokenAddress: z.string()
+                tokenAddress: z.string(),
+                amount: z.optional(z.coerce.bigint().min(BigInt('-9223372036854775808'), { error: 'Invalid value: Expected int64 to be >= -9223372036854775808' }).max(BigInt('9223372036854775807'), { error: 'Invalid value: Expected int64 to be <= 9223372036854775807' }))
             }))
         ])),
         recipient: z.optional(z.object({
@@ -373,7 +172,7 @@ export const zPostIntentsRouteData = z.object({
                 }),
                 settings: z.object({
                     configId: z.number().lte(255),
-                    allocator: z.optional(z.string()).default('0x1fcaa96c3aa5bbb0af8d89211cc8954c170d5903'),
+                    allocator: z.optional(z.string()).default('0xc7732071e3a1be6cfce6d13bb05699a31a457679'),
                     scope: z.optional(z.number()).default(0),
                     resetPeriod: z.optional(z.number()).default(6),
                     validator: z.string(),
@@ -389,26 +188,51 @@ export const zPostIntentsRouteData = z.object({
             settlementLayers: z.optional(z.array(z.enum([
                 'ACROSS',
                 'ECO',
-                'RELAY'
+                'RELAY',
+                'OFT'
             ]))),
             sponsorSettings: z.optional(z.object({
                 gasSponsored: z.optional(z.boolean()).default(false),
                 bridgeFeesSponsored: z.optional(z.boolean()).default(false),
                 swapFeesSponsored: z.optional(z.boolean()).default(false)
             })),
+            signatureMode: z.optional(z.union([
+                z.literal('EMISSARY'),
+                z.literal('ERC1271'),
+                z.literal('EMISSARY_ERC1271'),
+                z.literal('ERC1271_EMISSARY'),
+                z.literal('EMISSARY_EXECUTION'),
+                z.literal('EMISSARY_EXECUTION_ERC1271'),
+                z.literal('ERC1271_EMISSARY_EXECUTION'),
+                z.literal(0),
+                z.literal(1),
+                z.literal(2),
+                z.literal(3),
+                z.literal(4),
+                z.literal(5),
+                z.literal(6)
+            ])),
             feeToken: z.optional(z.enum([
                 'ETH',
                 'USDC',
                 'WETH',
                 'USDT0',
+                'USDT',
+                'BNB',
+                'WBNB',
                 'XDAI',
                 'POL',
                 'WPOL',
                 'S',
-                'USDT',
+                'WS',
+                'HYPE',
+                'WHYPE',
                 'XPL',
-                'WXPL'
-            ]))
+                'WXPL',
+                'MockUSD'
+            ])),
+            executionTokensReceived: z.optional(z.array(z.string())),
+            auxiliaryFunds: z.optional(z.record(z.string(), z.record(z.string(), z.coerce.bigint().min(BigInt('-9223372036854775808'), { error: 'Invalid value: Expected int64 to be >= -9223372036854775808' }).max(BigInt('9223372036854775807'), { error: 'Invalid value: Expected int64 to be <= 9223372036854775807' }))))
         }))
     })),
     path: z.optional(z.never()),
@@ -425,6 +249,7 @@ export const zPostIntentsRouteResponse = z.object({
     intentOp: z.object({
         sponsor: z.string(),
         nonce: z.coerce.bigint().min(BigInt('-9223372036854775808'), { error: 'Invalid value: Expected int64 to be >= -9223372036854775808' }).max(BigInt('9223372036854775807'), { error: 'Invalid value: Expected int64 to be <= 9223372036854775807' }),
+        targetExecutionNonce: z.optional(z.coerce.bigint().min(BigInt('-9223372036854775808'), { error: 'Invalid value: Expected int64 to be >= -9223372036854775808' }).max(BigInt('9223372036854775807'), { error: 'Invalid value: Expected int64 to be <= 9223372036854775807' })),
         expires: z.coerce.bigint().min(BigInt('-9223372036854775808'), { error: 'Invalid value: Expected int64 to be >= -9223372036854775808' }).max(BigInt('9223372036854775807'), { error: 'Invalid value: Expected int64 to be <= 9223372036854775807' }),
         elements: z.array(z.object({
             arbiter: z.string(),
@@ -443,7 +268,13 @@ export const zPostIntentsRouteResponse = z.object({
                         z.object({
                             settlementLayer: z.enum(['INTENT_EXECUTOR']),
                             using7579: z.literal(true),
-                            fundingMethod: z.enum(['NO_FUNDING'])
+                            fundingMethod: z.enum(['NO_FUNDING']),
+                            gasRefund: z.object({
+                                overhead: z.coerce.bigint().min(BigInt('-9223372036854775808'), { error: 'Invalid value: Expected int64 to be >= -9223372036854775808' }).max(BigInt('9223372036854775807'), { error: 'Invalid value: Expected int64 to be <= 9223372036854775807' }),
+                                exchangeRate: z.coerce.bigint().min(BigInt('-9223372036854775808'), { error: 'Invalid value: Expected int64 to be >= -9223372036854775808' }).max(BigInt('9223372036854775807'), { error: 'Invalid value: Expected int64 to be <= 9223372036854775807' }),
+                                token: z.string()
+                            }),
+                            prefundAmount: z.optional(z.coerce.bigint().min(BigInt('-9223372036854775808'), { error: 'Invalid value: Expected int64 to be >= -9223372036854775808' }).max(BigInt('9223372036854775807'), { error: 'Invalid value: Expected int64 to be <= 9223372036854775807' }))
                         }),
                         z.object({
                             settlementLayer: z.enum(['SAME_CHAIN']),
@@ -470,7 +301,8 @@ export const zPostIntentsRouteResponse = z.object({
                                 'COMPACT',
                                 'PERMIT2',
                                 'NO_FUNDING'
-                            ])
+                            ]),
+                            provingFee: z.coerce.bigint().min(BigInt('-9223372036854775808'), { error: 'Invalid value: Expected int64 to be >= -9223372036854775808' }).max(BigInt('9223372036854775807'), { error: 'Invalid value: Expected int64 to be <= 9223372036854775807' })
                         }),
                         z.object({
                             settlementLayer: z.enum(['RELAY']),
@@ -480,14 +312,54 @@ export const zPostIntentsRouteResponse = z.object({
                                 'PERMIT2',
                                 'NO_FUNDING'
                             ]),
-                            requestId: z.string()
+                            requestId: z.string(),
+                            orderId: z.string(),
+                            subsidizedAmount: z.optional(z.string()),
+                            multicallData: z.optional(z.string())
                         })
                     ]),
                     encodedVal: z.string().regex(/^0x[a-fA-F0-9]*$/)
                 }),
-                v: z.number(),
-                minGas: z.coerce.bigint().min(BigInt('-9223372036854775808'), { error: 'Invalid value: Expected int64 to be >= -9223372036854775808' }).max(BigInt('9223372036854775807'), { error: 'Invalid value: Expected int64 to be <= 9223372036854775807' })
-            })
+                minGas: z.coerce.bigint().min(BigInt('-9223372036854775808'), { error: 'Invalid value: Expected int64 to be >= -9223372036854775808' }).max(BigInt('9223372036854775807'), { error: 'Invalid value: Expected int64 to be <= 9223372036854775807' }),
+                swapDestinations: z.optional(z.array(z.union([
+                    z.object({
+                        tokenIn: z.string(),
+                        amountIn: z.coerce.bigint().min(BigInt('-9223372036854775808'), { error: 'Invalid value: Expected int64 to be >= -9223372036854775808' }).max(BigInt('9223372036854775807'), { error: 'Invalid value: Expected int64 to be <= 9223372036854775807' }),
+                        amountOut: z.coerce.bigint().min(BigInt('-9223372036854775808'), { error: 'Invalid value: Expected int64 to be >= -9223372036854775808' }).max(BigInt('9223372036854775807'), { error: 'Invalid value: Expected int64 to be <= 9223372036854775807' }),
+                        slippage: z.number(),
+                        quoter: z.string(),
+                        executions: z.array(z.object({
+                            to: z.string(),
+                            value: z.coerce.bigint().min(BigInt('-9223372036854775808'), { error: 'Invalid value: Expected int64 to be >= -9223372036854775808' }).max(BigInt('9223372036854775807'), { error: 'Invalid value: Expected int64 to be <= 9223372036854775807' }),
+                            data: z.string().regex(/^0x[a-fA-F0-9]*$/),
+                            senderAddressPlaceholder: z.optional(z.string()),
+                            recipientAddressPlaceholder: z.optional(z.string())
+                        })),
+                        outputDecimals: z.number(),
+                        outputSymbol: z.string()
+                    }),
+                    z.null()
+                ])))
+            }),
+            swapOrigins: z.optional(z.record(z.string(), z.object({
+                tokenIn: z.string(),
+                tokenOut: z.string(),
+                amountIn: z.coerce.bigint().min(BigInt('-9223372036854775808'), { error: 'Invalid value: Expected int64 to be >= -9223372036854775808' }).max(BigInt('9223372036854775807'), { error: 'Invalid value: Expected int64 to be <= 9223372036854775807' }),
+                amountOut: z.coerce.bigint().min(BigInt('-9223372036854775808'), { error: 'Invalid value: Expected int64 to be >= -9223372036854775808' }).max(BigInt('9223372036854775807'), { error: 'Invalid value: Expected int64 to be <= 9223372036854775807' }),
+                slippage: z.number(),
+                quoter: z.string(),
+                executions: z.array(z.object({
+                    to: z.string(),
+                    value: z.coerce.bigint().min(BigInt('-9223372036854775808'), { error: 'Invalid value: Expected int64 to be >= -9223372036854775808' }).max(BigInt('9223372036854775807'), { error: 'Invalid value: Expected int64 to be <= 9223372036854775807' }),
+                    data: z.string().regex(/^0x[a-fA-F0-9]*$/),
+                    senderAddressPlaceholder: z.optional(z.string()),
+                    recipientAddressPlaceholder: z.optional(z.string())
+                })),
+                inputDecimals: z.number(),
+                inputSymbol: z.string(),
+                price: z.number(),
+                gasEstimate: z.optional(z.number())
+            })))
         })),
         serverSignature: z.string().regex(/^[0-9a-f]{64}$/),
         signedMetadata: z.object({
@@ -496,19 +368,24 @@ export const zPostIntentsRouteResponse = z.object({
                 USDC: z.number(),
                 WETH: z.number(),
                 USDT0: z.number(),
+                USDT: z.number(),
+                BNB: z.number(),
+                WBNB: z.number(),
                 XDAI: z.number(),
                 POL: z.number(),
                 WPOL: z.number(),
                 S: z.number(),
-                USDT: z.number(),
+                WS: z.number(),
+                HYPE: z.number(),
+                WHYPE: z.number(),
                 XPL: z.number(),
-                WXPL: z.number()
+                WXPL: z.number(),
+                MockUSD: z.number()
             }),
             gasPrices: z.record(z.string(), z.coerce.bigint().min(BigInt('-9223372036854775808'), { error: 'Invalid value: Expected int64 to be >= -9223372036854775808' }).max(BigInt('9223372036854775807'), { error: 'Invalid value: Expected int64 to be <= 9223372036854775807' })),
             opGasParams: z.object({
                 estimatedCalldataSize: z.optional(z.number())
             }),
-            quotes: z.record(z.string(), z.unknown()),
             account: z.object({
                 address: z.string(),
                 accountType: z.optional(z.enum([
@@ -534,7 +411,7 @@ export const zPostIntentsRouteResponse = z.object({
                     }),
                     settings: z.object({
                         configId: z.number().lte(255),
-                        allocator: z.optional(z.string()).default('0x1fcaa96c3aa5bbb0af8d89211cc8954c170d5903'),
+                        allocator: z.optional(z.string()).default('0xc7732071e3a1be6cfce6d13bb05699a31a457679'),
                         scope: z.optional(z.number()).default(0),
                         resetPeriod: z.optional(z.number()).default(6),
                         validator: z.string(),
@@ -586,7 +463,7 @@ export const zPostIntentsRouteResponse = z.object({
                     }),
                     settings: z.object({
                         configId: z.number().lte(255),
-                        allocator: z.optional(z.string()).default('0x1fcaa96c3aa5bbb0af8d89211cc8954c170d5903'),
+                        allocator: z.optional(z.string()).default('0xc7732071e3a1be6cfce6d13bb05699a31a457679'),
                         scope: z.optional(z.number()).default(0),
                         resetPeriod: z.optional(z.number()).default(6),
                         validator: z.string(),
@@ -617,8 +494,10 @@ export const zPostIntentsRouteResponse = z.object({
                 sponsorFee: z.optional(z.object({
                     relayer: z.number(),
                     protocol: z.number()
-                }))
-            }))
+                })),
+                protocolFees: z.optional(z.record(z.string(), z.coerce.bigint().min(BigInt('-9223372036854775808'), { error: 'Invalid value: Expected int64 to be >= -9223372036854775808' }).max(BigInt('9223372036854775807'), { error: 'Invalid value: Expected int64 to be <= 9223372036854775807' })))
+            })),
+            executionTokensReceived: z.optional(z.array(z.string()))
         }),
         signedAuthorizations: z.optional(z.array(z.object({
             chainId: z.number(),
@@ -654,6 +533,17 @@ export const zPostIntentsRouteResponse = z.object({
             sponsorFee: z.object({
                 relayer: z.number(),
                 protocol: z.number()
+            }),
+            gasCost: z.object({
+                originChains: z.array(z.object({
+                    chainId: z.number(),
+                    gasUSD: z.number()
+                })),
+                destination: z.object({
+                    chainId: z.number(),
+                    gasUSD: z.number()
+                }),
+                totalUSD: z.number()
             })
         }),
         z.object({
@@ -663,6 +553,7 @@ export const zPostIntentsRouteResponse = z.object({
                 destinationAmount: z.coerce.bigint().min(BigInt('-9223372036854775808'), { error: 'Invalid value: Expected int64 to be >= -9223372036854775808' }).max(BigInt('9223372036854775807'), { error: 'Invalid value: Expected int64 to be <= 9223372036854775807' }),
                 amountSpent: z.coerce.bigint().min(BigInt('-9223372036854775808'), { error: 'Invalid value: Expected int64 to be >= -9223372036854775808' }).max(BigInt('9223372036854775807'), { error: 'Invalid value: Expected int64 to be <= 9223372036854775807' }),
                 fee: z.coerce.bigint().min(BigInt('-9223372036854775808'), { error: 'Invalid value: Expected int64 to be >= -9223372036854775808' }).max(BigInt('9223372036854775807'), { error: 'Invalid value: Expected int64 to be <= 9223372036854775807' }),
+                feesByToken: z.record(z.string(), z.coerce.bigint().min(BigInt('-9223372036854775808'), { error: 'Invalid value: Expected int64 to be >= -9223372036854775808' }).max(BigInt('9223372036854775807'), { error: 'Invalid value: Expected int64 to be <= 9223372036854775807' })),
                 tokenSymbol: z.string(),
                 tokenDecimals: z.number().gte(0)
             })),
@@ -682,11 +573,39 @@ export const zPostIntentsRouteResponse = z.object({
     ]))))
 });
 
+export const zPostIntentsSplitData = z.object({
+    body: z.optional(z.object({
+        chainId: z.int().gte(1),
+        tokens: z.record(z.string(), z.coerce.bigint().min(BigInt('-9223372036854775808'), { error: 'Invalid value: Expected int64 to be >= -9223372036854775808' }).max(BigInt('9223372036854775807'), { error: 'Invalid value: Expected int64 to be <= 9223372036854775807' })),
+        settlementLayers: z.optional(z.array(z.enum([
+            'INTENT_EXECUTOR',
+            'SAME_CHAIN',
+            'ACROSS',
+            'ECO',
+            'RELAY',
+            'OFT'
+        ])))
+    })),
+    path: z.optional(z.never()),
+    query: z.optional(z.never()),
+    headers: z.object({
+        'x-api-key': z.string()
+    })
+});
+
+/**
+ * Successfully split the intent by available liquidity
+ */
+export const zPostIntentsSplitResponse = z.object({
+    intents: z.array(z.record(z.string(), z.string()))
+});
+
 export const zPostIntentOperationsData = z.object({
     body: z.optional(z.object({
         signedIntentOp: z.object({
             sponsor: z.string(),
             nonce: z.coerce.bigint().min(BigInt('-9223372036854775808'), { error: 'Invalid value: Expected int64 to be >= -9223372036854775808' }).max(BigInt('9223372036854775807'), { error: 'Invalid value: Expected int64 to be <= 9223372036854775807' }),
+            targetExecutionNonce: z.optional(z.coerce.bigint().min(BigInt('-9223372036854775808'), { error: 'Invalid value: Expected int64 to be >= -9223372036854775808' }).max(BigInt('9223372036854775807'), { error: 'Invalid value: Expected int64 to be <= 9223372036854775807' })),
             expires: z.coerce.bigint().min(BigInt('-9223372036854775808'), { error: 'Invalid value: Expected int64 to be >= -9223372036854775808' }).max(BigInt('9223372036854775807'), { error: 'Invalid value: Expected int64 to be <= 9223372036854775807' }),
             elements: z.array(z.object({
                 arbiter: z.string(),
@@ -705,7 +624,13 @@ export const zPostIntentOperationsData = z.object({
                             z.object({
                                 settlementLayer: z.enum(['INTENT_EXECUTOR']),
                                 using7579: z.literal(true),
-                                fundingMethod: z.enum(['NO_FUNDING'])
+                                fundingMethod: z.enum(['NO_FUNDING']),
+                                gasRefund: z.object({
+                                    overhead: z.coerce.bigint().min(BigInt('-9223372036854775808'), { error: 'Invalid value: Expected int64 to be >= -9223372036854775808' }).max(BigInt('9223372036854775807'), { error: 'Invalid value: Expected int64 to be <= 9223372036854775807' }),
+                                    exchangeRate: z.coerce.bigint().min(BigInt('-9223372036854775808'), { error: 'Invalid value: Expected int64 to be >= -9223372036854775808' }).max(BigInt('9223372036854775807'), { error: 'Invalid value: Expected int64 to be <= 9223372036854775807' }),
+                                    token: z.string()
+                                }),
+                                prefundAmount: z.optional(z.coerce.bigint().min(BigInt('-9223372036854775808'), { error: 'Invalid value: Expected int64 to be >= -9223372036854775808' }).max(BigInt('9223372036854775807'), { error: 'Invalid value: Expected int64 to be <= 9223372036854775807' }))
                             }),
                             z.object({
                                 settlementLayer: z.enum(['SAME_CHAIN']),
@@ -732,7 +657,8 @@ export const zPostIntentOperationsData = z.object({
                                     'COMPACT',
                                     'PERMIT2',
                                     'NO_FUNDING'
-                                ])
+                                ]),
+                                provingFee: z.coerce.bigint().min(BigInt('-9223372036854775808'), { error: 'Invalid value: Expected int64 to be >= -9223372036854775808' }).max(BigInt('9223372036854775807'), { error: 'Invalid value: Expected int64 to be <= 9223372036854775807' })
                             }),
                             z.object({
                                 settlementLayer: z.enum(['RELAY']),
@@ -742,14 +668,54 @@ export const zPostIntentOperationsData = z.object({
                                     'PERMIT2',
                                     'NO_FUNDING'
                                 ]),
-                                requestId: z.string()
+                                requestId: z.string(),
+                                orderId: z.string(),
+                                subsidizedAmount: z.optional(z.string()),
+                                multicallData: z.optional(z.string())
                             })
                         ]),
                         encodedVal: z.string().regex(/^0x[a-fA-F0-9]*$/)
                     }),
-                    v: z.number(),
-                    minGas: z.coerce.bigint().min(BigInt('-9223372036854775808'), { error: 'Invalid value: Expected int64 to be >= -9223372036854775808' }).max(BigInt('9223372036854775807'), { error: 'Invalid value: Expected int64 to be <= 9223372036854775807' })
-                })
+                    minGas: z.coerce.bigint().min(BigInt('-9223372036854775808'), { error: 'Invalid value: Expected int64 to be >= -9223372036854775808' }).max(BigInt('9223372036854775807'), { error: 'Invalid value: Expected int64 to be <= 9223372036854775807' }),
+                    swapDestinations: z.optional(z.array(z.union([
+                        z.object({
+                            tokenIn: z.string(),
+                            amountIn: z.coerce.bigint().min(BigInt('-9223372036854775808'), { error: 'Invalid value: Expected int64 to be >= -9223372036854775808' }).max(BigInt('9223372036854775807'), { error: 'Invalid value: Expected int64 to be <= 9223372036854775807' }),
+                            amountOut: z.coerce.bigint().min(BigInt('-9223372036854775808'), { error: 'Invalid value: Expected int64 to be >= -9223372036854775808' }).max(BigInt('9223372036854775807'), { error: 'Invalid value: Expected int64 to be <= 9223372036854775807' }),
+                            slippage: z.number(),
+                            quoter: z.string(),
+                            executions: z.array(z.object({
+                                to: z.string(),
+                                value: z.coerce.bigint().min(BigInt('-9223372036854775808'), { error: 'Invalid value: Expected int64 to be >= -9223372036854775808' }).max(BigInt('9223372036854775807'), { error: 'Invalid value: Expected int64 to be <= 9223372036854775807' }),
+                                data: z.string().regex(/^0x[a-fA-F0-9]*$/),
+                                senderAddressPlaceholder: z.optional(z.string()),
+                                recipientAddressPlaceholder: z.optional(z.string())
+                            })),
+                            outputDecimals: z.number(),
+                            outputSymbol: z.string()
+                        }),
+                        z.null()
+                    ])))
+                }),
+                swapOrigins: z.optional(z.record(z.string(), z.object({
+                    tokenIn: z.string(),
+                    tokenOut: z.string(),
+                    amountIn: z.coerce.bigint().min(BigInt('-9223372036854775808'), { error: 'Invalid value: Expected int64 to be >= -9223372036854775808' }).max(BigInt('9223372036854775807'), { error: 'Invalid value: Expected int64 to be <= 9223372036854775807' }),
+                    amountOut: z.coerce.bigint().min(BigInt('-9223372036854775808'), { error: 'Invalid value: Expected int64 to be >= -9223372036854775808' }).max(BigInt('9223372036854775807'), { error: 'Invalid value: Expected int64 to be <= 9223372036854775807' }),
+                    slippage: z.number(),
+                    quoter: z.string(),
+                    executions: z.array(z.object({
+                        to: z.string(),
+                        value: z.coerce.bigint().min(BigInt('-9223372036854775808'), { error: 'Invalid value: Expected int64 to be >= -9223372036854775808' }).max(BigInt('9223372036854775807'), { error: 'Invalid value: Expected int64 to be <= 9223372036854775807' }),
+                        data: z.string().regex(/^0x[a-fA-F0-9]*$/),
+                        senderAddressPlaceholder: z.optional(z.string()),
+                        recipientAddressPlaceholder: z.optional(z.string())
+                    })),
+                    inputDecimals: z.number(),
+                    inputSymbol: z.string(),
+                    price: z.number(),
+                    gasEstimate: z.optional(z.number())
+                })))
             })),
             serverSignature: z.string().regex(/^[0-9a-f]{64}$/),
             signedMetadata: z.object({
@@ -758,19 +724,24 @@ export const zPostIntentOperationsData = z.object({
                     USDC: z.number(),
                     WETH: z.number(),
                     USDT0: z.number(),
+                    USDT: z.number(),
+                    BNB: z.number(),
+                    WBNB: z.number(),
                     XDAI: z.number(),
                     POL: z.number(),
                     WPOL: z.number(),
                     S: z.number(),
-                    USDT: z.number(),
+                    WS: z.number(),
+                    HYPE: z.number(),
+                    WHYPE: z.number(),
                     XPL: z.number(),
-                    WXPL: z.number()
+                    WXPL: z.number(),
+                    MockUSD: z.number()
                 }),
                 gasPrices: z.record(z.string(), z.coerce.bigint().min(BigInt('-9223372036854775808'), { error: 'Invalid value: Expected int64 to be >= -9223372036854775808' }).max(BigInt('9223372036854775807'), { error: 'Invalid value: Expected int64 to be <= 9223372036854775807' })),
                 opGasParams: z.object({
                     estimatedCalldataSize: z.optional(z.number())
                 }),
-                quotes: z.record(z.string(), z.unknown()),
                 account: z.object({
                     address: z.string(),
                     accountType: z.optional(z.enum([
@@ -796,7 +767,7 @@ export const zPostIntentOperationsData = z.object({
                         }),
                         settings: z.object({
                             configId: z.number().lte(255),
-                            allocator: z.optional(z.string()).default('0x1fcaa96c3aa5bbb0af8d89211cc8954c170d5903'),
+                            allocator: z.optional(z.string()).default('0xc7732071e3a1be6cfce6d13bb05699a31a457679'),
                             scope: z.optional(z.number()).default(0),
                             resetPeriod: z.optional(z.number()).default(6),
                             validator: z.string(),
@@ -848,7 +819,7 @@ export const zPostIntentOperationsData = z.object({
                         }),
                         settings: z.object({
                             configId: z.number().lte(255),
-                            allocator: z.optional(z.string()).default('0x1fcaa96c3aa5bbb0af8d89211cc8954c170d5903'),
+                            allocator: z.optional(z.string()).default('0xc7732071e3a1be6cfce6d13bb05699a31a457679'),
                             scope: z.optional(z.number()).default(0),
                             resetPeriod: z.optional(z.number()).default(6),
                             validator: z.string(),
@@ -879,8 +850,10 @@ export const zPostIntentOperationsData = z.object({
                     sponsorFee: z.optional(z.object({
                         relayer: z.number(),
                         protocol: z.number()
-                    }))
-                }))
+                    })),
+                    protocolFees: z.optional(z.record(z.string(), z.coerce.bigint().min(BigInt('-9223372036854775808'), { error: 'Invalid value: Expected int64 to be >= -9223372036854775808' }).max(BigInt('9223372036854775807'), { error: 'Invalid value: Expected int64 to be <= 9223372036854775807' })))
+                })),
+                executionTokensReceived: z.optional(z.array(z.string()))
             }),
             signedAuthorizations: z.optional(z.array(z.object({
                 chainId: z.number(),
@@ -899,7 +872,11 @@ export const zPostIntentOperationsData = z.object({
                 s: z.string().regex(/^0x[a-fA-F0-9]*$/)
             }))),
             destinationSignature: z.string().regex(/^0x[a-fA-F0-9]*$/),
-            originSignatures: z.array(z.string().regex(/^0x[a-fA-F0-9]*$/)),
+            targetExecutionSignature: z.optional(z.string().regex(/^0x[a-fA-F0-9]*$/)),
+            originSignatures: z.array(z.union([z.string().regex(/^0x[a-fA-F0-9]*$/), z.object({
+                    preClaimSig: z.string().regex(/^0x[a-fA-F0-9]*$/),
+                    notarizedClaimSig: z.string().regex(/^0x[a-fA-F0-9]*$/)
+                })])),
             options: z.optional(z.object({
                 dryRun: z.optional(z.boolean())
             }))
@@ -1086,16 +1063,13 @@ export const zGetChainsData = z.object({
  */
 export const zGetChainsResponse = z.record(z.string(), z.object({
     name: z.string(),
-    settlementLayers: z.array(z.enum([
-        'INTENT_EXECUTOR',
-        'SAME_CHAIN',
-        'ACROSS',
-        'ECO',
-        'RELAY'
-    ])),
-    supportedTokens: z.array(z.object({
-        symbol: z.string(),
-        address: z.string(),
-        decimals: z.number()
-    }))
+    supportedTokens: z.union([
+        z.enum(['all']),
+        z.array(z.object({
+            symbol: z.string(),
+            address: z.string(),
+            decimals: z.number()
+        }))
+    ]),
+    testnet: z.boolean()
 }));
