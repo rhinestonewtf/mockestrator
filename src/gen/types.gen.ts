@@ -4,456 +4,6 @@ export type ClientOptions = {
     baseUrl: 'https://v1.orchestrator.rhinestone.dev' | (string & {});
 };
 
-export type PostIntentsCostData = {
-    /**
-     * Body
-     */
-    body?: {
-        /**
-         * The ID of the target blockchain
-         */
-        destinationChainId: number;
-        /**
-         * A list of token requested on the target chain
-         */
-        tokenRequests: Array<{
-            /**
-             * The address of the requested token
-             */
-            tokenAddress: string;
-            /**
-             * The amount of the requested token (in the smallest unit)
-             */
-            amount: number;
-        } | {
-            /**
-             * The address of the requested token
-             */
-            tokenAddress: string;
-            /**
-             * The amount of the requested token (in the smallest unit)
-             */
-            amount?: number;
-        }>;
-        /**
-         * Account details
-         */
-        account: {
-            /**
-             * Account address
-             */
-            address: string;
-            /**
-             * Account type
-             */
-            accountType?: 'smartAccount' | 'GENERIC' | 'EOA' | 'ERC7579';
-            /**
-             * Setup operations for the smart account. Only used if the account is not deployed
-             */
-            setupOps?: Array<{
-                /**
-                 * Account deployment factory address
-                 */
-                to: string;
-                /**
-                 * Account deployment data
-                 */
-                data: string;
-            }>;
-            /**
-             * Emissary configuration for using resource locking
-             */
-            emissaryConfig?: {
-                /**
-                 * Address of the validator contract
-                 */
-                validatorAddress: string;
-                /**
-                 * Address of the emissary contract
-                 */
-                emissaryAddress: string;
-                /**
-                 * Emissary enable data
-                 */
-                emissaryEnable: {
-                    /**
-                     * Signature of the allocator
-                     */
-                    allocatorSig: string;
-                    /**
-                     * Signature of the user
-                     */
-                    userSig: string;
-                    /**
-                     * Expiration timestamp
-                     */
-                    expires: number;
-                    /**
-                     * Nonce
-                     */
-                    nonce: number;
-                    /**
-                     * All chain IDs
-                     */
-                    allChainIds: Array<number>;
-                    /**
-                     * Chain index
-                     */
-                    chainIndex: number;
-                };
-                /**
-                 * Emissary configuration
-                 */
-                settings: {
-                    /**
-                     * Unique identifier for the emissary configuration
-                     */
-                    configId: number;
-                    /**
-                     * Address of the allocator
-                     */
-                    allocator?: string;
-                    /**
-                     * Scope of the emissary
-                     */
-                    scope?: number;
-                    /**
-                     * Reset period of the emissary
-                     */
-                    resetPeriod?: number;
-                    /**
-                     * Address of the validator
-                     */
-                    validator: string;
-                    /**
-                     * Validator configuration
-                     */
-                    validatorConfig: string;
-                };
-            };
-            /**
-             * Per-chain specific map to delegated contract address for 7702 delegations. Use `0` to indicate cross-chain delegation
-             */
-            delegations?: {
-                [key: string]: {
-                    /**
-                     * address of contract to which delegation on behalf of sponsor will be assumed for given chain ID
-                     */
-                    contract: string;
-                };
-            };
-        };
-        /**
-         * Execution calls on the target chain.
-         */
-        destinationExecutions?: Array<{
-            /**
-             * Target contract address for execution
-             */
-            to: string;
-            /**
-             * Amount of ETH (in wei) sent in the execution
-             */
-            value: number;
-            /**
-             * Encoded function call data
-             */
-            data: string;
-        }>;
-        /**
-         * The gas limit for the target chain executions
-         */
-        destinationGasUnits?: number;
-        /**
-         * Account access list specifying which chains and tokens an account may access
-         */
-        accountAccessList?: {
-            chainIds?: Array<number>;
-            tokens?: Array<string | 'ETH' | 'USDC' | 'WETH' | 'USDT0' | 'XDAI' | 'POL' | 'WPOL' | 'S' | 'USDT' | 'XPL' | 'WXPL'>;
-            chainTokens?: {
-                [key: string]: Array<string | 'ETH' | 'USDC' | 'WETH' | 'USDT0' | 'XDAI' | 'POL' | 'WPOL' | 'S' | 'USDT' | 'XPL' | 'WXPL'>;
-            };
-            exclude?: {
-                chainIds?: Array<number>;
-                tokens?: Array<string | 'ETH' | 'USDC' | 'WETH' | 'USDT0' | 'XDAI' | 'POL' | 'WPOL' | 'S' | 'USDT' | 'XPL' | 'WXPL'>;
-                chainTokens?: {
-                    [key: string]: Array<string | 'ETH' | 'USDC' | 'WETH' | 'USDT0' | 'XDAI' | 'POL' | 'WPOL' | 'S' | 'USDT' | 'XPL' | 'WXPL'>;
-                };
-            };
-        } | Array<{
-            chainId: number;
-            tokenAddress: string;
-        }>;
-        /**
-         * Account details
-         */
-        recipient?: {
-            /**
-             * Account address
-             */
-            address: string;
-            /**
-             * Account type
-             */
-            accountType?: 'smartAccount' | 'GENERIC' | 'EOA' | 'ERC7579';
-            /**
-             * Setup operations for the smart account. Only used if the account is not deployed
-             */
-            setupOps?: Array<{
-                /**
-                 * Account deployment factory address
-                 */
-                to: string;
-                /**
-                 * Account deployment data
-                 */
-                data: string;
-            }>;
-            /**
-             * Emissary configuration for using resource locking
-             */
-            emissaryConfig?: {
-                /**
-                 * Address of the validator contract
-                 */
-                validatorAddress: string;
-                /**
-                 * Address of the emissary contract
-                 */
-                emissaryAddress: string;
-                /**
-                 * Emissary enable data
-                 */
-                emissaryEnable: {
-                    /**
-                     * Signature of the allocator
-                     */
-                    allocatorSig: string;
-                    /**
-                     * Signature of the user
-                     */
-                    userSig: string;
-                    /**
-                     * Expiration timestamp
-                     */
-                    expires: number;
-                    /**
-                     * Nonce
-                     */
-                    nonce: number;
-                    /**
-                     * All chain IDs
-                     */
-                    allChainIds: Array<number>;
-                    /**
-                     * Chain index
-                     */
-                    chainIndex: number;
-                };
-                /**
-                 * Emissary configuration
-                 */
-                settings: {
-                    /**
-                     * Unique identifier for the emissary configuration
-                     */
-                    configId: number;
-                    /**
-                     * Address of the allocator
-                     */
-                    allocator?: string;
-                    /**
-                     * Scope of the emissary
-                     */
-                    scope?: number;
-                    /**
-                     * Reset period of the emissary
-                     */
-                    resetPeriod?: number;
-                    /**
-                     * Address of the validator
-                     */
-                    validator: string;
-                    /**
-                     * Validator configuration
-                     */
-                    validatorConfig: string;
-                };
-            };
-            /**
-             * Per-chain specific map to delegated contract address for 7702 delegations. Use `0` to indicate cross-chain delegation
-             */
-            delegations?: {
-                [key: string]: {
-                    /**
-                     * address of contract to which delegation on behalf of sponsor will be assumed for given chain ID
-                     */
-                    contract: string;
-                };
-            };
-        };
-        /**
-         * Intent options
-         */
-        options?: {
-            /**
-             * Whether to top up the compact locked balance using unlocked funds
-             */
-            topupCompact?: boolean;
-            /**
-             * The settlement layer to be used to settle intents
-             */
-            settlementLayers?: Array<'ACROSS' | 'ECO' | 'RELAY'>;
-            /**
-             * Sponsor settings for the intent
-             */
-            sponsorSettings?: {
-                /**
-                 * Whether to sponsor gas for the intent
-                 */
-                gasSponsored?: boolean;
-                /**
-                 * Whether to sponsor bridge fees for the intent
-                 */
-                bridgeFeesSponsored?: boolean;
-                /**
-                 * Whether to sponsor swap fees for the intent
-                 */
-                swapFeesSponsored?: boolean;
-            };
-            feeToken?: 'ETH' | 'USDC' | 'WETH' | 'USDT0' | 'XDAI' | 'POL' | 'WPOL' | 'S' | 'USDT' | 'XPL' | 'WXPL';
-        };
-    };
-    headers: {
-        /**
-         * Rhinestone API key
-         */
-        'x-api-key': string;
-    };
-    path?: never;
-    query?: never;
-    url: '/intents/cost';
-};
-
-export type PostIntentsCostErrors = {
-    /**
-     * Invalid request parameters
-     */
-    400: {
-        errors: Array<{
-            /**
-             * Error message
-             */
-            message: string;
-            /**
-             * Additional error context
-             */
-            context?: unknown;
-        }>;
-        /**
-         * Trace ID
-         */
-        traceId: string;
-    };
-    /**
-     * Server error
-     */
-    500: {
-        /**
-         * Error message describing the server-side issue
-         */
-        error: string;
-    };
-};
-
-export type PostIntentsCostError = PostIntentsCostErrors[keyof PostIntentsCostErrors];
-
-export type PostIntentsCostResponses = {
-    /**
-     * Successfully retrieved the order path
-     */
-    200: {
-        /**
-         * Indicates that all tokens have been fulfilled
-         */
-        hasFulfilledAll: true;
-        /**
-         * Tokens spent in the transaction
-         */
-        tokensSpent: {
-            [key: string]: {
-                [key: string]: {
-                    locked: number;
-                    unlocked: number;
-                };
-            };
-        };
-        /**
-         * Tokens received in the transaction
-         */
-        tokensReceived: Array<{
-            tokenAddress: string;
-            amountSpent: number;
-            targetAmount: number;
-            fee: number;
-            hasFulfilled: boolean;
-        }>;
-        /**
-         * Transaction fees
-         */
-        sponsorFee: {
-            /**
-             * Fee charged by relayer
-             */
-            relayer: number;
-            /**
-             * Fee charged by Rhinestone
-             */
-            protocol: number;
-        };
-    } | {
-        /**
-         * Indicates that not all tokens have been fulfilled
-         */
-        hasFulfilledAll: false;
-        /**
-         * List of tokens that have not been fulfilled
-         */
-        tokenShortfall: Array<{
-            /**
-             * Address of the token that has not been fulfilled
-             */
-            tokenAddress: string;
-            /**
-             * Target amount of the token that has not been fulfilled
-             */
-            destinationAmount: number;
-            /**
-             * Amount spent on the token that has not been fulfilled
-             */
-            amountSpent: number;
-            /**
-             * Fee associated with the token that has not been fulfilled
-             */
-            fee: number;
-            /**
-             * Symbol of the token that has not been fulfilled
-             */
-            tokenSymbol: string;
-            /**
-             * Number of decimal places for the token
-             */
-            tokenDecimals: number;
-        }>;
-        /**
-         * Total shortfall of tokens in USD
-         */
-        totalTokenShortfallInUSD: number;
-    };
-};
-
-export type PostIntentsCostResponse = PostIntentsCostResponses[keyof PostIntentsCostResponses];
-
 export type PostIntentsRouteData = {
     /**
      * Body
@@ -582,6 +132,10 @@ export type PostIntentsRouteData = {
                 };
             };
             /**
+             * Pre-encoded SSX enable payload with a dummy userSig for gas estimation. When present, the orchestrator etches the simulation emissary and uses this as emissaryData.
+             */
+            mockSignature?: string;
+            /**
              * Per-chain specific map to delegated contract address for 7702 delegations. Use `0` to indicate cross-chain delegation
              */
             delegations?: {
@@ -611,6 +165,25 @@ export type PostIntentsRouteData = {
             data: string;
         }>;
         /**
+         * Execution calls to perform before the claim on each origin chain, keyed by chain ID. Max 10 ops per chain, max 5 chains.
+         */
+        preClaimExecutions?: {
+            [key: string]: Array<{
+                /**
+                 * Target contract address for execution
+                 */
+                to: string;
+                /**
+                 * Amount of ETH (in wei) sent in the execution
+                 */
+                value: number;
+                /**
+                 * Encoded function call data
+                 */
+                data: string;
+            }>;
+        };
+        /**
          * The gas limit for the target chain executions
          */
         destinationGasUnits?: number;
@@ -619,20 +192,21 @@ export type PostIntentsRouteData = {
          */
         accountAccessList?: {
             chainIds?: Array<number>;
-            tokens?: Array<string | 'ETH' | 'USDC' | 'WETH' | 'USDT0' | 'XDAI' | 'POL' | 'WPOL' | 'S' | 'USDT' | 'XPL' | 'WXPL'>;
+            tokens?: Array<string | 'ETH' | 'USDC' | 'WETH' | 'USDT0' | 'USDT' | 'BNB' | 'WBNB' | 'XDAI' | 'WXDAI' | 'POL' | 'WPOL' | 'MON' | 'WMON' | 'S' | 'WS' | 'HYPE' | 'WHYPE' | 'XPL' | 'WXPL' | 'MockUSD'>;
             chainTokens?: {
-                [key: string]: Array<string | 'ETH' | 'USDC' | 'WETH' | 'USDT0' | 'XDAI' | 'POL' | 'WPOL' | 'S' | 'USDT' | 'XPL' | 'WXPL'>;
+                [key: string]: Array<string | 'ETH' | 'USDC' | 'WETH' | 'USDT0' | 'USDT' | 'BNB' | 'WBNB' | 'XDAI' | 'WXDAI' | 'POL' | 'WPOL' | 'MON' | 'WMON' | 'S' | 'WS' | 'HYPE' | 'WHYPE' | 'XPL' | 'WXPL' | 'MockUSD'>;
             };
             exclude?: {
                 chainIds?: Array<number>;
-                tokens?: Array<string | 'ETH' | 'USDC' | 'WETH' | 'USDT0' | 'XDAI' | 'POL' | 'WPOL' | 'S' | 'USDT' | 'XPL' | 'WXPL'>;
+                tokens?: Array<string | 'ETH' | 'USDC' | 'WETH' | 'USDT0' | 'USDT' | 'BNB' | 'WBNB' | 'XDAI' | 'WXDAI' | 'POL' | 'WPOL' | 'MON' | 'WMON' | 'S' | 'WS' | 'HYPE' | 'WHYPE' | 'XPL' | 'WXPL' | 'MockUSD'>;
                 chainTokens?: {
-                    [key: string]: Array<string | 'ETH' | 'USDC' | 'WETH' | 'USDT0' | 'XDAI' | 'POL' | 'WPOL' | 'S' | 'USDT' | 'XPL' | 'WXPL'>;
+                    [key: string]: Array<string | 'ETH' | 'USDC' | 'WETH' | 'USDT0' | 'USDT' | 'BNB' | 'WBNB' | 'XDAI' | 'WXDAI' | 'POL' | 'WPOL' | 'MON' | 'WMON' | 'S' | 'WS' | 'HYPE' | 'WHYPE' | 'XPL' | 'WXPL' | 'MockUSD'>;
                 };
             };
         } | Array<{
             chainId: number;
             tokenAddress: string;
+            amount?: number;
         }>;
         /**
          * Account details
@@ -731,6 +305,10 @@ export type PostIntentsRouteData = {
                 };
             };
             /**
+             * Pre-encoded SSX enable payload with a dummy userSig for gas estimation. When present, the orchestrator etches the simulation emissary and uses this as emissaryData.
+             */
+            mockSignature?: string;
+            /**
              * Per-chain specific map to delegated contract address for 7702 delegations. Use `0` to indicate cross-chain delegation
              */
             delegations?: {
@@ -753,7 +331,7 @@ export type PostIntentsRouteData = {
             /**
              * The settlement layer to be used to settle intents
              */
-            settlementLayers?: Array<'ACROSS' | 'ECO' | 'RELAY'>;
+            settlementLayers?: Array<'ACROSS' | 'ECO' | 'RELAY' | 'OFT' | 'NEAR'>;
             /**
              * Sponsor settings for the intent
              */
@@ -771,7 +349,23 @@ export type PostIntentsRouteData = {
                  */
                 swapFeesSponsored?: boolean;
             };
-            feeToken?: 'ETH' | 'USDC' | 'WETH' | 'USDT0' | 'XDAI' | 'POL' | 'WPOL' | 'S' | 'USDT' | 'XPL' | 'WXPL';
+            /**
+             * The signature mode to be used
+             */
+            signatureMode?: 'EMISSARY' | 'ERC1271' | 'EMISSARY_ERC1271' | 'ERC1271_EMISSARY' | 'EMISSARY_EXECUTION' | 'EMISSARY_EXECUTION_ERC1271' | 'ERC1271_EMISSARY_EXECUTION' | 0 | 1 | 2 | 3 | 4 | 5 | 6;
+            feeToken?: 'ETH' | 'USDC' | 'WETH' | 'USDT0' | 'USDT' | 'BNB' | 'WBNB' | 'XDAI' | 'WXDAI' | 'POL' | 'WPOL' | 'MON' | 'WMON' | 'S' | 'WS' | 'HYPE' | 'WHYPE' | 'XPL' | 'WXPL' | 'MockUSD';
+            /**
+             * Tokens that will be received by EOA executions. These will be swept to the recipient account.
+             */
+            executionTokensReceived?: Array<string>;
+            /**
+             * Additional token balances to consider during route finding
+             */
+            auxiliaryFunds?: {
+                [key: string]: {
+                    [key: string]: number;
+                };
+            };
         };
     };
     headers: {
@@ -779,6 +373,11 @@ export type PostIntentsRouteData = {
          * Rhinestone API key
          */
         'x-api-key': string;
+        /**
+         * API version (YYYY-MM.name). Will become required in a future release.
+         */
+        'x-api-version'?: string;
+        'x-feature-flags'?: string;
     };
     path?: never;
     query?: never;
@@ -836,6 +435,10 @@ export type PostIntentsRouteResponses = {
              */
             nonce: number;
             /**
+             * Target execution nonce
+             */
+            targetExecutionNonce?: number;
+            /**
              * Expiration timestamp
              */
             expires: number;
@@ -880,11 +483,11 @@ export type PostIntentsRouteResponses = {
                      */
                     fillDeadline: number;
                     /**
-                     * Array of executions to perform before claiming
+                     * Executions to perform before claiming
                      */
                     preClaimOps: unknown;
                     /**
-                     * Array of executions to perform on the target chain
+                     * Executions to perform on the target chain
                      */
                     destinationOps: unknown;
                     /**
@@ -897,13 +500,73 @@ export type PostIntentsRouteResponses = {
                              */
                             settlementLayer: 'INTENT_EXECUTOR';
                             /**
-                             * Must be true for INTENT_EXECUTOR
+                             * true for ERC7579 smart accounts, false for EOAs (MULTICALL execution)
                              */
-                            using7579: true;
+                            using7579: boolean;
                             /**
                              * Must be NO_FUNDING for INTENT_EXECUTOR
                              */
                             fundingMethod: 'NO_FUNDING';
+                            /**
+                             * gas refund information
+                             */
+                            gasRefund: {
+                                /**
+                                 * Overhead gas amount add to gas spent when executing destination ops
+                                 */
+                                overhead: number;
+                                /**
+                                 * Exchange rate between token selected for gas refund and native token consumed for gas
+                                 */
+                                exchangeRate: number;
+                                /**
+                                 * token address which will be used for gas refunding
+                                 */
+                                token: string;
+                            };
+                            /**
+                             * Native ETH the relayer sends to user before execution (e.g. OFT lzFee)
+                             */
+                            prefundAmount?: number;
+                            /**
+                             * Bridge-as-fill metadata for cross-chain delivery tracking
+                             */
+                            bridgeFill?: {
+                                /**
+                                 * Destination chain ID for the bridge fill
+                                 */
+                                destinationChainId: number;
+                                /**
+                                 * Bridge type
+                                 */
+                                type: 'OFT';
+                            } | {
+                                /**
+                                 * Destination chain ID for the bridge fill
+                                 */
+                                destinationChainId: number;
+                                /**
+                                 * Bridge type
+                                 */
+                                type: 'Relay';
+                                /**
+                                 * Relay API request ID
+                                 */
+                                requestId: string;
+                            } | {
+                                /**
+                                 * Destination chain ID for the bridge fill
+                                 */
+                                destinationChainId: number;
+                                /**
+                                 * Bridge type
+                                 */
+                                type: 'NEAR';
+                                /**
+                                 * NEAR 1Click deposit address for status tracking
+                                 */
+                                depositAddress: string;
+                            };
                         } | {
                             /**
                              * Settlement layer for the qualifier
@@ -917,6 +580,45 @@ export type PostIntentsRouteResponses = {
                              * The method of funding the intent
                              */
                             fundingMethod: 'COMPACT' | 'PERMIT2' | 'NO_FUNDING';
+                            /**
+                             * Bridge-as-fill metadata for cross-chain delivery tracking
+                             */
+                            bridgeFill?: {
+                                /**
+                                 * Destination chain ID for the bridge fill
+                                 */
+                                destinationChainId: number;
+                                /**
+                                 * Bridge type
+                                 */
+                                type: 'OFT';
+                            } | {
+                                /**
+                                 * Destination chain ID for the bridge fill
+                                 */
+                                destinationChainId: number;
+                                /**
+                                 * Bridge type
+                                 */
+                                type: 'Relay';
+                                /**
+                                 * Relay API request ID
+                                 */
+                                requestId: string;
+                            } | {
+                                /**
+                                 * Destination chain ID for the bridge fill
+                                 */
+                                destinationChainId: number;
+                                /**
+                                 * Bridge type
+                                 */
+                                type: 'NEAR';
+                                /**
+                                 * NEAR 1Click deposit address for status tracking
+                                 */
+                                depositAddress: string;
+                            };
                         } | {
                             /**
                              * Settlement layer for the qualifier
@@ -943,6 +645,10 @@ export type PostIntentsRouteResponses = {
                              * The method of funding the intent
                              */
                             fundingMethod: 'COMPACT' | 'PERMIT2' | 'NO_FUNDING';
+                            /**
+                             * Hyperlane relay fee for proof dispatch (in destination chain native token)
+                             */
+                            provingFee: number;
                         } | {
                             /**
                              * Settlement layer for the qualifier
@@ -960,6 +666,43 @@ export type PostIntentsRouteResponses = {
                              * Relay settlement layer metadata to be broadcasted
                              */
                             requestId: string;
+                            /**
+                             * Relay v2 order ID used in the deposit contract calldata
+                             */
+                            orderId: string;
+                            /**
+                             * Relay settlement layer subsidized amount on the intent (denomination in USDC)
+                             */
+                            subsidizedAmount?: string;
+                            /**
+                             * ABI-encoded params for IRelayRouterV3.multicall, used for origin swaps via Relay contracts
+                             */
+                            multicallData?: string;
+                            /**
+                             * Estimated pre-claim validation gas used for originGasOverhead and preClaimGasStipend
+                             */
+                            preClaimValidationGas?: number;
+                        } | {
+                            /**
+                             * Settlement layer for the qualifier
+                             */
+                            settlementLayer: 'NEAR';
+                            /**
+                             * Whether to use 7579
+                             */
+                            using7579: boolean;
+                            /**
+                             * The method of funding the intent
+                             */
+                            fundingMethod: 'COMPACT' | 'PERMIT2' | 'NO_FUNDING';
+                            /**
+                             * NEAR-provided deposit address on the origin chain
+                             */
+                            depositAddress: string;
+                            /**
+                             * NEAR correlation ID for tracking the intent
+                             */
+                            correlationId: string;
                         };
                         /**
                          * Encoded qualification value
@@ -967,13 +710,70 @@ export type PostIntentsRouteResponses = {
                         encodedVal: string;
                     };
                     /**
-                     * Validation mode identifier
-                     */
-                    v: number;
-                    /**
                      * Mininimum gas for preclaim ops
                      */
                     minGas: number;
+                    /**
+                     * Swap execution data for arbitrary output tokens, aligned by index with tokenOut
+                     */
+                    swapDestinations?: Array<{
+                        tokenIn: string;
+                        amountIn: number;
+                        amountOut: number;
+                        slippage: number;
+                        quoter: string;
+                        executions: Array<{
+                            /**
+                             * Target contract address for execution
+                             */
+                            to: string;
+                            /**
+                             * Amount of ETH (in wei) sent in the execution
+                             */
+                            value: number;
+                            /**
+                             * Encoded function call data
+                             */
+                            data: string;
+                            senderAddressPlaceholder?: string;
+                            recipientAddressPlaceholder?: string;
+                        }>;
+                        outputDecimals: number;
+                        outputSymbol: string;
+                    } | null>;
+                };
+                /**
+                 * Swap execution data for arbitrary input tokens, keyed by spendToken address
+                 */
+                swapOrigins?: {
+                    [key: string]: {
+                        tokenIn: string;
+                        tokenOut: string;
+                        amountIn: number;
+                        amountOut: number;
+                        slippage: number;
+                        quoter: string;
+                        executions: Array<{
+                            /**
+                             * Target contract address for execution
+                             */
+                            to: string;
+                            /**
+                             * Amount of ETH (in wei) sent in the execution
+                             */
+                            value: number;
+                            /**
+                             * Encoded function call data
+                             */
+                            data: string;
+                            senderAddressPlaceholder?: string;
+                            recipientAddressPlaceholder?: string;
+                        }>;
+                        inputDecimals: number;
+                        inputSymbol: string;
+                        price: number;
+                        gasEstimate?: number;
+                    };
                 };
             }>;
             /**
@@ -985,20 +785,14 @@ export type PostIntentsRouteResponses = {
              */
             signedMetadata: {
                 /**
+                 * Serialization scheme identifier
+                 */
+                schemeId?: string;
+                /**
                  * Token prices in USD
                  */
                 tokenPrices: {
-                    ETH: number;
-                    USDC: number;
-                    WETH: number;
-                    USDT0: number;
-                    XDAI: number;
-                    POL: number;
-                    WPOL: number;
-                    S: number;
-                    USDT: number;
-                    XPL: number;
-                    WXPL: number;
+                    [key: string]: number;
                 };
                 /**
                  * Gas prices per chain in wei
@@ -1017,12 +811,6 @@ export type PostIntentsRouteResponses = {
                         baseFeeScalar: number;
                         blobFeeScalar: number;
                     } | number | undefined;
-                };
-                /**
-                 * Swap quotes per token address
-                 */
-                quotes: {
-                    [key: string]: unknown;
                 };
                 account: {
                     /**
@@ -1117,6 +905,10 @@ export type PostIntentsRouteResponses = {
                             validatorConfig: string;
                         };
                     };
+                    /**
+                     * Pre-encoded SSX enable payload with a dummy userSig for gas estimation. When present, the orchestrator etches the simulation emissary and uses this as emissaryData.
+                     */
+                    mockSignature?: string;
                     /**
                      * Account status per chain
                      */
@@ -1255,6 +1047,10 @@ export type PostIntentsRouteResponses = {
                         };
                     };
                     /**
+                     * Pre-encoded SSX enable payload with a dummy userSig for gas estimation. When present, the orchestrator etches the simulation emissary and uses this as emissaryData.
+                     */
+                    mockSignature?: string;
+                    /**
                      * Account status per chain
                      */
                     accountContext: {
@@ -1312,6 +1108,35 @@ export type PostIntentsRouteResponses = {
                          */
                         protocol: number;
                     };
+                    /**
+                     * Protocol fees by token address (in token units)
+                     */
+                    protocolFees?: {
+                        [key: string]: number;
+                    };
+                };
+                /**
+                 * Tokens that will be received by EOA executions. These will be swept to the recipient account.
+                 */
+                executionTokensReceived?: Array<string>;
+                /**
+                 * User-supplied pre-claim executions included in the bundle, keyed by chain ID.
+                 */
+                preClaimExecutions?: {
+                    [key: string]: Array<{
+                        /**
+                         * Target contract address for execution
+                         */
+                        to: string;
+                        /**
+                         * Amount of ETH (in wei) sent in the execution
+                         */
+                        value: number;
+                        /**
+                         * Encoded function call data
+                         */
+                        data: string;
+                    }>;
                 };
             };
             /**
@@ -1397,6 +1222,67 @@ export type PostIntentsRouteResponses = {
                 amountSpent: number;
                 targetAmount: number;
                 fee: number;
+                /**
+                 * Per-category breakdown of fees in token units (BPS-derived computed values)
+                 */
+                feeBreakdown: {
+                    /**
+                     * Combined gas fees: destination fill, destination swap execution, and origin chain gas
+                     */
+                    gasFee: number;
+                    /**
+                     * Cross-chain bridge commission charged by the relayer
+                     */
+                    bridgeFee: number;
+                    /**
+                     * Protocol fee charged by Rhinestone
+                     */
+                    protocolFee: number;
+                    /**
+                     * Solver swap commission for cross-token conversions
+                     */
+                    swapFee: number;
+                    /**
+                     * Settlement layer fee (e.g. Relay, Across)
+                     */
+                    settlementFee: number;
+                };
+                /**
+                 * Fees paid in tokens other than the output token (e.g., settlement fees, origin gas in input token)
+                 */
+                feesByToken: {
+                    [key: string]: {
+                        /**
+                         * Fee amount in this token
+                         */
+                        amount: number;
+                        /**
+                         * Per-category breakdown of fees in token units (BPS-derived computed values)
+                         */
+                        breakdown: {
+                            /**
+                             * Combined gas fees: destination fill, destination swap execution, and origin chain gas
+                             */
+                            gasFee: number;
+                            /**
+                             * Cross-chain bridge commission charged by the relayer
+                             */
+                            bridgeFee: number;
+                            /**
+                             * Protocol fee charged by Rhinestone
+                             */
+                            protocolFee: number;
+                            /**
+                             * Solver swap commission for cross-token conversions
+                             */
+                            swapFee: number;
+                            /**
+                             * Settlement layer fee (e.g. Relay, Across)
+                             */
+                            settlementFee: number;
+                        };
+                    };
+                };
                 hasFulfilled: boolean;
             }>;
             /**
@@ -1411,6 +1297,70 @@ export type PostIntentsRouteResponses = {
                  * Fee charged by Rhinestone
                  */
                 protocol: number;
+            };
+            /**
+             * Breakdown of gas costs across origin and destination chains
+             */
+            gasCost: {
+                /**
+                 * Gas costs per origin chain
+                 */
+                originChains: Array<{
+                    /**
+                     * Chain ID where the gas cost was incurred
+                     */
+                    chainId: number;
+                    /**
+                     * Gas cost in USD
+                     */
+                    gasUSD: number;
+                }>;
+                /**
+                 * Gas cost on the destination chain
+                 */
+                destination: {
+                    /**
+                     * Chain ID where the gas cost was incurred
+                     */
+                    chainId: number;
+                    /**
+                     * Gas cost in USD
+                     */
+                    gasUSD: number;
+                };
+                /**
+                 * Total gas cost in USD across all chains
+                 */
+                totalUSD: number;
+            };
+            /**
+             * Aggregate fee breakdown in USD across all tokens and chains
+             */
+            feeBreakdownUSD: {
+                /**
+                 * Total gas fees in USD (destination fill, swap execution, origin gas)
+                 */
+                gasFeeUSD: number;
+                /**
+                 * Total bridge commission in USD
+                 */
+                bridgeFeeUSD: number;
+                /**
+                 * Total protocol fee in USD
+                 */
+                protocolFeeUSD: number;
+                /**
+                 * Total solver swap commission in USD
+                 */
+                swapFeeUSD: number;
+                /**
+                 * Total settlement layer fee in USD
+                 */
+                settlementFeeUSD: number;
+                /**
+                 * Sum of all fees in USD (including sponsored)
+                 */
+                totalFeeUSD: number;
             };
         } | {
             /**
@@ -1437,6 +1387,42 @@ export type PostIntentsRouteResponses = {
                  * Fee associated with the token that has not been fulfilled
                  */
                 fee: number;
+                /**
+                 * Fees paid in tokens other than the output token (e.g., settlement fees, origin gas in input token)
+                 */
+                feesByToken: {
+                    [key: string]: {
+                        /**
+                         * Fee amount in this token
+                         */
+                        amount: number;
+                        /**
+                         * Per-category breakdown of fees in token units (BPS-derived computed values)
+                         */
+                        breakdown: {
+                            /**
+                             * Combined gas fees: destination fill, destination swap execution, and origin chain gas
+                             */
+                            gasFee: number;
+                            /**
+                             * Cross-chain bridge commission charged by the relayer
+                             */
+                            bridgeFee: number;
+                            /**
+                             * Protocol fee charged by Rhinestone
+                             */
+                            protocolFee: number;
+                            /**
+                             * Solver swap commission for cross-token conversions
+                             */
+                            swapFee: number;
+                            /**
+                             * Settlement layer fee (e.g. Relay, Across)
+                             */
+                            settlementFee: number;
+                        };
+                    };
+                };
                 /**
                  * Symbol of the token that has not been fulfilled
                  */
@@ -1471,6 +1457,115 @@ export type PostIntentsRouteResponses = {
 
 export type PostIntentsRouteResponse = PostIntentsRouteResponses[keyof PostIntentsRouteResponses];
 
+export type PostIntentsSplitData = {
+    /**
+     * Body
+     */
+    body?: {
+        /**
+         * The destination chain ID
+         */
+        chainId: number;
+        /**
+         * Map of token addresses to amounts
+         */
+        tokens: {
+            [key: string]: number;
+        };
+        /**
+         * Optional array of settlement layers to filter by. If not provided, all layers are considered.
+         */
+        settlementLayers?: Array<'INTENT_EXECUTOR' | 'SAME_CHAIN' | 'ACROSS' | 'ECO' | 'RELAY' | 'OFT' | 'NEAR'>;
+    };
+    headers: {
+        /**
+         * Rhinestone API key
+         */
+        'x-api-key': string;
+        /**
+         * API version (YYYY-MM.name). Will become required in a future release.
+         */
+        'x-api-version'?: string;
+    };
+    path?: never;
+    query?: never;
+    url: '/intents/split';
+};
+
+export type PostIntentsSplitErrors = {
+    /**
+     * Invalid request parameters
+     */
+    400: {
+        errors: Array<{
+            /**
+             * Error message
+             */
+            message: string;
+            /**
+             * Additional error context
+             */
+            context?: unknown;
+        }>;
+        /**
+         * Trace ID
+         */
+        traceId: string;
+    };
+    /**
+     * Insufficient liquidity to fill the full amount. Partial splits returned.
+     */
+    422: {
+        /**
+         * Error code indicating insufficient liquidity
+         */
+        error: 'INSUFFICIENT_LIQUIDITY';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+        /**
+         * Intents that can be filled with available liquidity
+         */
+        availableIntents: Array<{
+            [key: string]: string;
+        }>;
+        /**
+         * Token amounts that cannot be filled due to insufficient liquidity
+         */
+        unfillable: {
+            [key: string]: string;
+        };
+    };
+    /**
+     * Server error
+     */
+    500: {
+        /**
+         * Error message describing the server-side issue
+         */
+        error: string;
+    };
+};
+
+export type PostIntentsSplitError = PostIntentsSplitErrors[keyof PostIntentsSplitErrors];
+
+export type PostIntentsSplitResponses = {
+    /**
+     * Successfully split the intent by available liquidity
+     */
+    200: {
+        /**
+         * Array of intents, each mapping token addresses to amounts that can be filled by a single relayer
+         */
+        intents: Array<{
+            [key: string]: string;
+        }>;
+    };
+};
+
+export type PostIntentsSplitResponse = PostIntentsSplitResponses[keyof PostIntentsSplitResponses];
+
 export type PostIntentOperationsData = {
     /**
      * Body
@@ -1485,6 +1580,10 @@ export type PostIntentOperationsData = {
              * Transaction nonce
              */
             nonce: number;
+            /**
+             * Target execution nonce
+             */
+            targetExecutionNonce?: number;
             /**
              * Expiration timestamp
              */
@@ -1530,11 +1629,11 @@ export type PostIntentOperationsData = {
                      */
                     fillDeadline: number;
                     /**
-                     * Array of executions to perform before claiming
+                     * Executions to perform before claiming
                      */
                     preClaimOps: unknown;
                     /**
-                     * Array of executions to perform on the target chain
+                     * Executions to perform on the target chain
                      */
                     destinationOps: unknown;
                     /**
@@ -1547,13 +1646,73 @@ export type PostIntentOperationsData = {
                              */
                             settlementLayer: 'INTENT_EXECUTOR';
                             /**
-                             * Must be true for INTENT_EXECUTOR
+                             * true for ERC7579 smart accounts, false for EOAs (MULTICALL execution)
                              */
-                            using7579: true;
+                            using7579: boolean;
                             /**
                              * Must be NO_FUNDING for INTENT_EXECUTOR
                              */
                             fundingMethod: 'NO_FUNDING';
+                            /**
+                             * gas refund information
+                             */
+                            gasRefund: {
+                                /**
+                                 * Overhead gas amount add to gas spent when executing destination ops
+                                 */
+                                overhead: number;
+                                /**
+                                 * Exchange rate between token selected for gas refund and native token consumed for gas
+                                 */
+                                exchangeRate: number;
+                                /**
+                                 * token address which will be used for gas refunding
+                                 */
+                                token: string;
+                            };
+                            /**
+                             * Native ETH the relayer sends to user before execution (e.g. OFT lzFee)
+                             */
+                            prefundAmount?: number;
+                            /**
+                             * Bridge-as-fill metadata for cross-chain delivery tracking
+                             */
+                            bridgeFill?: {
+                                /**
+                                 * Destination chain ID for the bridge fill
+                                 */
+                                destinationChainId: number;
+                                /**
+                                 * Bridge type
+                                 */
+                                type: 'OFT';
+                            } | {
+                                /**
+                                 * Destination chain ID for the bridge fill
+                                 */
+                                destinationChainId: number;
+                                /**
+                                 * Bridge type
+                                 */
+                                type: 'Relay';
+                                /**
+                                 * Relay API request ID
+                                 */
+                                requestId: string;
+                            } | {
+                                /**
+                                 * Destination chain ID for the bridge fill
+                                 */
+                                destinationChainId: number;
+                                /**
+                                 * Bridge type
+                                 */
+                                type: 'NEAR';
+                                /**
+                                 * NEAR 1Click deposit address for status tracking
+                                 */
+                                depositAddress: string;
+                            };
                         } | {
                             /**
                              * Settlement layer for the qualifier
@@ -1567,6 +1726,45 @@ export type PostIntentOperationsData = {
                              * The method of funding the intent
                              */
                             fundingMethod: 'COMPACT' | 'PERMIT2' | 'NO_FUNDING';
+                            /**
+                             * Bridge-as-fill metadata for cross-chain delivery tracking
+                             */
+                            bridgeFill?: {
+                                /**
+                                 * Destination chain ID for the bridge fill
+                                 */
+                                destinationChainId: number;
+                                /**
+                                 * Bridge type
+                                 */
+                                type: 'OFT';
+                            } | {
+                                /**
+                                 * Destination chain ID for the bridge fill
+                                 */
+                                destinationChainId: number;
+                                /**
+                                 * Bridge type
+                                 */
+                                type: 'Relay';
+                                /**
+                                 * Relay API request ID
+                                 */
+                                requestId: string;
+                            } | {
+                                /**
+                                 * Destination chain ID for the bridge fill
+                                 */
+                                destinationChainId: number;
+                                /**
+                                 * Bridge type
+                                 */
+                                type: 'NEAR';
+                                /**
+                                 * NEAR 1Click deposit address for status tracking
+                                 */
+                                depositAddress: string;
+                            };
                         } | {
                             /**
                              * Settlement layer for the qualifier
@@ -1593,6 +1791,10 @@ export type PostIntentOperationsData = {
                              * The method of funding the intent
                              */
                             fundingMethod: 'COMPACT' | 'PERMIT2' | 'NO_FUNDING';
+                            /**
+                             * Hyperlane relay fee for proof dispatch (in destination chain native token)
+                             */
+                            provingFee: number;
                         } | {
                             /**
                              * Settlement layer for the qualifier
@@ -1610,6 +1812,43 @@ export type PostIntentOperationsData = {
                              * Relay settlement layer metadata to be broadcasted
                              */
                             requestId: string;
+                            /**
+                             * Relay v2 order ID used in the deposit contract calldata
+                             */
+                            orderId: string;
+                            /**
+                             * Relay settlement layer subsidized amount on the intent (denomination in USDC)
+                             */
+                            subsidizedAmount?: string;
+                            /**
+                             * ABI-encoded params for IRelayRouterV3.multicall, used for origin swaps via Relay contracts
+                             */
+                            multicallData?: string;
+                            /**
+                             * Estimated pre-claim validation gas used for originGasOverhead and preClaimGasStipend
+                             */
+                            preClaimValidationGas?: number;
+                        } | {
+                            /**
+                             * Settlement layer for the qualifier
+                             */
+                            settlementLayer: 'NEAR';
+                            /**
+                             * Whether to use 7579
+                             */
+                            using7579: boolean;
+                            /**
+                             * The method of funding the intent
+                             */
+                            fundingMethod: 'COMPACT' | 'PERMIT2' | 'NO_FUNDING';
+                            /**
+                             * NEAR-provided deposit address on the origin chain
+                             */
+                            depositAddress: string;
+                            /**
+                             * NEAR correlation ID for tracking the intent
+                             */
+                            correlationId: string;
                         };
                         /**
                          * Encoded qualification value
@@ -1617,13 +1856,70 @@ export type PostIntentOperationsData = {
                         encodedVal: string;
                     };
                     /**
-                     * Validation mode identifier
-                     */
-                    v: number;
-                    /**
                      * Mininimum gas for preclaim ops
                      */
                     minGas: number;
+                    /**
+                     * Swap execution data for arbitrary output tokens, aligned by index with tokenOut
+                     */
+                    swapDestinations?: Array<{
+                        tokenIn: string;
+                        amountIn: number;
+                        amountOut: number;
+                        slippage: number;
+                        quoter: string;
+                        executions: Array<{
+                            /**
+                             * Target contract address for execution
+                             */
+                            to: string;
+                            /**
+                             * Amount of ETH (in wei) sent in the execution
+                             */
+                            value: number;
+                            /**
+                             * Encoded function call data
+                             */
+                            data: string;
+                            senderAddressPlaceholder?: string;
+                            recipientAddressPlaceholder?: string;
+                        }>;
+                        outputDecimals: number;
+                        outputSymbol: string;
+                    } | null>;
+                };
+                /**
+                 * Swap execution data for arbitrary input tokens, keyed by spendToken address
+                 */
+                swapOrigins?: {
+                    [key: string]: {
+                        tokenIn: string;
+                        tokenOut: string;
+                        amountIn: number;
+                        amountOut: number;
+                        slippage: number;
+                        quoter: string;
+                        executions: Array<{
+                            /**
+                             * Target contract address for execution
+                             */
+                            to: string;
+                            /**
+                             * Amount of ETH (in wei) sent in the execution
+                             */
+                            value: number;
+                            /**
+                             * Encoded function call data
+                             */
+                            data: string;
+                            senderAddressPlaceholder?: string;
+                            recipientAddressPlaceholder?: string;
+                        }>;
+                        inputDecimals: number;
+                        inputSymbol: string;
+                        price: number;
+                        gasEstimate?: number;
+                    };
                 };
             }>;
             /**
@@ -1635,20 +1931,14 @@ export type PostIntentOperationsData = {
              */
             signedMetadata: {
                 /**
+                 * Serialization scheme identifier
+                 */
+                schemeId?: string;
+                /**
                  * Token prices in USD
                  */
                 tokenPrices: {
-                    ETH: number;
-                    USDC: number;
-                    WETH: number;
-                    USDT0: number;
-                    XDAI: number;
-                    POL: number;
-                    WPOL: number;
-                    S: number;
-                    USDT: number;
-                    XPL: number;
-                    WXPL: number;
+                    [key: string]: number;
                 };
                 /**
                  * Gas prices per chain in wei
@@ -1667,12 +1957,6 @@ export type PostIntentOperationsData = {
                         baseFeeScalar: number;
                         blobFeeScalar: number;
                     } | number | undefined;
-                };
-                /**
-                 * Swap quotes per token address
-                 */
-                quotes: {
-                    [key: string]: unknown;
                 };
                 account: {
                     /**
@@ -1767,6 +2051,10 @@ export type PostIntentOperationsData = {
                             validatorConfig: string;
                         };
                     };
+                    /**
+                     * Pre-encoded SSX enable payload with a dummy userSig for gas estimation. When present, the orchestrator etches the simulation emissary and uses this as emissaryData.
+                     */
+                    mockSignature?: string;
                     /**
                      * Account status per chain
                      */
@@ -1905,6 +2193,10 @@ export type PostIntentOperationsData = {
                         };
                     };
                     /**
+                     * Pre-encoded SSX enable payload with a dummy userSig for gas estimation. When present, the orchestrator etches the simulation emissary and uses this as emissaryData.
+                     */
+                    mockSignature?: string;
+                    /**
                      * Account status per chain
                      */
                     accountContext: {
@@ -1962,6 +2254,35 @@ export type PostIntentOperationsData = {
                          */
                         protocol: number;
                     };
+                    /**
+                     * Protocol fees by token address (in token units)
+                     */
+                    protocolFees?: {
+                        [key: string]: number;
+                    };
+                };
+                /**
+                 * Tokens that will be received by EOA executions. These will be swept to the recipient account.
+                 */
+                executionTokensReceived?: Array<string>;
+                /**
+                 * User-supplied pre-claim executions included in the bundle, keyed by chain ID.
+                 */
+                preClaimExecutions?: {
+                    [key: string]: Array<{
+                        /**
+                         * Target contract address for execution
+                         */
+                        to: string;
+                        /**
+                         * Amount of ETH (in wei) sent in the execution
+                         */
+                        value: number;
+                        /**
+                         * Encoded function call data
+                         */
+                        data: string;
+                    }>;
                 };
             };
             /**
@@ -2027,9 +2348,16 @@ export type PostIntentOperationsData = {
              */
             destinationSignature: string;
             /**
+             * Target execution signature
+             */
+            targetExecutionSignature?: string;
+            /**
              * Origin (source chain) signatures
              */
-            originSignatures: Array<string>;
+            originSignatures: Array<string | {
+                preClaimSig: string;
+                notarizedClaimSig: string;
+            }>;
             options?: {
                 /**
                  * Whether to perform a dry run. For internal use only
@@ -2043,6 +2371,10 @@ export type PostIntentOperationsData = {
          * Rhinestone API key
          */
         'x-api-key': string;
+        /**
+         * API version (YYYY-MM.name). Will become required in a future release.
+         */
+        'x-api-version'?: string;
     };
     path?: never;
     query?: never;
@@ -2121,6 +2453,10 @@ export type GetIntentOperationByIdData = {
          * Rhinestone API key
          */
         'x-api-key': string;
+        /**
+         * API version (YYYY-MM.name). Will become required in a future release.
+         */
+        'x-api-version'?: string;
     };
     path: {
         /**
@@ -2247,6 +2583,10 @@ export type GetAccountsByUserAddressPortfolioData = {
          * Rhinestone API key
          */
         'x-api-key': string;
+        /**
+         * API version (YYYY-MM.name). Will become required in a future release.
+         */
+        'x-api-version'?: string;
     };
     path: {
         /**
@@ -2376,6 +2716,10 @@ export type PostWithdrawalsData = {
          * Rhinestone API key
          */
         'x-api-key': string;
+        /**
+         * API version (YYYY-MM.name). Will become required in a future release.
+         */
+        'x-api-version'?: string;
     };
     path?: never;
     query?: never;
@@ -2453,6 +2797,10 @@ export type PostBatchWithdrawalsData = {
          * Rhinestone API key
          */
         'x-api-key': string;
+        /**
+         * API version (YYYY-MM.name). Will become required in a future release.
+         */
+        'x-api-version'?: string;
     };
     path?: never;
     query?: never;
@@ -2531,12 +2879,12 @@ export type GetChainsResponses = {
              * The name of the chain
              */
             name: string;
-            settlementLayers: Array<'INTENT_EXECUTOR' | 'SAME_CHAIN' | 'ACROSS' | 'ECO' | 'RELAY'>;
-            supportedTokens: Array<{
+            supportedTokens: 'all' | Array<{
                 symbol: string;
                 address: string;
                 decimals: number;
             }>;
+            testnet: boolean;
         };
     };
 };
