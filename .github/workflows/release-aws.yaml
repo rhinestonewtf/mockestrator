@@ -5,39 +5,95 @@ on:
     tags:
       - 'v*'
 
-jobs:  
-  docker-push-image:
-    name: Build and push docker image to AWS ECR
+env:
+  AWS_REGION: us-east-1
+  ECR_REGISTRY: public.ecr.aws/l8u6h3p7
+  APP_NAME: mockestrator
+
+jobs:
+  build-amd64:
+    name: Build AMD64 image
     runs-on: ubuntu-latest
-    env:
-      AWS_REGION: us-east-1
-      ECR_REGISTRY: public.ecr.aws/l8u6h3p7
-      APP_NAME: mockestrator
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-    - name: Configure AWS credentials
-      uses: aws-actions/configure-aws-credentials@v4
-      with:
-        aws-access-key-id: ${{ secrets.ECR_AWS_ACCESS_KEY_ID }}
-        aws-secret-access-key: ${{ secrets.ECR_AWS_SECRET_ACCESS_KEY }}
-        aws-region: ${{ env.AWS_REGION }}
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.ECR_AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.ECR_AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
 
-    - name: Login to Amazon ECR
-      id: login-ecr
-      uses: aws-actions/amazon-ecr-login@v2
-      with:
-        registry-type: public
+      - name: Login to Amazon ECR
+        uses: aws-actions/amazon-ecr-login@v2
+        with:
+          registry-type: public
 
-    - name: Get git tag
-      id: get-tag
-      run: |
-        TAG=$(echo ${GITHUB_REF#refs/tags/})
-        echo "tag=$TAG" >> $GITHUB_OUTPUT
+      - name: Get git tag
+        id: get-tag
+        run: echo "tag=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
 
-    - name: Build and push image
-      run: |
-        docker build -t $ECR_REGISTRY/$APP_NAME:${{ steps.get-tag.outputs.tag }} -t $ECR_REGISTRY/$APP_NAME:latest .
-        docker push $ECR_REGISTRY/$APP_NAME:${{ steps.get-tag.outputs.tag }}
-        docker push $ECR_REGISTRY/$APP_NAME:latest
+      - name: Build and push AMD64 image
+        run: |
+          docker build --platform linux/amd64 \
+            -t $ECR_REGISTRY/$APP_NAME:${{ steps.get-tag.outputs.tag }}-amd64 .
+          docker push $ECR_REGISTRY/$APP_NAME:${{ steps.get-tag.outputs.tag }}-amd64
+
+  build-arm64:
+    name: Build ARM64 image
+    runs-on: ubuntu-24.04-arm
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.ECR_AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.ECR_AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        uses: aws-actions/amazon-ecr-login@v2
+        with:
+          registry-type: public
+
+      - name: Get git tag
+        id: get-tag
+        run: echo "tag=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+
+      - name: Build and push ARM64 image
+        run: |
+          docker build --platform linux/arm64 \
+            -t $ECR_REGISTRY/$APP_NAME:${{ steps.get-tag.outputs.tag }}-arm64 .
+          docker push $ECR_REGISTRY/$APP_NAME:${{ steps.get-tag.outputs.tag }}-arm64
+
+  merge-manifests:
+    name: Merge multi-arch manifest
+    runs-on: ubuntu-latest
+    needs: [build-amd64, build-arm64]
+    steps:
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.ECR_AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.ECR_AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        uses: aws-actions/amazon-ecr-login@v2
+        with:
+          registry-type: public
+
+      - name: Get git tag
+        id: get-tag
+        run: echo "tag=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+
+      - name: Create and push multi-arch manifest
+        run: |
+          docker buildx imagetools create \
+            -t $ECR_REGISTRY/$APP_NAME:${{ steps.get-tag.outputs.tag }} \
+            -t $ECR_REGISTRY/$APP_NAME:latest \
+            $ECR_REGISTRY/$APP_NAME:${{ steps.get-tag.outputs.tag }}-amd64 \
+            $ECR_REGISTRY/$APP_NAME:${{ steps.get-tag.outputs.tag }}-arm64
