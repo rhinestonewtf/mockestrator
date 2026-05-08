@@ -1,45 +1,36 @@
-import { Request, Response } from "express";
-import { logRequest, jsonify } from "../log";
-import { zPostIntentsSplitData } from "../gen/zod.gen";
-import { z, ZodError } from "zod";
+import { Request, Response } from 'express';
+import { z } from 'zod';
+import { jsonify, logRequest } from '../log';
+import { zPostIntentsSplitsData, zPostIntentsSplitsResponse } from '../gen/zod.gen';
+import { sendError } from '../errors';
 
-type SplitData = z.infer<typeof zPostIntentsSplitData>
+type SplitData = z.infer<typeof zPostIntentsSplitsData>;
+type SplitResponse = z.infer<typeof zPostIntentsSplitsResponse>;
 
 export const intent_split = async (req: Request, resp: Response) => {
-    logRequest(req)
+    logRequest(req);
 
     try {
-        const params = zPostIntentsSplitData.parse({
+        const params = zPostIntentsSplitsData.parse({
             body: req.body,
-            query: undefined,
             path: undefined,
-            headers: req.headers
-        })
-
-        const body = createSplitResponse(params)
-        console.log('Response: ', jsonify(body))
-        resp.status(200).json(body)
+            query: undefined,
+            headers: req.headers,
+        });
+        const body = createSplitResponse(params);
+        console.log('Response: ', jsonify(body));
+        resp.status(200).json(body);
     } catch (e) {
-        console.log(e)
-
-        if (e instanceof ZodError) {
-            resp.status(400).json({ 'error': `${e}` })
-        } else {
-            resp.status(500).json({ 'error': `${e}` })
-        }
+        console.log(e);
+        sendError(resp, e);
     }
-}
+};
 
-function createSplitResponse(data: SplitData) {
-    const tokens = data.body?.tokens ?? {}
-
-    // Mock has infinite liquidity — return all tokens as a single intent
-    const intent: Record<string, string> = {}
+const createSplitResponse = (data: SplitData): SplitResponse => {
+    const tokens = data.body?.tokens ?? {};
+    const single: Record<string, string> = {};
     for (const [address, amount] of Object.entries(tokens)) {
-        intent[address] = amount.toString()
+        single[address] = amount.toString();
     }
-
-    return {
-        intents: Object.keys(intent).length > 0 ? [intent] : []
-    }
-}
+    return { intents: Object.keys(single).length > 0 ? [single] : [] };
+};

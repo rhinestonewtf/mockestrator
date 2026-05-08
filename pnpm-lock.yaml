@@ -12,8 +12,8 @@ importers:
         specifier: ^5.1.0
         version: 5.1.0
       viem:
-        specifier: ^2.38.6
-        version: 2.38.6(typescript@5.9.3)(zod@4.1.12)
+        specifier: ^2.40.1
+        version: 2.48.11(typescript@5.9.3)(zod@4.1.12)
       zod:
         specifier: ^4.1.12
         version: 4.1.12
@@ -22,8 +22,8 @@ importers:
         specifier: ^0.90.2
         version: 0.90.2(typescript@5.9.3)
       '@rhinestone/sdk':
-        specifier: ^1.1.0
-        version: 1.1.0(typescript@5.9.3)(viem@2.38.6(typescript@5.9.3)(zod@4.1.12))(zod@4.1.12)
+        specifier: 2.0.0-beta.6
+        version: 2.0.0-beta.6(express@5.1.0)(typescript@5.9.3)(viem@2.48.11(typescript@5.9.3)(zod@4.1.12))
       '@types/express':
         specifier: ^5.0.5
         version: 5.0.5
@@ -247,16 +247,23 @@ packages:
     resolution: {integrity: sha512-jCs9ldd7NwzpgXDIf6P3+NrHh9/sD6CQdxHyjQI+h/6rDNo88ypBxxz45UDuZHz9r3tNz7N/VInSVoVdtXEI4A==}
     engines: {node: ^14.21.3 || >=16}
 
-  '@rhinestone/sdk@1.1.0':
-    resolution: {integrity: sha512-hcQyXl3WvY4siT/+SRAHYEAQzIol9nDQ+/TcajO2c+kCFzOew4N3YufTmim3OMkcnLbiuauXGVbiuLwa7bA9hQ==}
+  '@rhinestone/sdk@2.0.0-beta.6':
+    resolution: {integrity: sha512-tt0TgNU5KDusi/kNTQqLTxMNeWpMrIhcg2kHzb6R2/PhLMHII8qSWcfKmshIL3toQ3uzn3rMVDHYnvnlfSnzdg==}
     peerDependencies:
+      express: '>=4'
+      jose: '>=5.0.0'
       viem: ^2.38.0
+    peerDependenciesMeta:
+      express:
+        optional: true
+      jose:
+        optional: true
 
-  '@rhinestone/shared-configs@1.4.52':
-    resolution: {integrity: sha512-MzXjrXBEe2jlAHCcMyyyO7jOJRdzk+5ylA28pFISO3gV+YeKuqhZx5A91QRIvgYJSznX+jTPRW/xpfjYM2J9EA==}
+  '@rhinestone/shared-configs@1.4.139':
+    resolution: {integrity: sha512-ogN9gBu76BcmYMSZ5oymPonUsPDi6uT+EG6kxQt7h94jSNcpuA1WeKZq3AipJEMjVUl48Fpa4ubwhFk8mRw+Ig==}
     peerDependencies:
       typescript: ^5
-      viem: ^2.38.0
+      viem: ^2.40.1
 
   '@rollup/rollup-android-arm-eabi@4.52.5':
     resolution: {integrity: sha512-8c1vW4ocv3UOMp9K+gToY5zL2XiiVw3k7f1ksf4yO1FlDFQ1C2u72iACFnSOceJFsWskc2WZNqeRhFRPzv+wtQ==}
@@ -469,8 +476,8 @@ packages:
   '@vitest/utils@4.0.6':
     resolution: {integrity: sha512-bG43VS3iYKrMIZXBo+y8Pti0O7uNju3KvNn6DrQWhQQKcLavMB+0NZfO1/QBAEbq0MaQ3QjNsnnXlGQvsh0Z6A==}
 
-  abitype@1.1.0:
-    resolution: {integrity: sha512-6Vh4HcRxNMLA0puzPjM5GBgT4aAcFGKZzSgAXvuZ27shJP6NEpielTuqbBmZILR5/xd0PizkBGy5hReKz9jl5A==}
+  abitype@1.2.3:
+    resolution: {integrity: sha512-Ofer5QUnuUdTFsBRwARMoWKOH1ND5ehwYhJ3OJ/BQO+StkwQjHw0XyVh4vDttzHB7QOFhPHa/o413PJ82gU/Tg==}
     peerDependencies:
       typescript: '>=5.0.4'
       zod: ^3.22.0 || ^4.0.0
@@ -847,16 +854,8 @@ packages:
     resolution: {integrity: sha512-smsWv2LzFjP03xmvFoJ331ss6h+jixfA4UUV/Bsiyuu4YJPfN+FIQGOIiv4w9/+MoHkfkJ22UIaQWRVFRfH6Vw==}
     engines: {node: '>=20'}
 
-  ox@0.9.17:
-    resolution: {integrity: sha512-rKAnhzhRU3Xh3hiko+i1ZxywZ55eWQzeS/Q4HRKLx2PqfHOolisZHErSsJVipGlmQKHW5qwOED/GighEw9dbLg==}
-    peerDependencies:
-      typescript: '>=5.4.0'
-    peerDependenciesMeta:
-      typescript:
-        optional: true
-
-  ox@0.9.6:
-    resolution: {integrity: sha512-8SuCbHPvv2eZLYXrNmC0EC12rdzXQLdhnOMlHDW2wiCPLxBrOOJwX5L5E61by+UjTPOryqQiRSnjIKCI+GykKg==}
+  ox@0.14.20:
+    resolution: {integrity: sha512-rby38C3nDn8eQkf29Zgw4hkCZJ64Qqi0zRPWL8ENUQ7JVuoITqrVtwWQgM/He19SCMUEc7hS/Sjw0jIOSLJhOw==}
     peerDependencies:
       typescript: '>=5.4.0'
     peerDependenciesMeta:
@@ -1050,8 +1049,8 @@ packages:
     resolution: {integrity: sha512-BNGbWLfd0eUPabhkXUVm0j8uuvREyTh5ovRa/dyow/BqAbZJyC+5fU+IzQOzmAKzYqYRAISoRhdQr3eIZ/PXqg==}
     engines: {node: '>= 0.8'}
 
-  viem@2.38.6:
-    resolution: {integrity: sha512-aqO6P52LPXRjdnP6rl5Buab65sYa4cZ6Cpn+k4OLOzVJhGIK8onTVoKMFMT04YjDfyDICa/DZyV9HmvLDgcjkw==}
+  viem@2.48.11:
+    resolution: {integrity: sha512-+WZ5E0dBS6GtKb+1wEk5DeYRRRW42+pFnXCo67Ydodf42sBwO+hu3wnQy66lc4MKmHz+llPVdbyehYr9oTE2iw==}
     peerDependencies:
       typescript: '>=5.0.4'
     peerDependenciesMeta:
@@ -1300,20 +1299,20 @@ snapshots:
 
   '@noble/hashes@1.8.0': {}
 
-  '@rhinestone/sdk@1.1.0(typescript@5.9.3)(viem@2.38.6(typescript@5.9.3)(zod@4.1.12))(zod@4.1.12)':
+  '@rhinestone/sdk@2.0.0-beta.6(express@5.1.0)(typescript@5.9.3)(viem@2.48.11(typescript@5.9.3)(zod@4.1.12))':
     dependencies:
-      '@rhinestone/shared-configs': 1.4.52(typescript@5.9.3)(viem@2.38.6(typescript@5.9.3)(zod@4.1.12))
-      ox: 0.9.17(typescript@5.9.3)(zod@4.1.12)
+      '@rhinestone/shared-configs': 1.4.139(typescript@5.9.3)(viem@2.48.11(typescript@5.9.3)(zod@4.1.12))
       solady: 0.1.26
-      viem: 2.38.6(typescript@5.9.3)(zod@4.1.12)
+      viem: 2.48.11(typescript@5.9.3)(zod@4.1.12)
+    optionalDependencies:
+      express: 5.1.0
     transitivePeerDependencies:
       - typescript
-      - zod
 
-  '@rhinestone/shared-configs@1.4.52(typescript@5.9.3)(viem@2.38.6(typescript@5.9.3)(zod@4.1.12))':
+  '@rhinestone/shared-configs@1.4.139(typescript@5.9.3)(viem@2.48.11(typescript@5.9.3)(zod@4.1.12))':
     dependencies:
       typescript: 5.9.3
-      viem: 2.38.6(typescript@5.9.3)(zod@4.1.12)
+      viem: 2.48.11(typescript@5.9.3)(zod@4.1.12)
 
   '@rollup/rollup-android-arm-eabi@4.52.5':
     optional: true
@@ -1503,7 +1502,7 @@ snapshots:
       '@vitest/pretty-format': 4.0.6
       tinyrainbow: 3.0.3
 
-  abitype@1.1.0(typescript@5.9.3)(zod@4.1.12):
+  abitype@1.2.3(typescript@5.9.3)(zod@4.1.12):
     optionalDependencies:
       typescript: 5.9.3
       zod: 4.1.12
@@ -1880,7 +1879,7 @@ snapshots:
       powershell-utils: 0.1.0
       wsl-utils: 0.3.1
 
-  ox@0.9.17(typescript@5.9.3)(zod@4.1.12):
+  ox@0.14.20(typescript@5.9.3)(zod@4.1.12):
     dependencies:
       '@adraffy/ens-normalize': 1.11.1
       '@noble/ciphers': 1.3.0
@@ -1888,22 +1887,7 @@ snapshots:
       '@noble/hashes': 1.8.0
       '@scure/bip32': 1.7.0
       '@scure/bip39': 1.6.0
-      abitype: 1.1.0(typescript@5.9.3)(zod@4.1.12)
-      eventemitter3: 5.0.1
-    optionalDependencies:
-      typescript: 5.9.3
-    transitivePeerDependencies:
-      - zod
-
-  ox@0.9.6(typescript@5.9.3)(zod@4.1.12):
-    dependencies:
-      '@adraffy/ens-normalize': 1.11.1
-      '@noble/ciphers': 1.3.0
-      '@noble/curves': 1.9.1
-      '@noble/hashes': 1.8.0
-      '@scure/bip32': 1.7.0
-      '@scure/bip39': 1.6.0
-      abitype: 1.1.0(typescript@5.9.3)(zod@4.1.12)
+      abitype: 1.2.3(typescript@5.9.3)(zod@4.1.12)
       eventemitter3: 5.0.1
     optionalDependencies:
       typescript: 5.9.3
@@ -2125,15 +2109,15 @@ snapshots:
 
   vary@1.1.2: {}
 
-  viem@2.38.6(typescript@5.9.3)(zod@4.1.12):
+  viem@2.48.11(typescript@5.9.3)(zod@4.1.12):
     dependencies:
       '@noble/curves': 1.9.1
       '@noble/hashes': 1.8.0
       '@scure/bip32': 1.7.0
       '@scure/bip39': 1.6.0
-      abitype: 1.1.0(typescript@5.9.3)(zod@4.1.12)
+      abitype: 1.2.3(typescript@5.9.3)(zod@4.1.12)
       isows: 1.0.7(ws@8.18.3)
-      ox: 0.9.6(typescript@5.9.3)(zod@4.1.12)
+      ox: 0.14.20(typescript@5.9.3)(zod@4.1.12)
       ws: 8.18.3
     optionalDependencies:
       typescript: 5.9.3
