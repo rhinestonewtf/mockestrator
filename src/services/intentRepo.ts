@@ -1,32 +1,40 @@
-import z from "zod"
-import { zGetIntentOperationByIdResponse } from "../gen/zod.gen"
+import { Address, Hex } from 'viem';
+import { ApiError } from '../errors';
 
+export type IntentStatus = 'PENDING' | 'PRECONFIRMED' | 'CLAIMED' | 'FILLED' | 'COMPLETED' | 'FAILED' | 'EXPIRED';
 
-type IntentData = z.infer<typeof zGetIntentOperationByIdResponse>
+export type ClaimRecord = {
+    chainId: number;
+    status: 'PENDING' | 'EXPIRED' | 'PRECONFIRMED' | 'COMPLETED' | 'FAILED';
+    claimTimestamp?: number;
+    claimTransactionHash?: Hex;
+};
 
-let intents: Record<string, IntentData> = {}
+export type IntentRecord = {
+    accountAddress: Address;
+    destinationChainId: number;
+    status: IntentStatus;
+    fillTimestamp?: number;
+    fillTransactionHash?: Hex;
+    claims: ClaimRecord[];
+};
 
+const intents = new Map<string, IntentRecord>();
 
-class IntentNotFoundError extends Error {
-    constructor(intentId: bigint) {
-        super(`Intent not found: ${intentId}`)
-        this.name = 'IntentNotFoundError'
+export class IntentNotFoundError extends ApiError {
+    constructor(intentId: string) {
+        super(404, 'NOT_FOUND', `Intent not found: ${intentId}`);
     }
 }
 
-const getIntentById = async (intentId: bigint): Promise<IntentData> => {
-    const intent = intents[intentId.toString()]
+export function getIntent(intentId: string): IntentRecord {
+    const intent = intents.get(intentId);
     if (!intent) {
-        throw new IntentNotFoundError(intentId)
+        throw new IntentNotFoundError(intentId);
     }
-    return intent
+    return intent;
 }
 
-const addNewIntent = async (id: bigint, intent: IntentData) => {
-    intents[id.toString()] = intent
-}
-
-
-export {
-    IntentData, getIntentById, addNewIntent, IntentNotFoundError
+export function saveIntent(intentId: string, record: IntentRecord): void {
+    intents.set(intentId, record);
 }

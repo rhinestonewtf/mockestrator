@@ -2,31 +2,27 @@ import { describe, it, expect } from "vitest";
 import {
   Address,
   createPublicClient,
-  createTestClient,
-  encodeFunctionData,
-  erc20Abi,
-  http,
-  parseEther,
-  parseUnits,
   decodeEventLog,
+  erc20Abi,
   Hex,
+  http,
+  parseUnits,
 } from "viem";
-import { RhinestoneSDK } from "@rhinestone/sdk";
-import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
-import { baseSepolia } from "viem/chains";
 
 const API_BASE_URL = process.env.MOCKESTRATOR_URL ?? "http://localhost:4000";
 const API_KEY = "test-api-key";
+const API_VERSION = "2026-04.blanc";
 
 // Chain IDs from rpcs.json
 const BASE_SEPOLIA_CHAIN_ID = 84532;
 const SEPOLIA_CHAIN_ID = 11155111;
+const BASE_SEPOLIA_CAIP2 = `eip155:${BASE_SEPOLIA_CHAIN_ID}`;
+const SEPOLIA_CAIP2 = `eip155:${SEPOLIA_CHAIN_ID}`;
 // USDC addresses from chains.json
 const USDC_BASE_SEPOLIA = "0x036CbD53842c5426634e7929541eC2318f3dCF7e";
 const USDC_SEPOLIA = "0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238";
 // User and recipient addresses
 const USER_ADDRESS = "0xDeaDbeefdEAdbeefdEadbEEFdeadbeEFdEaDbeeF";
-const RECIPIENT_ADDRESS = "0x000000000000000000000000000000000000dEaD";
 // RPC URLs from rpcs.json
 const RPC_URLS: Record<number, string> = {
   [BASE_SEPOLIA_CHAIN_ID]: "http://localhost:30005",
@@ -36,7 +32,9 @@ const RPC_URLS: Record<number, string> = {
 const headers = {
   "Content-Type": "application/json",
   "x-api-key": API_KEY,
+  "x-api-version": API_VERSION,
 };
+
 async function apiCall<T>(
   method: string,
   path: string,
@@ -56,85 +54,73 @@ async function apiCall<T>(
   return response.json();
 }
 
-// create signed intent from route response
-function createSignedIntent(routeResponse: any) {
-  return {
-    ...routeResponse.intentOp,
-    destinationSignature: "0x" + "00".repeat(65),
-    originSignatures: ["0x" + "00".repeat(65)],
-  };
-}
+// Mock signature that mockestrator accepts as "valid" (any non-fake hex)
+const MOCK_DEST_SIG = ("0x" + "ab".repeat(65)) as Hex;
+const MOCK_ORIGIN_SIG = ("0x" + "cd".repeat(65)) as Hex;
 
 describe("Mockestrator Intent Flow", () => {
   describe("Portfolio API", () => {
-    it("should return portfolio for a user address", async () => {
-      const userAddress = USER_ADDRESS;
+    it("should return portfolio for an account", async () => {
       const response = await apiCall<any>(
         "GET",
-        `/accounts/${userAddress}/portfolio`
+        `/accounts/${USER_ADDRESS}/portfolio`
       );
 
       expect(response).toHaveProperty("portfolio");
       expect(Array.isArray(response.portfolio)).toBe(true);
 
       const usdcEntry = response.portfolio.find(
-        (p: any) => p.tokenName === "USDC"
+        (p: any) => p.symbol === "USDC"
       );
       expect(usdcEntry).toBeDefined();
-      expect(usdcEntry.balance.unlocked).toBeGreaterThan(0);
+      expect(usdcEntry.chains.length).toBeGreaterThanOrEqual(2);
+      expect(BigInt(usdcEntry.chains[0].amount)).toBeGreaterThan(0n);
     });
 
-    it("should return ETH balance in portfolio", async () => {
+    it("should return ETH balance entry", async () => {
       const response = await apiCall<any>(
         "GET",
         `/accounts/${USER_ADDRESS}/portfolio`
       );
 
-      const ethEntry = response.portfolio.find(
-        (p: any) => p.tokenName === "ETH"
-      );
+      const ethEntry = response.portfolio.find((p: any) => p.symbol === "ETH");
       expect(ethEntry).toBeDefined();
-      expect(ethEntry.tokenDecimals).toBe(18);
-      expect(ethEntry.balance.unlocked).toBeGreaterThan(0);
+      expect(ethEntry.chains[0].decimals).toBe(18);
+      expect(BigInt(ethEntry.chains[0].amount)).toBeGreaterThan(0n);
     });
 
-    it("should return per-chain balances for each token", async () => {
+    it("should return per-chain balances using CAIP-2 ids", async () => {
       const response = await apiCall<any>(
         "GET",
         `/accounts/${USER_ADDRESS}/portfolio`
       );
 
       const usdcEntry = response.portfolio.find(
-        (p: any) => p.tokenName === "USDC"
+        (p: any) => p.symbol === "USDC"
       );
-      expect(usdcEntry).toBeDefined();
-      expect(usdcEntry.tokenChainBalance.length).toBeGreaterThanOrEqual(2);
-
-      const baseSepoliaBalance = usdcEntry.tokenChainBalance.find(
-        (b: any) => b.chainId === BASE_SEPOLIA_CHAIN_ID
+      const baseSepoliaBalance = usdcEntry.chains.find(
+        (c: any) => c.chainId === BASE_SEPOLIA_CAIP2
       );
       expect(baseSepoliaBalance).toBeDefined();
-      expect(baseSepoliaBalance.tokenAddress.toLowerCase()).toBe(
+      expect(baseSepoliaBalance.address.toLowerCase()).toBe(
         USDC_BASE_SEPOLIA.toLowerCase()
       );
-      expect(baseSepoliaBalance.balance.unlocked).toBeGreaterThan(0);
 
-      const sepoliaBalance = usdcEntry.tokenChainBalance.find(
-        (b: any) => b.chainId === SEPOLIA_CHAIN_ID
+      const sepoliaBalance = usdcEntry.chains.find(
+        (c: any) => c.chainId === SEPOLIA_CAIP2
       );
       expect(sepoliaBalance).toBeDefined();
-      expect(sepoliaBalance.tokenAddress.toLowerCase()).toBe(
+      expect(sepoliaBalance.address.toLowerCase()).toBe(
         USDC_SEPOLIA.toLowerCase()
       );
-      expect(sepoliaBalance.balance.unlocked).toBeGreaterThan(0);
     });
   });
 
-  describe("Intent Split API", () => {
+  describe("Intent Splits API", () => {
     it("should return single intent with full amount for a single token", async () => {
-      const response = await apiCall<any>("POST", "/intents/split", {
-        chainId: BASE_SEPOLIA_CHAIN_ID,
-        tokens: { [USDC_BASE_SEPOLIA]: 1000000 },
+      const response = await apiCall<any>("POST", "/intents/splits", {
+        chainId: BASE_SEPOLIA_CAIP2,
+        tokens: { [USDC_BASE_SEPOLIA]: "1000000" },
       });
 
       expect(response).toHaveProperty("intents");
@@ -143,11 +129,11 @@ describe("Mockestrator Intent Flow", () => {
     });
 
     it("should return single intent with all tokens for multi-token request", async () => {
-      const response = await apiCall<any>("POST", "/intents/split", {
-        chainId: SEPOLIA_CHAIN_ID,
+      const response = await apiCall<any>("POST", "/intents/splits", {
+        chainId: SEPOLIA_CAIP2,
         tokens: {
-          [USDC_SEPOLIA]: 5000000,
-          "0x0000000000000000000000000000000000000000": 1000000000000000000,
+          [USDC_SEPOLIA]: "5000000",
+          "0x0000000000000000000000000000000000000000": "1000000000000000000",
         },
       });
 
@@ -159,8 +145,8 @@ describe("Mockestrator Intent Flow", () => {
     });
 
     it("should return empty intents for empty tokens", async () => {
-      const response = await apiCall<any>("POST", "/intents/split", {
-        chainId: BASE_SEPOLIA_CHAIN_ID,
+      const response = await apiCall<any>("POST", "/intents/splits", {
+        chainId: BASE_SEPOLIA_CAIP2,
         tokens: {},
       });
 
@@ -169,8 +155,8 @@ describe("Mockestrator Intent Flow", () => {
   });
 
   describe("Validation errors", () => {
-    it("should return 400 for route request with missing required fields", async () => {
-      const response = await fetch(`${API_BASE_URL}/intents/route`, {
+    it("should return 400 for quote request with missing required fields", async () => {
+      const response = await fetch(`${API_BASE_URL}/quotes`, {
         method: "POST",
         headers,
         body: JSON.stringify({}),
@@ -178,15 +164,16 @@ describe("Mockestrator Intent Flow", () => {
 
       expect(response.status).toBe(400);
       const body = await response.json();
-      expect(body).toHaveProperty("error");
+      expect(body.code).toBe("VALIDATION_ERROR");
+      expect(body.traceId).toBeDefined();
     });
 
-    it("should return 400 for route request with missing tokenRequests", async () => {
-      const response = await fetch(`${API_BASE_URL}/intents/route`, {
+    it("should return 400 for quote request with missing tokenRequests", async () => {
+      const response = await fetch(`${API_BASE_URL}/quotes`, {
         method: "POST",
         headers,
         body: JSON.stringify({
-          destinationChainId: BASE_SEPOLIA_CHAIN_ID,
+          destinationChainId: BASE_SEPOLIA_CAIP2,
           account: { address: USER_ADDRESS },
         }),
       });
@@ -194,92 +181,80 @@ describe("Mockestrator Intent Flow", () => {
       expect(response.status).toBe(400);
     });
 
-    it("should return 400 for split request with missing chainId", async () => {
-      const response = await fetch(`${API_BASE_URL}/intents/split`, {
+    it("should return 400 for splits request with missing chainId", async () => {
+      const response = await fetch(`${API_BASE_URL}/intents/splits`, {
         method: "POST",
         headers,
-        body: JSON.stringify({ tokens: { [USDC_BASE_SEPOLIA]: 1000000 } }),
+        body: JSON.stringify({ tokens: { [USDC_BASE_SEPOLIA]: "1000000" } }),
       });
 
       expect(response.status).toBe(400);
     });
 
-    it("should return 404 for non-existent intent operation", async () => {
+    it("should return 404 for non-existent intent", async () => {
       const response = await fetch(
-        `${API_BASE_URL}/intent-operation/9999999999999999999`,
+        `${API_BASE_URL}/intents/9999999999999999999`,
         { method: "GET", headers }
       );
 
       expect(response.status).toBe(404);
+      const body = await response.json();
+      expect(body.code).toBe("NOT_FOUND");
+    });
+
+    it("should return 400 for unsupported x-api-version", async () => {
+      const response = await fetch(`${API_BASE_URL}/chains`, {
+        method: "GET",
+        headers: { ...headers, "x-api-version": "2026-01.alps" },
+      });
+
+      expect(response.status).toBe(400);
+      const body = await response.json();
+      expect(body.code).toBe("VALIDATION_ERROR");
     });
   });
 
   describe("Same-chain Intent Flow", () => {
-    it("should route and execute same-chain USDC transfer intent", async () => {
-      const userAddress = USER_ADDRESS;
-      const transferAmount = parseUnits("100", 6); // 100 USDC
+    it("should quote and execute same-chain USDC transfer intent", async () => {
+      const transferAmount = parseUnits("100", 6);
 
-      // route intent
-      const routePayload = {
-        destinationChainId: BASE_SEPOLIA_CHAIN_ID,
+      const quoteResponse = await apiCall<any>("POST", "/quotes", {
+        destinationChainId: BASE_SEPOLIA_CAIP2,
         tokenRequests: [
           {
             tokenAddress: USDC_BASE_SEPOLIA,
             amount: transferAmount.toString(),
           },
         ],
-        account: {
-          address: userAddress,
+        account: { address: USER_ADDRESS },
+        accountAccessList: { chainIds: [BASE_SEPOLIA_CAIP2] },
+      });
+
+      expect(quoteResponse).toHaveProperty("routes");
+      expect(quoteResponse.routes).toHaveLength(1);
+      const route = quoteResponse.routes[0];
+      expect(route.intentId).toMatch(/^\d+$/);
+      expect(route.settlementLayer).toBe("INTENT_EXECUTOR");
+
+      const submitResponse = await apiCall<any>("POST", "/intents", {
+        intentId: route.intentId,
+        signatures: {
+          origin: [MOCK_ORIGIN_SIG],
+          destination: MOCK_DEST_SIG,
         },
-        accountAccessList: {
-          chainIds: [BASE_SEPOLIA_CHAIN_ID],
-        },
-      };
+      });
 
-      const routeResponse = await apiCall<any>(
-        "POST",
-        "/intents/route",
-        routePayload
-      );
+      expect(submitResponse.intentId).toBe(route.intentId);
 
-      expect(routeResponse).toHaveProperty("intentOp");
-      expect(routeResponse).toHaveProperty("intentCost");
-      expect(routeResponse.intentCost.hasFulfilledAll).toBe(true);
-      expect(
-        routeResponse.intentOp.elements[0].mandate.qualifier.settlementContext
-          .settlementLayer
-      ).toBe("INTENT_EXECUTOR");
-
-      // submit signed intent
-      const signedIntent = createSignedIntent(routeResponse);
-
-      const submitPayload = {
-        signedIntentOp: signedIntent,
-      };
-
-      const submitResponse = await apiCall<any>(
-        "POST",
-        "/intent-operations",
-        submitPayload
-      );
-
-      expect(submitResponse).toHaveProperty("result");
-      expect(submitResponse.result.status).toBe("PENDING");
-      const intentId = submitResponse.result.id;
-
-      // check intent status
       const statusResponse = await apiCall<any>(
         "GET",
-        `/intent-operation/${intentId}`
+        `/intents/${route.intentId}`
       );
 
       expect(statusResponse.status).toBe("COMPLETED");
-      expect(statusResponse.destinationChainId).toBe(
-        BASE_SEPOLIA_CHAIN_ID.toString()
-      );
+      expect(statusResponse.destinationChainId).toBe(BASE_SEPOLIA_CAIP2);
       expect(statusResponse.fillTransactionHash).toBeDefined();
 
-      // verify the transaction receipt has Transfer event
       const publicClient = createPublicClient({
         transport: http(RPC_URLS[BASE_SEPOLIA_CHAIN_ID]),
       });
@@ -287,274 +262,270 @@ describe("Mockestrator Intent Flow", () => {
       const receipt = await publicClient.getTransactionReceipt({
         hash: statusResponse.fillTransactionHash as Hex,
       });
-
       expect(receipt.status).toBe("success");
 
-      // find Transfer event for USDC
       const transferLogs = receipt.logs.filter(
         (log) => log.address.toLowerCase() === USDC_BASE_SEPOLIA.toLowerCase()
       );
-
       expect(transferLogs.length).toBeGreaterThan(0);
 
-      // decode and verify Transfer event
-      const transferLog = transferLogs[0];
-      const decodedLog = decodeEventLog({
-        abi: erc20Abi,
-        data: transferLog.data,
-        topics: transferLog.topics,
-      });
-
-      expect(decodedLog.eventName).toBe("Transfer");
-      expect((decodedLog.args as any).to.toLowerCase()).toBe(
-        userAddress.toLowerCase()
-      );
-      expect((decodedLog.args as any).value).toBe(transferAmount);
-    });
-  });
-
-  describe("Cross-chain Intent Flow", () => {
-    it("should route and execute cross-chain USDC transfer (Base Sepolia → Sepolia)", async () => {
-      const userAddress = USER_ADDRESS;
-      const transferAmount = parseUnits("50", 6);
-
-      // route intent: source on base sepolia, destination on sepolia
-      const routePayload = {
-        destinationChainId: SEPOLIA_CHAIN_ID,
-        tokenRequests: [
-          {
-            tokenAddress: USDC_SEPOLIA,
-            amount: transferAmount.toString(),
-          },
-        ],
-        account: {
-          address: userAddress,
-        },
-        accountAccessList: {
-          chainIds: [BASE_SEPOLIA_CHAIN_ID],
-        },
-      };
-
-      const routeResponse = await apiCall<any>(
-        "POST",
-        "/intents/route",
-        routePayload
-      );
-
-      expect(routeResponse).toHaveProperty("intentOp");
-      expect(
-        routeResponse.intentOp.elements[0].mandate.qualifier.settlementContext
-          .settlementLayer
-      ).toBe("ACROSS");
-
-      // submit signed intent
-      const signedIntent = createSignedIntent(routeResponse);
-      const submitResponse = await apiCall<any>("POST", "/intent-operations", {
-        signedIntentOp: signedIntent,
-      });
-
-      expect(submitResponse.result.status).toBe("PENDING");
-      const intentId = submitResponse.result.id;
-
-      // check status
-      const statusResponse = await apiCall<any>(
-        "GET",
-        `/intent-operation/${intentId}`
-      );
-
-      expect(statusResponse.status).toBe("COMPLETED");
-      expect(statusResponse.destinationChainId).toBe(
-        SEPOLIA_CHAIN_ID.toString()
-      );
-      expect(statusResponse.fillTransactionHash).toBeDefined();
-
-      // verify transaction on destination chain (sepolia)
-      const publicClient = createPublicClient({
-        transport: http(RPC_URLS[SEPOLIA_CHAIN_ID]),
-      });
-
-      const receipt = await publicClient.getTransactionReceipt({
-        hash: statusResponse.fillTransactionHash as Hex,
-      });
-
-      expect(receipt.status).toBe("success");
-
-      // find Transfer event for usdc on sepolia
-      const transferLogs = receipt.logs.filter(
-        (log) => log.address.toLowerCase() === USDC_SEPOLIA.toLowerCase()
-      );
-
-      expect(transferLogs.length).toBeGreaterThan(0);
-
-      const decodedLog = decodeEventLog({
+      const decoded = decodeEventLog({
         abi: erc20Abi,
         data: transferLogs[0].data,
         topics: transferLogs[0].topics,
       });
+      expect(decoded.eventName).toBe("Transfer");
+      expect((decoded.args as any).to.toLowerCase()).toBe(
+        USER_ADDRESS.toLowerCase()
+      );
+      expect((decoded.args as any).value).toBe(transferAmount);
+    });
+  });
 
-      expect(decodedLog.eventName).toBe("Transfer");
-      expect((decodedLog.args as any).to.toLowerCase()).toBe(
-        userAddress.toLowerCase()
+  describe("Cross-chain Intent Flow", () => {
+    it("should quote and execute cross-chain USDC transfer (Base Sepolia → Sepolia)", async () => {
+      const transferAmount = parseUnits("50", 6);
+
+      const quoteResponse = await apiCall<any>("POST", "/quotes", {
+        destinationChainId: SEPOLIA_CAIP2,
+        tokenRequests: [
+          { tokenAddress: USDC_SEPOLIA, amount: transferAmount.toString() },
+        ],
+        account: { address: USER_ADDRESS },
+        accountAccessList: { chainIds: [BASE_SEPOLIA_CAIP2] },
+      });
+
+      const route = quoteResponse.routes[0];
+      expect(route.settlementLayer).toBe("ACROSS");
+
+      await apiCall<any>("POST", "/intents", {
+        intentId: route.intentId,
+        signatures: {
+          origin: [MOCK_ORIGIN_SIG],
+          destination: MOCK_DEST_SIG,
+        },
+      });
+
+      const statusResponse = await apiCall<any>(
+        "GET",
+        `/intents/${route.intentId}`
+      );
+
+      expect(statusResponse.status).toBe("COMPLETED");
+      expect(statusResponse.destinationChainId).toBe(SEPOLIA_CAIP2);
+
+      const publicClient = createPublicClient({
+        transport: http(RPC_URLS[SEPOLIA_CHAIN_ID]),
+      });
+      const receipt = await publicClient.getTransactionReceipt({
+        hash: statusResponse.fillTransactionHash as Hex,
+      });
+      expect(receipt.status).toBe("success");
+
+      const transferLogs = receipt.logs.filter(
+        (log) => log.address.toLowerCase() === USDC_SEPOLIA.toLowerCase()
+      );
+      expect(transferLogs.length).toBeGreaterThan(0);
+
+      const decoded = decodeEventLog({
+        abi: erc20Abi,
+        data: transferLogs[0].data,
+        topics: transferLogs[0].topics,
+      });
+      expect(decoded.eventName).toBe("Transfer");
+      expect((decoded.args as any).to.toLowerCase()).toBe(
+        USER_ADDRESS.toLowerCase()
       );
     });
   });
 
-  describe("Intent with Destination Operations", () => {
-    // SDK ↔ on-chain IntentExecutor signature hash mismatch on forked testnet
-    it.skip("should execute destination ops that perform ERC-20 transfer via IntentExecutor", async () => {
-      const finalRecipient = RECIPIENT_ADDRESS;
-      const transferAmount = parseUnits("25", 6);
-      const destOpsAmount = parseUnits("10", 6);
+  describe("Quote response shape", () => {
+    it("should include full route metadata with CAIP-2 cost and fee breakdown", async () => {
+      const amount = parseUnits("10", 6);
+      const before = Math.floor(Date.now() / 1000);
 
-      const owner = privateKeyToAccount(generatePrivateKey());
-      const sdk = new RhinestoneSDK({
-        apiKey: API_KEY,
-        endpointUrl: API_BASE_URL,
+      const quoteResponse = await apiCall<any>("POST", "/quotes", {
+        destinationChainId: BASE_SEPOLIA_CAIP2,
+        tokenRequests: [
+          { tokenAddress: USDC_BASE_SEPOLIA, amount: amount.toString() },
+        ],
+        account: { address: USER_ADDRESS },
+        accountAccessList: { chainIds: [BASE_SEPOLIA_CAIP2] },
       });
 
-      const rhinestoneAccount = await sdk.createAccount({
-        owners: {
-          type: "ecdsa",
-          accounts: [owner],
-        },
-        account: {
-          type: "nexus",
-        },
-      });
+      expect(quoteResponse.routes).toHaveLength(1);
+      const route = quoteResponse.routes[0];
 
-      const accountAddress = rhinestoneAccount.getAddress();
+      expect(route.expiresAt).toBeGreaterThan(before);
+      expect(route.estimatedFillTime?.seconds).toBeGreaterThanOrEqual(0);
 
-      const testClient = createTestClient({
-        chain: baseSepolia,
-        mode: "anvil",
-        transport: http(RPC_URLS[BASE_SEPOLIA_CHAIN_ID]),
-      });
+      expect(Array.isArray(route.cost.input)).toBe(true);
+      expect(Array.isArray(route.cost.output)).toBe(true);
+      for (const leg of [...route.cost.input, ...route.cost.output]) {
+        expect(leg.chainId).toMatch(/^eip155:\d+$/);
+        expect(typeof leg.tokenAddress).toBe("string");
+        expect(typeof leg.amount).toBe("string");
+      }
 
-      await testClient.setBalance({
-        address: accountAddress,
-        value: parseEther("10"),
-      });
+      expect(route.cost.fees.total).toHaveProperty("usd");
+      const breakdown = route.cost.fees.breakdown;
+      for (const key of ["gas", "bridge", "protocol", "swap", "settlement"]) {
+        expect(breakdown[key]).toHaveProperty("usd");
+      }
+
+      expect(Array.isArray(route.signData.origin)).toBe(true);
+      expect(route.signData.destination).toHaveProperty("primaryType");
+    });
+  });
+
+  describe("Recipient routing", () => {
+    it("should land funds at recipient.address rather than account.address", async () => {
+      const recipient = "0x000000000000000000000000000000000000beef" as Address;
+      const amount = parseUnits("7", 6);
 
       const publicClient = createPublicClient({
         transport: http(RPC_URLS[BASE_SEPOLIA_CHAIN_ID]),
       });
-
-      const accountBalanceBefore = await publicClient.readContract({
+      const before = await publicClient.readContract({
         address: USDC_BASE_SEPOLIA as Address,
         abi: erc20Abi,
         functionName: "balanceOf",
-        args: [accountAddress],
-      });
-      const finalBalanceBefore = await publicClient.readContract({
-        address: USDC_BASE_SEPOLIA as Address,
-        abi: erc20Abi,
-        functionName: "balanceOf",
-        args: [finalRecipient as Address],
+        args: [recipient],
       });
 
-      // encode ERC-20 transfer call for destination ops
-      const transferCalldata = encodeFunctionData({
-        abi: erc20Abi,
-        functionName: "transfer",
-        args: [finalRecipient as Address, destOpsAmount],
-      });
-
-      const transaction = {
-        targetChain: baseSepolia,
+      const quoteResponse = await apiCall<any>("POST", "/quotes", {
+        destinationChainId: BASE_SEPOLIA_CAIP2,
         tokenRequests: [
+          { tokenAddress: USDC_BASE_SEPOLIA, amount: amount.toString() },
+        ],
+        account: { address: USER_ADDRESS },
+        recipient: { address: recipient },
+        accountAccessList: { chainIds: [BASE_SEPOLIA_CAIP2] },
+      });
+
+      const route = quoteResponse.routes[0];
+      await apiCall<any>("POST", "/intents", {
+        intentId: route.intentId,
+        signatures: { origin: [MOCK_ORIGIN_SIG], destination: MOCK_DEST_SIG },
+      });
+
+      const after = await publicClient.readContract({
+        address: USDC_BASE_SEPOLIA as Address,
+        abi: erc20Abi,
+        functionName: "balanceOf",
+        args: [recipient],
+      });
+      expect(after - before).toBe(amount);
+    });
+  });
+
+  describe("Multi-token tokenRequests", () => {
+    it("should fulfil USDC and native ETH in a single quote", async () => {
+      const recipient = "0x000000000000000000000000000000000000c0de" as Address;
+      const usdcAmount = parseUnits("3", 6);
+      const ethAmount = parseUnits("0.0005", 18);
+
+      const publicClient = createPublicClient({
+        transport: http(RPC_URLS[BASE_SEPOLIA_CHAIN_ID]),
+      });
+      const usdcBefore = await publicClient.readContract({
+        address: USDC_BASE_SEPOLIA as Address,
+        abi: erc20Abi,
+        functionName: "balanceOf",
+        args: [recipient],
+      });
+      const ethBefore = await publicClient.getBalance({ address: recipient });
+
+      const quoteResponse = await apiCall<any>("POST", "/quotes", {
+        destinationChainId: BASE_SEPOLIA_CAIP2,
+        tokenRequests: [
+          { tokenAddress: USDC_BASE_SEPOLIA, amount: usdcAmount.toString() },
           {
-            address: USDC_BASE_SEPOLIA as Address,
-            amount: transferAmount,
+            tokenAddress: "0x0000000000000000000000000000000000000000",
+            amount: ethAmount.toString(),
           },
         ],
-        calls: [
-          {
-            to: USDC_BASE_SEPOLIA as Address,
-            data: transferCalldata,
+        account: { address: USER_ADDRESS },
+        recipient: { address: recipient },
+        accountAccessList: { chainIds: [BASE_SEPOLIA_CAIP2] },
+      });
+
+      const route = quoteResponse.routes[0];
+      await apiCall<any>("POST", "/intents", {
+        intentId: route.intentId,
+        signatures: { origin: [MOCK_ORIGIN_SIG], destination: MOCK_DEST_SIG },
+      });
+
+      const usdcAfter = await publicClient.readContract({
+        address: USDC_BASE_SEPOLIA as Address,
+        abi: erc20Abi,
+        functionName: "balanceOf",
+        args: [recipient],
+      });
+      const ethAfter = await publicClient.getBalance({ address: recipient });
+
+      expect(usdcAfter - usdcBefore).toBe(usdcAmount);
+      expect(ethAfter - ethBefore).toBe(ethAmount);
+    });
+  });
+
+  describe("Submit unknown intentId", () => {
+    it("should 404 with NOT_FOUND when intentId was never quoted", async () => {
+      const response = await fetch(`${API_BASE_URL}/intents`, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({
+          intentId: "999999999999999999999",
+          signatures: {
+            origin: [MOCK_ORIGIN_SIG],
+            destination: MOCK_DEST_SIG,
           },
-        ],
-      };
+        }),
+      });
 
-      const preparedTx = await rhinestoneAccount.prepareTransaction(
-        transaction
-      );
-      const signedTx = await rhinestoneAccount.signTransaction(preparedTx);
-      const result = await rhinestoneAccount.submitTransaction(signedTx);
+      expect(response.status).toBe(404);
+      const body = await response.json();
+      expect(body.code).toBe("NOT_FOUND");
+      expect(body.traceId).toBeDefined();
+    });
+  });
 
-      expect(result.type).toBe("intent");
-
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-
-      const statusResponse = await apiCall<any>(
+  describe("Portfolio query filters", () => {
+    it("should filter portfolio by chainIds", async () => {
+      const response = await apiCall<any>(
         "GET",
-        `/intent-operation/${result.id}`
+        `/accounts/${USER_ADDRESS}/portfolio?chainIds=${encodeURIComponent(
+          BASE_SEPOLIA_CAIP2
+        )}`
       );
 
-      expect(statusResponse.status).toBe("COMPLETED");
-      expect(statusResponse.fillTransactionHash).toBeDefined();
+      const allChainIds = response.portfolio.flatMap((p: any) =>
+        p.chains.map((c: any) => c.chainId)
+      );
+      expect(allChainIds.length).toBeGreaterThan(0);
+      for (const id of allChainIds) {
+        expect(id).toBe(BASE_SEPOLIA_CAIP2);
+      }
+    });
+  });
 
-      // verify transaction receipt
-      const receipt = await publicClient.getTransactionReceipt({
-        hash: statusResponse.fillTransactionHash as Hex,
+  describe("Liquidity endpoint", () => {
+    it("should return the unlimited mock shape", async () => {
+      const response = await apiCall<any>(
+        "GET",
+        `/liquidity?sourceChainId=${encodeURIComponent(
+          BASE_SEPOLIA_CAIP2
+        )}&sourceToken=${USDC_BASE_SEPOLIA}&destinationChainId=${encodeURIComponent(
+          SEPOLIA_CAIP2
+        )}&destinationToken=${USDC_SEPOLIA}`
+      );
+
+      expect(response).toMatchObject({
+        unlimited: true,
+        maxAmount: null,
       });
-
-      expect(receipt.status).toBe("success");
-
-      const transferLogs = receipt.logs.filter(
-        (log) => log.address.toLowerCase() === USDC_BASE_SEPOLIA.toLowerCase()
-      );
-
-      const decodedTransfers = transferLogs
-        .map((log) => {
-          try {
-            return decodeEventLog({
-              abi: erc20Abi,
-              data: log.data,
-              topics: log.topics,
-            });
-          } catch {
-            return null;
-          }
-        })
-        .filter(Boolean);
-
-      // verify we have transfers to both recipients
-      const transferToUser = decodedTransfers.find(
-        (t: any) => t?.args?.to?.toLowerCase() === accountAddress.toLowerCase()
-      );
-      const transferToFinal = decodedTransfers.find(
-        (t: any) => t?.args?.to?.toLowerCase() === finalRecipient.toLowerCase()
-      );
-
-      expect(transferToUser).toBeDefined();
-      expect(transferToFinal).toBeDefined();
-      expect((transferToFinal as any).args.from.toLowerCase()).toBe(
-        accountAddress.toLowerCase()
-      );
-      expect((transferToFinal as any).args.value).toBe(destOpsAmount);
-
-      const accountBalanceAfter = await publicClient.readContract({
-        address: USDC_BASE_SEPOLIA as Address,
-        abi: erc20Abi,
-        functionName: "balanceOf",
-        args: [accountAddress],
-      });
-      const finalBalanceAfter = await publicClient.readContract({
-        address: USDC_BASE_SEPOLIA as Address,
-        abi: erc20Abi,
-        functionName: "balanceOf",
-        args: [finalRecipient as Address],
-      });
-
-      expect(accountBalanceAfter - accountBalanceBefore).toBe(
-        transferAmount - destOpsAmount
-      );
-      expect(finalBalanceAfter - finalBalanceBefore).toBe(destOpsAmount);
-
-      console.log("Destination ops executed via IntentExecutor");
-      console.log(`   - Account: ${accountAddress}`);
-      console.log(`   - User received: ${transferAmount - destOpsAmount}`);
-      console.log(`   - Destination recipient received: ${destOpsAmount}`);
+      expect(typeof response.symbol).toBe("string");
+      expect(typeof response.decimals).toBe("number");
     });
   });
 });

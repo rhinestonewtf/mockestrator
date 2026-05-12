@@ -4,7 +4,7 @@ export type ClientOptions = {
     baseUrl: 'https://v1.orchestrator.rhinestone.dev' | (string & {});
 };
 
-export type PostIntentsRouteData = {
+export type PostQuotesData = {
     /**
      * Body
      */
@@ -12,7 +12,7 @@ export type PostIntentsRouteData = {
         /**
          * The ID of the target blockchain
          */
-        destinationChainId: number;
+        destinationChainId: string;
         /**
          * A list of token requested on the target chain
          */
@@ -24,7 +24,7 @@ export type PostIntentsRouteData = {
             /**
              * The amount of the requested token (in the smallest unit)
              */
-            amount: number;
+            amount: string;
         } | {
             /**
              * The address of the requested token
@@ -33,7 +33,7 @@ export type PostIntentsRouteData = {
             /**
              * The amount of the requested token (in the smallest unit)
              */
-            amount?: number;
+            amount?: string;
         }>;
         /**
          * Account details
@@ -44,9 +44,9 @@ export type PostIntentsRouteData = {
              */
             address: string;
             /**
-             * Account type
+             * Account type. Blanc clients should use `ERC7579`; the legacy `smartAccount` value is equivalent and accepted for alps wire compatibility, and gets rewritten to `ERC7579` by the `alpsAccountType` versioning change before Zod validation.
              */
-            accountType?: 'smartAccount' | 'GENERIC' | 'EOA' | 'ERC7579';
+            accountType?: 'GENERIC' | 'EOA' | 'ERC7579';
             /**
              * Setup operations for the smart account. Only used if the account is not deployed
              */
@@ -61,80 +61,11 @@ export type PostIntentsRouteData = {
                 data: string;
             }>;
             /**
-             * Emissary configuration for using resource locking
+             * Per-chain SSX mock signatures for gas estimation. Keys are chain IDs as decimal strings. The special key `"0"` is a cross-chain fallback applied when no specific chain entry matches.
              */
-            emissaryConfig?: {
-                /**
-                 * Address of the validator contract
-                 */
-                validatorAddress: string;
-                /**
-                 * Address of the emissary contract
-                 */
-                emissaryAddress: string;
-                /**
-                 * Emissary enable data
-                 */
-                emissaryEnable: {
-                    /**
-                     * Signature of the allocator
-                     */
-                    allocatorSig: string;
-                    /**
-                     * Signature of the user
-                     */
-                    userSig: string;
-                    /**
-                     * Expiration timestamp
-                     */
-                    expires: number;
-                    /**
-                     * Nonce
-                     */
-                    nonce: number;
-                    /**
-                     * All chain IDs
-                     */
-                    allChainIds: Array<number>;
-                    /**
-                     * Chain index
-                     */
-                    chainIndex: number;
-                };
-                /**
-                 * Emissary configuration
-                 */
-                settings: {
-                    /**
-                     * Unique identifier for the emissary configuration
-                     */
-                    configId: number;
-                    /**
-                     * Address of the allocator
-                     */
-                    allocator?: string;
-                    /**
-                     * Scope of the emissary
-                     */
-                    scope?: number;
-                    /**
-                     * Reset period of the emissary
-                     */
-                    resetPeriod?: number;
-                    /**
-                     * Address of the validator
-                     */
-                    validator: string;
-                    /**
-                     * Validator configuration
-                     */
-                    validatorConfig: string;
-                };
+            mockSignatures?: {
+                [key: string]: string;
             };
-            /**
-             * Pre-encoded SSX enable payload with a dummy userSig for gas estimation. When present, the orchestrator etches the simulation emissary and uses this as emissaryData.
-             */
-            mockSignature?: string;
             /**
              * Per-chain specific map to delegated contract address for 7702 delegations. Use `0` to indicate cross-chain delegation
              */
@@ -158,14 +89,14 @@ export type PostIntentsRouteData = {
             /**
              * Amount of ETH (in wei) sent in the execution
              */
-            value: number;
+            value: string;
             /**
              * Encoded function call data
              */
             data: string;
         }>;
         /**
-         * Execution calls to perform before the claim on each origin chain, keyed by chain ID. Max 10 ops per chain, max 5 chains.
+         * Execution calls to perform before the claim on each origin chain, keyed by chain ID. Max 10 ops per chain, max 5 chains. Object keyed by CAIP-2 chain identifier (e.g. `eip155:42161`).
          */
         preClaimExecutions?: {
             [key: string]: Array<{
@@ -176,7 +107,7 @@ export type PostIntentsRouteData = {
                 /**
                  * Amount of ETH (in wei) sent in the execution
                  */
-                value: number;
+                value: string;
                 /**
                  * Encoded function call data
                  */
@@ -186,40 +117,44 @@ export type PostIntentsRouteData = {
         /**
          * The gas limit for the target chain executions
          */
-        destinationGasUnits?: number;
+        destinationGasLimit?: string;
         /**
          * Account access list specifying which chains and tokens an account may access
          */
         accountAccessList?: {
-            chainIds?: Array<number>;
+            chainIds?: Array<string>;
             tokens?: Array<string | 'ETH' | 'USDC' | 'WETH' | 'USDT0' | 'USDT' | 'BNB' | 'WBNB' | 'XDAI' | 'WXDAI' | 'POL' | 'WPOL' | 'MON' | 'WMON' | 'S' | 'WS' | 'HYPE' | 'WHYPE' | 'XPL' | 'WXPL' | 'MockUSD'>;
+            /**
+             * Object keyed by CAIP-2 chain identifier (e.g. `eip155:42161`).
+             */
             chainTokens?: {
                 [key: string]: Array<string | 'ETH' | 'USDC' | 'WETH' | 'USDT0' | 'USDT' | 'BNB' | 'WBNB' | 'XDAI' | 'WXDAI' | 'POL' | 'WPOL' | 'MON' | 'WMON' | 'S' | 'WS' | 'HYPE' | 'WHYPE' | 'XPL' | 'WXPL' | 'MockUSD'>;
             };
+            chainTokenAmounts?: {
+                [key: string]: {
+                    [key: string]: string;
+                };
+            };
             exclude?: {
-                chainIds?: Array<number>;
+                chainIds?: Array<string>;
                 tokens?: Array<string | 'ETH' | 'USDC' | 'WETH' | 'USDT0' | 'USDT' | 'BNB' | 'WBNB' | 'XDAI' | 'WXDAI' | 'POL' | 'WPOL' | 'MON' | 'WMON' | 'S' | 'WS' | 'HYPE' | 'WHYPE' | 'XPL' | 'WXPL' | 'MockUSD'>;
+                /**
+                 * Object keyed by CAIP-2 chain identifier (e.g. `eip155:42161`).
+                 */
                 chainTokens?: {
                     [key: string]: Array<string | 'ETH' | 'USDC' | 'WETH' | 'USDT0' | 'USDT' | 'BNB' | 'WBNB' | 'XDAI' | 'WXDAI' | 'POL' | 'WPOL' | 'MON' | 'WMON' | 'S' | 'WS' | 'HYPE' | 'WHYPE' | 'XPL' | 'WXPL' | 'MockUSD'>;
                 };
             };
-        } | Array<{
-            chainId: number;
-            tokenAddress: string;
-            amount?: number;
-        }>;
-        /**
-         * Account details
-         */
+        };
         recipient?: {
             /**
-             * Account address
+             * Recipient address. Format depends on destination chain — 0x-hex for EVM destinations, base58 for Solana, T-address for Tron.
              */
             address: string;
             /**
-             * Account type
+             * Account type. Blanc clients should use `ERC7579`; the legacy `smartAccount` value is equivalent and accepted for alps wire compatibility, and gets rewritten to `ERC7579` by the `alpsAccountType` versioning change before Zod validation.
              */
-            accountType?: 'smartAccount' | 'GENERIC' | 'EOA' | 'ERC7579';
+            accountType?: 'GENERIC' | 'EOA' | 'ERC7579';
             /**
              * Setup operations for the smart account. Only used if the account is not deployed
              */
@@ -234,80 +169,11 @@ export type PostIntentsRouteData = {
                 data: string;
             }>;
             /**
-             * Emissary configuration for using resource locking
+             * Per-chain SSX mock signatures for gas estimation. Keys are chain IDs as decimal strings. The special key `"0"` is a cross-chain fallback applied when no specific chain entry matches.
              */
-            emissaryConfig?: {
-                /**
-                 * Address of the validator contract
-                 */
-                validatorAddress: string;
-                /**
-                 * Address of the emissary contract
-                 */
-                emissaryAddress: string;
-                /**
-                 * Emissary enable data
-                 */
-                emissaryEnable: {
-                    /**
-                     * Signature of the allocator
-                     */
-                    allocatorSig: string;
-                    /**
-                     * Signature of the user
-                     */
-                    userSig: string;
-                    /**
-                     * Expiration timestamp
-                     */
-                    expires: number;
-                    /**
-                     * Nonce
-                     */
-                    nonce: number;
-                    /**
-                     * All chain IDs
-                     */
-                    allChainIds: Array<number>;
-                    /**
-                     * Chain index
-                     */
-                    chainIndex: number;
-                };
-                /**
-                 * Emissary configuration
-                 */
-                settings: {
-                    /**
-                     * Unique identifier for the emissary configuration
-                     */
-                    configId: number;
-                    /**
-                     * Address of the allocator
-                     */
-                    allocator?: string;
-                    /**
-                     * Scope of the emissary
-                     */
-                    scope?: number;
-                    /**
-                     * Reset period of the emissary
-                     */
-                    resetPeriod?: number;
-                    /**
-                     * Address of the validator
-                     */
-                    validator: string;
-                    /**
-                     * Validator configuration
-                     */
-                    validatorConfig: string;
-                };
+            mockSignatures?: {
+                [key: string]: string;
             };
-            /**
-             * Pre-encoded SSX enable payload with a dummy userSig for gas estimation. When present, the orchestrator etches the simulation emissary and uses this as emissaryData.
-             */
-            mockSignature?: string;
             /**
              * Per-chain specific map to delegated contract address for 7702 delegations. Use `0` to indicate cross-chain delegation
              */
@@ -325,13 +191,9 @@ export type PostIntentsRouteData = {
          */
         options?: {
             /**
-             * Whether to top up the compact locked balance using unlocked funds
-             */
-            topupCompact?: boolean;
-            /**
              * The settlement layer to be used to settle intents
              */
-            settlementLayers?: Array<'ACROSS' | 'ECO' | 'RELAY' | 'OFT' | 'NEAR'>;
+            settlementLayers?: Array<'ACROSS' | 'ECO' | 'RELAY' | 'OFT' | 'NEAR' | 'RHINO' | 'CCTP'>;
             /**
              * Sponsor settings for the intent
              */
@@ -339,15 +201,15 @@ export type PostIntentsRouteData = {
                 /**
                  * Whether to sponsor gas for the intent
                  */
-                gasSponsored?: boolean;
+                gas?: boolean;
                 /**
                  * Whether to sponsor bridge fees for the intent
                  */
-                bridgeFeesSponsored?: boolean;
+                bridgeFees?: boolean;
                 /**
                  * Whether to sponsor swap fees for the intent
                  */
-                swapFeesSponsored?: boolean;
+                swapFees?: boolean;
             };
             /**
              * The signature mode to be used
@@ -359,13 +221,17 @@ export type PostIntentsRouteData = {
              */
             executionTokensReceived?: Array<string>;
             /**
-             * Additional token balances to consider during route finding
+             * Additional token balances to consider during route finding Object keyed by CAIP-2 chain identifier (e.g. `eip155:42161`).
              */
             auxiliaryFunds?: {
                 [key: string]: {
-                    [key: string]: number;
+                    [key: string]: string;
                 };
             };
+            /**
+             * How to rank candidate plans. `cheapest` minimizes direct USD cost. `fastest` minimizes estimated fill time (with cost tiebreaker). `best` balances both via a notional- and time-weighted shadow fee.
+             */
+            selectionStrategy?: 'cheapest' | 'fastest' | 'best';
         };
     };
     headers: {
@@ -381,24 +247,71 @@ export type PostIntentsRouteData = {
     };
     path?: never;
     query?: never;
-    url: '/intents/route';
+    url: '/quotes';
 };
 
-export type PostIntentsRouteErrors = {
+export type PostQuotesErrors = {
     /**
      * Invalid request parameters
      */
     400: {
-        errors: Array<{
+        code: 'VALIDATION_ERROR';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+        /**
+         * Trace ID
+         */
+        traceId: string;
+        /**
+         * Per-field validation issues
+         */
+        details?: Array<{
             /**
-             * Error message
+             * Human-readable issue description
              */
             message: string;
             /**
-             * Additional error context
+             * Structured issue context (e.g. `{ path: "body.accountAddress" }`)
              */
-            context?: unknown;
+            context?: {
+                [key: string]: unknown;
+            };
         }>;
+    } | {
+        code: 'INSUFFICIENT_LIQUIDITY';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+        /**
+         * Trace ID
+         */
+        traceId: string;
+        /**
+         * Fillable subset and unfillable remainder
+         */
+        details?: {
+            /**
+             * Intents fillable with current liquidity
+             */
+            availableIntents: Array<{
+                [key: string]: string;
+            }>;
+            /**
+             * Token amounts that cannot be filled
+             */
+            unfillable: {
+                [key: string]: string;
+            };
+        };
+    } | {
+        code: 'NOT_FOUND' | 'UNAUTHORIZED' | 'FORBIDDEN' | 'CONFLICT' | 'UNPROCESSABLE_CONTENT' | 'TOO_MANY_REQUESTS' | 'SETTLEMENT_QUOTE_ERROR' | 'SETTLEMENT_EXECUTION_ERROR' | 'EXTERNAL_SERVICE_TIMEOUT' | 'RELAYER_MARKET_UNAVAILABLE' | 'INTERNAL_ERROR';
+        /**
+         * Human-readable error message
+         */
+        message: string;
         /**
          * Trace ID
          */
@@ -408,1056 +321,446 @@ export type PostIntentsRouteErrors = {
      * Server error
      */
     500: {
+        code: 'VALIDATION_ERROR';
         /**
-         * Error message describing the server-side issue
+         * Human-readable error message
          */
-        error: string;
+        message: string;
+        /**
+         * Trace ID
+         */
+        traceId: string;
+        /**
+         * Per-field validation issues
+         */
+        details?: Array<{
+            /**
+             * Human-readable issue description
+             */
+            message: string;
+            /**
+             * Structured issue context (e.g. `{ path: "body.accountAddress" }`)
+             */
+            context?: {
+                [key: string]: unknown;
+            };
+        }>;
+    } | {
+        code: 'INSUFFICIENT_LIQUIDITY';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+        /**
+         * Trace ID
+         */
+        traceId: string;
+        /**
+         * Fillable subset and unfillable remainder
+         */
+        details?: {
+            /**
+             * Intents fillable with current liquidity
+             */
+            availableIntents: Array<{
+                [key: string]: string;
+            }>;
+            /**
+             * Token amounts that cannot be filled
+             */
+            unfillable: {
+                [key: string]: string;
+            };
+        };
+    } | {
+        code: 'NOT_FOUND' | 'UNAUTHORIZED' | 'FORBIDDEN' | 'CONFLICT' | 'UNPROCESSABLE_CONTENT' | 'TOO_MANY_REQUESTS' | 'SETTLEMENT_QUOTE_ERROR' | 'SETTLEMENT_EXECUTION_ERROR' | 'EXTERNAL_SERVICE_TIMEOUT' | 'RELAYER_MARKET_UNAVAILABLE' | 'INTERNAL_ERROR';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+        /**
+         * Trace ID
+         */
+        traceId: string;
     };
 };
 
-export type PostIntentsRouteError = PostIntentsRouteErrors[keyof PostIntentsRouteErrors];
+export type PostQuotesError = PostQuotesErrors[keyof PostQuotesErrors];
 
-export type PostIntentsRouteResponses = {
+export type PostQuotesResponses = {
     /**
-     * Successfully retrieved the route
+     * Response body for `POST /quotes` on the blanc API version
      */
     200: {
         /**
-         * The order bundle containing multi-chain execution details with pricing metadata
+         * Pre-ranked route candidates (first entry is the recommended route)
          */
-        intentOp: {
+        routes: Array<{
             /**
-             * Address sponsoring the transaction
+             * Server-stored intent identifier. Pass back to `POST /intents` to submit.
              */
-            sponsor: string;
+            intentId: string;
             /**
-             * Transaction nonce
+             * Quote expiry timestamp (Unix seconds). After this point, assume the quote is dead and re-quote.
              */
-            nonce: number;
+            expiresAt: number;
             /**
-             * Target execution nonce
+             * Estimated fill time for the route
              */
-            targetExecutionNonce?: number;
+            estimatedFillTime: {
+                /**
+                 * Typical end-to-end fill time for this route in seconds. Directional, not guaranteed.
+                 */
+                seconds: number;
+            };
             /**
-             * Expiration timestamp
+             * Settlement layer selected for this route
              */
-            expires: number;
+            settlementLayer: 'INTENT_EXECUTOR' | 'SAME_CHAIN' | 'ACROSS' | 'ECO' | 'RELAY' | 'OFT' | 'NEAR' | 'RHINO' | 'CCTP';
             /**
-             * Array of execution elements
+             * EIP-712 sign payloads the client submits back on `POST /intents`
              */
-            elements: Array<{
+            signData: {
                 /**
-                 * Arbiter address for the element
+                 * Typed data payloads for the origin legs, in submission order. Sign each entry and submit the signatures in matching order via `signatures.origin`.
                  */
-                arbiter: string;
-                /**
-                 * Chain ID where the element is executed
-                 */
-                chainId: number;
-                /**
-                 * Array of [tokenId, amount] pairs
-                 */
-                idsAndAmounts: unknown;
-                /**
-                 * Array of [tokenId, amount] pairs that were effectively used as resource locks
-                 */
-                spendTokens: unknown;
-                /**
-                 * Mandate containing execution details
-                 */
-                mandate: {
+                origin: Array<{
                     /**
-                     * Recipient address for the mandate
+                     * EIP-712 domain separator fields
                      */
-                    recipient: string;
-                    /**
-                     * Array of [tokenId, amount] pairs for output tokens
-                     */
-                    tokenOut: unknown;
-                    /**
-                     * Target chain ID for the mandate
-                     */
-                    destinationChainId: number;
-                    /**
-                     * Deadline timestamp for filling the mandate
-                     */
-                    fillDeadline: number;
-                    /**
-                     * Executions to perform before claiming
-                     */
-                    preClaimOps: unknown;
-                    /**
-                     * Executions to perform on the target chain
-                     */
-                    destinationOps: unknown;
-                    /**
-                     * Qualification data for the mandate
-                     */
-                    qualifier: {
-                        settlementContext: {
-                            /**
-                             * Settlement layer for the qualifier
-                             */
-                            settlementLayer: 'INTENT_EXECUTOR';
-                            /**
-                             * true for ERC7579 smart accounts, false for EOAs (MULTICALL execution)
-                             */
-                            using7579: boolean;
-                            /**
-                             * Must be NO_FUNDING for INTENT_EXECUTOR
-                             */
-                            fundingMethod: 'NO_FUNDING';
-                            /**
-                             * gas refund information
-                             */
-                            gasRefund: {
-                                /**
-                                 * Overhead gas amount add to gas spent when executing destination ops
-                                 */
-                                overhead: number;
-                                /**
-                                 * Exchange rate between token selected for gas refund and native token consumed for gas
-                                 */
-                                exchangeRate: number;
-                                /**
-                                 * token address which will be used for gas refunding
-                                 */
-                                token: string;
-                            };
-                            /**
-                             * Native ETH the relayer sends to user before execution (e.g. OFT lzFee)
-                             */
-                            prefundAmount?: number;
-                            /**
-                             * Bridge-as-fill metadata for cross-chain delivery tracking
-                             */
-                            bridgeFill?: {
-                                /**
-                                 * Destination chain ID for the bridge fill
-                                 */
-                                destinationChainId: number;
-                                /**
-                                 * Bridge type
-                                 */
-                                type: 'OFT';
-                            } | {
-                                /**
-                                 * Destination chain ID for the bridge fill
-                                 */
-                                destinationChainId: number;
-                                /**
-                                 * Bridge type
-                                 */
-                                type: 'Relay';
-                                /**
-                                 * Relay API request ID
-                                 */
-                                requestId: string;
-                            } | {
-                                /**
-                                 * Destination chain ID for the bridge fill
-                                 */
-                                destinationChainId: number;
-                                /**
-                                 * Bridge type
-                                 */
-                                type: 'NEAR';
-                                /**
-                                 * NEAR 1Click deposit address for status tracking
-                                 */
-                                depositAddress: string;
-                            };
-                        } | {
-                            /**
-                             * Settlement layer for the qualifier
-                             */
-                            settlementLayer: 'SAME_CHAIN';
-                            /**
-                             * Whether to use 7579
-                             */
-                            using7579: boolean;
-                            /**
-                             * The method of funding the intent
-                             */
-                            fundingMethod: 'COMPACT' | 'PERMIT2' | 'NO_FUNDING';
-                            /**
-                             * Bridge-as-fill metadata for cross-chain delivery tracking
-                             */
-                            bridgeFill?: {
-                                /**
-                                 * Destination chain ID for the bridge fill
-                                 */
-                                destinationChainId: number;
-                                /**
-                                 * Bridge type
-                                 */
-                                type: 'OFT';
-                            } | {
-                                /**
-                                 * Destination chain ID for the bridge fill
-                                 */
-                                destinationChainId: number;
-                                /**
-                                 * Bridge type
-                                 */
-                                type: 'Relay';
-                                /**
-                                 * Relay API request ID
-                                 */
-                                requestId: string;
-                            } | {
-                                /**
-                                 * Destination chain ID for the bridge fill
-                                 */
-                                destinationChainId: number;
-                                /**
-                                 * Bridge type
-                                 */
-                                type: 'NEAR';
-                                /**
-                                 * NEAR 1Click deposit address for status tracking
-                                 */
-                                depositAddress: string;
-                            };
-                        } | {
-                            /**
-                             * Settlement layer for the qualifier
-                             */
-                            settlementLayer: 'ACROSS';
-                            /**
-                             * Whether to use 7579
-                             */
-                            using7579: boolean;
-                            /**
-                             * The method of funding the intent
-                             */
-                            fundingMethod: 'COMPACT' | 'PERMIT2' | 'NO_FUNDING';
-                        } | {
-                            /**
-                             * Settlement layer for the qualifier
-                             */
-                            settlementLayer: 'ECO';
-                            /**
-                             * Whether to use 7579
-                             */
-                            using7579: boolean;
-                            /**
-                             * The method of funding the intent
-                             */
-                            fundingMethod: 'COMPACT' | 'PERMIT2' | 'NO_FUNDING';
-                            /**
-                             * Hyperlane relay fee for proof dispatch (in destination chain native token)
-                             */
-                            provingFee: number;
-                        } | {
-                            /**
-                             * Settlement layer for the qualifier
-                             */
-                            settlementLayer: 'RELAY';
-                            /**
-                             * Whether to use 7579
-                             */
-                            using7579: boolean;
-                            /**
-                             * The method of funding the intent
-                             */
-                            fundingMethod: 'COMPACT' | 'PERMIT2' | 'NO_FUNDING';
-                            /**
-                             * Relay settlement layer metadata to be broadcasted
-                             */
-                            requestId: string;
-                            /**
-                             * Relay v2 order ID used in the deposit contract calldata
-                             */
-                            orderId: string;
-                            /**
-                             * Relay settlement layer subsidized amount on the intent (denomination in USDC)
-                             */
-                            subsidizedAmount?: string;
-                            /**
-                             * ABI-encoded params for IRelayRouterV3.multicall, used for origin swaps via Relay contracts
-                             */
-                            multicallData?: string;
-                            /**
-                             * Estimated pre-claim validation gas used for originGasOverhead and preClaimGasStipend
-                             */
-                            preClaimValidationGas?: number;
-                        } | {
-                            /**
-                             * Settlement layer for the qualifier
-                             */
-                            settlementLayer: 'NEAR';
-                            /**
-                             * Whether to use 7579
-                             */
-                            using7579: boolean;
-                            /**
-                             * The method of funding the intent
-                             */
-                            fundingMethod: 'COMPACT' | 'PERMIT2' | 'NO_FUNDING';
-                            /**
-                             * NEAR-provided deposit address on the origin chain
-                             */
-                            depositAddress: string;
-                            /**
-                             * NEAR correlation ID for tracking the intent
-                             */
-                            correlationId: string;
-                        };
+                    domain: {
+                        name?: string;
+                        version?: string;
                         /**
-                         * Encoded qualification value
+                         * CAIP-2 chain identifier (`eip155:<chainId>` for EVM chains)
                          */
-                        encodedVal: string;
+                        chainId?: string;
+                        verifyingContract?: string;
+                        salt?: string;
                     };
                     /**
-                     * Mininimum gas for preclaim ops
+                     * EIP-712 type definitions keyed by type name
                      */
-                    minGas: number;
-                    /**
-                     * Swap execution data for arbitrary output tokens, aligned by index with tokenOut
-                     */
-                    swapDestinations?: Array<{
-                        tokenIn: string;
-                        amountIn: number;
-                        amountOut: number;
-                        slippage: number;
-                        quoter: string;
-                        executions: Array<{
-                            /**
-                             * Target contract address for execution
-                             */
-                            to: string;
-                            /**
-                             * Amount of ETH (in wei) sent in the execution
-                             */
-                            value: number;
-                            /**
-                             * Encoded function call data
-                             */
-                            data: string;
-                            senderAddressPlaceholder?: string;
-                            recipientAddressPlaceholder?: string;
+                    types: {
+                        [key: string]: Array<{
+                            name: string;
+                            type: string;
                         }>;
-                        outputDecimals: number;
-                        outputSymbol: string;
-                    } | null>;
-                };
-                /**
-                 * Swap execution data for arbitrary input tokens, keyed by spendToken address
-                 */
-                swapOrigins?: {
-                    [key: string]: {
-                        tokenIn: string;
-                        tokenOut: string;
-                        amountIn: number;
-                        amountOut: number;
-                        slippage: number;
-                        quoter: string;
-                        executions: Array<{
-                            /**
-                             * Target contract address for execution
-                             */
-                            to: string;
-                            /**
-                             * Amount of ETH (in wei) sent in the execution
-                             */
-                            value: number;
-                            /**
-                             * Encoded function call data
-                             */
-                            data: string;
-                            senderAddressPlaceholder?: string;
-                            recipientAddressPlaceholder?: string;
-                        }>;
-                        inputDecimals: number;
-                        inputSymbol: string;
-                        price: number;
-                        gasEstimate?: number;
-                    };
-                };
-            }>;
-            /**
-             * Intent operation HMAC digest
-             */
-            serverSignature: string;
-            /**
-             * Signed metadata containing prices, fees, and gas parameters
-             */
-            signedMetadata: {
-                /**
-                 * Serialization scheme identifier
-                 */
-                schemeId?: string;
-                /**
-                 * Token prices in USD
-                 */
-                tokenPrices: {
-                    [key: string]: number;
-                };
-                /**
-                 * Gas prices per chain in wei
-                 */
-                gasPrices: {
-                    [key: string]: number;
-                };
-                /**
-                 * Optimism network gas parameters per chain
-                 */
-                opGasParams: {
-                    estimatedCalldataSize?: number;
-                    [key: string]: {
-                        l1BaseFee: number;
-                        l1BlobBaseFee: number;
-                        baseFeeScalar: number;
-                        blobFeeScalar: number;
-                    } | number | undefined;
-                };
-                account: {
-                    /**
-                     * Account address
-                     */
-                    address: string;
-                    /**
-                     * Account type
-                     */
-                    accountType?: 'smartAccount' | 'GENERIC' | 'EOA' | 'ERC7579';
-                    /**
-                     * Setup operations for the smart account. Only used if the account is not deployed
-                     */
-                    setupOps?: Array<{
-                        /**
-                         * Account deployment factory address
-                         */
-                        to: string;
-                        /**
-                         * Account deployment data
-                         */
-                        data: string;
-                    }>;
-                    /**
-                     * Emissary configuration for using resource locking
-                     */
-                    emissaryConfig?: {
-                        /**
-                         * Address of the validator contract
-                         */
-                        validatorAddress: string;
-                        /**
-                         * Address of the emissary contract
-                         */
-                        emissaryAddress: string;
-                        /**
-                         * Emissary enable data
-                         */
-                        emissaryEnable: {
-                            /**
-                             * Signature of the allocator
-                             */
-                            allocatorSig: string;
-                            /**
-                             * Signature of the user
-                             */
-                            userSig: string;
-                            /**
-                             * Expiration timestamp
-                             */
-                            expires: number;
-                            /**
-                             * Nonce
-                             */
-                            nonce: number;
-                            /**
-                             * All chain IDs
-                             */
-                            allChainIds: Array<number>;
-                            /**
-                             * Chain index
-                             */
-                            chainIndex: number;
-                        };
-                        /**
-                         * Emissary configuration
-                         */
-                        settings: {
-                            /**
-                             * Unique identifier for the emissary configuration
-                             */
-                            configId: number;
-                            /**
-                             * Address of the allocator
-                             */
-                            allocator?: string;
-                            /**
-                             * Scope of the emissary
-                             */
-                            scope?: number;
-                            /**
-                             * Reset period of the emissary
-                             */
-                            resetPeriod?: number;
-                            /**
-                             * Address of the validator
-                             */
-                            validator: string;
-                            /**
-                             * Validator configuration
-                             */
-                            validatorConfig: string;
-                        };
                     };
                     /**
-                     * Pre-encoded SSX enable payload with a dummy userSig for gas estimation. When present, the orchestrator etches the simulation emissary and uses this as emissaryData.
+                     * Name of the top-level type to sign
                      */
-                    mockSignature?: string;
+                    primaryType: string;
                     /**
-                     * Account status per chain
+                     * Message values keyed by field name. uint256 fields are encoded as decimal strings on the wire and re-coerced to bigint client-side before signing.
                      */
-                    accountContext: {
-                        [key: string]: {
-                            /**
-                             * Type of the account
-                             */
-                            accountType: 'EOA';
-                        } | {
-                            /**
-                             * Type of the account
-                             */
-                            accountType: 'smartAccount';
-                            /**
-                             * Whether the account is deployed on this chain
-                             */
-                            isDeployed: boolean;
-                            /**
-                             * Whether the account supports ERC7579 standard
-                             */
-                            isERC7579: boolean;
-                            /**
-                             * Type of ERC7579 account
-                             */
-                            erc7579AccountType?: 'Safe' | 'Kernel' | 'Nexus';
-                            /**
-                             * Version of the ERC7579 account
-                             */
-                            erc7579AccountVersion?: string;
-                        };
+                    message: {
+                        [key: string]: unknown;
                     };
-                    /**
-                     * Map of chain -> EOA and delegated address required for user to sign for 7702 authorizations
-                     */
-                    requiredDelegations?: {
-                        [key: string]: {
-                            /**
-                             * address of contract to which delegation on behalf of sponsor will be assumed for given chain ID
-                             */
-                            contract: string;
-                        };
-                    };
-                };
-                recipient?: {
-                    /**
-                     * Account address
-                     */
-                    address: string;
-                    /**
-                     * Account type
-                     */
-                    accountType?: 'smartAccount' | 'GENERIC' | 'EOA' | 'ERC7579';
-                    /**
-                     * Setup operations for the smart account. Only used if the account is not deployed
-                     */
-                    setupOps?: Array<{
-                        /**
-                         * Account deployment factory address
-                         */
-                        to: string;
-                        /**
-                         * Account deployment data
-                         */
-                        data: string;
-                    }>;
-                    /**
-                     * Emissary configuration for using resource locking
-                     */
-                    emissaryConfig?: {
-                        /**
-                         * Address of the validator contract
-                         */
-                        validatorAddress: string;
-                        /**
-                         * Address of the emissary contract
-                         */
-                        emissaryAddress: string;
-                        /**
-                         * Emissary enable data
-                         */
-                        emissaryEnable: {
-                            /**
-                             * Signature of the allocator
-                             */
-                            allocatorSig: string;
-                            /**
-                             * Signature of the user
-                             */
-                            userSig: string;
-                            /**
-                             * Expiration timestamp
-                             */
-                            expires: number;
-                            /**
-                             * Nonce
-                             */
-                            nonce: number;
-                            /**
-                             * All chain IDs
-                             */
-                            allChainIds: Array<number>;
-                            /**
-                             * Chain index
-                             */
-                            chainIndex: number;
-                        };
-                        /**
-                         * Emissary configuration
-                         */
-                        settings: {
-                            /**
-                             * Unique identifier for the emissary configuration
-                             */
-                            configId: number;
-                            /**
-                             * Address of the allocator
-                             */
-                            allocator?: string;
-                            /**
-                             * Scope of the emissary
-                             */
-                            scope?: number;
-                            /**
-                             * Reset period of the emissary
-                             */
-                            resetPeriod?: number;
-                            /**
-                             * Address of the validator
-                             */
-                            validator: string;
-                            /**
-                             * Validator configuration
-                             */
-                            validatorConfig: string;
-                        };
-                    };
-                    /**
-                     * Pre-encoded SSX enable payload with a dummy userSig for gas estimation. When present, the orchestrator etches the simulation emissary and uses this as emissaryData.
-                     */
-                    mockSignature?: string;
-                    /**
-                     * Account status per chain
-                     */
-                    accountContext: {
-                        [key: string]: {
-                            /**
-                             * Type of the account
-                             */
-                            accountType: 'EOA';
-                        } | {
-                            /**
-                             * Type of the account
-                             */
-                            accountType: 'smartAccount';
-                            /**
-                             * Whether the account is deployed on this chain
-                             */
-                            isDeployed: boolean;
-                            /**
-                             * Whether the account supports ERC7579 standard
-                             */
-                            isERC7579: boolean;
-                            /**
-                             * Type of ERC7579 account
-                             */
-                            erc7579AccountType?: 'Safe' | 'Kernel' | 'Nexus';
-                            /**
-                             * Version of the ERC7579 account
-                             */
-                            erc7579AccountVersion?: string;
-                        };
-                    };
-                    /**
-                     * Map of chain -> EOA and delegated address required for user to sign for 7702 authorizations
-                     */
-                    requiredDelegations?: {
-                        [key: string]: {
-                            /**
-                             * address of contract to which delegation on behalf of sponsor will be assumed for given chain ID
-                             */
-                            contract: string;
-                        };
-                    };
-                };
-                fees?: {
-                    /**
-                     * Transaction fees
-                     */
-                    sponsorFee?: {
-                        /**
-                         * Fee charged by relayer
-                         */
-                        relayer: number;
-                        /**
-                         * Fee charged by Rhinestone
-                         */
-                        protocol: number;
-                    };
-                    /**
-                     * Protocol fees by token address (in token units)
-                     */
-                    protocolFees?: {
-                        [key: string]: number;
-                    };
-                };
-                /**
-                 * Tokens that will be received by EOA executions. These will be swept to the recipient account.
-                 */
-                executionTokensReceived?: Array<string>;
-                /**
-                 * User-supplied pre-claim executions included in the bundle, keyed by chain ID.
-                 */
-                preClaimExecutions?: {
-                    [key: string]: Array<{
-                        /**
-                         * Target contract address for execution
-                         */
-                        to: string;
-                        /**
-                         * Amount of ETH (in wei) sent in the execution
-                         */
-                        value: number;
-                        /**
-                         * Encoded function call data
-                         */
-                        data: string;
-                    }>;
-                };
-            };
-            /**
-             * List of 7702 authorizations signed by EOA matching sponsor
-             */
-            signedAuthorizations?: Array<{
-                /**
-                 * Chain ID for EIP-7702 delegation, 0 means it can be applied to any chain
-                 */
-                chainId: number;
-                /**
-                 * Address of the delegate for EIP-7702 delegation
-                 */
-                address: string;
-                /**
-                 * Nonce for EIP-7702 delegation
-                 */
-                nonce: number;
-                /**
-                 * Y parity for EIP-7702 delegation
-                 */
-                yParity: number;
-                /**
-                 * R value for EIP-7702 delegation
-                 */
-                r: string;
-                /**
-                 * S value for EIP-7702 delegation
-                 */
-                s: string;
-            }>;
-            /**
-             * List of 7702 authorizations signed by EOA matching recipient account (if present)
-             */
-            recipientSignedAuthorizations?: Array<{
-                /**
-                 * Chain ID for EIP-7702 delegation, 0 means it can be applied to any chain
-                 */
-                chainId: number;
-                /**
-                 * Address of the delegate for EIP-7702 delegation
-                 */
-                address: string;
-                /**
-                 * Nonce for EIP-7702 delegation
-                 */
-                nonce: number;
-                /**
-                 * Y parity for EIP-7702 delegation
-                 */
-                yParity: number;
-                /**
-                 * R value for EIP-7702 delegation
-                 */
-                r: string;
-                /**
-                 * S value for EIP-7702 delegation
-                 */
-                s: string;
-            }>;
-        };
-        intentCost: {
-            /**
-             * Indicates that all tokens have been fulfilled
-             */
-            hasFulfilledAll: true;
-            /**
-             * Tokens spent in the transaction
-             */
-            tokensSpent: {
-                [key: string]: {
-                    [key: string]: {
-                        locked: number;
-                        unlocked: number;
-                    };
-                };
-            };
-            /**
-             * Tokens received in the transaction
-             */
-            tokensReceived: Array<{
-                tokenAddress: string;
-                amountSpent: number;
-                targetAmount: number;
-                fee: number;
-                /**
-                 * Per-category breakdown of fees in token units (BPS-derived computed values)
-                 */
-                feeBreakdown: {
-                    /**
-                     * Combined gas fees: destination fill, destination swap execution, and origin chain gas
-                     */
-                    gasFee: number;
-                    /**
-                     * Cross-chain bridge commission charged by the relayer
-                     */
-                    bridgeFee: number;
-                    /**
-                     * Protocol fee charged by Rhinestone
-                     */
-                    protocolFee: number;
-                    /**
-                     * Solver swap commission for cross-token conversions
-                     */
-                    swapFee: number;
-                    /**
-                     * Settlement layer fee (e.g. Relay, Across)
-                     */
-                    settlementFee: number;
-                };
-                /**
-                 * Fees paid in tokens other than the output token (e.g., settlement fees, origin gas in input token)
-                 */
-                feesByToken: {
-                    [key: string]: {
-                        /**
-                         * Fee amount in this token
-                         */
-                        amount: number;
-                        /**
-                         * Per-category breakdown of fees in token units (BPS-derived computed values)
-                         */
-                        breakdown: {
-                            /**
-                             * Combined gas fees: destination fill, destination swap execution, and origin chain gas
-                             */
-                            gasFee: number;
-                            /**
-                             * Cross-chain bridge commission charged by the relayer
-                             */
-                            bridgeFee: number;
-                            /**
-                             * Protocol fee charged by Rhinestone
-                             */
-                            protocolFee: number;
-                            /**
-                             * Solver swap commission for cross-token conversions
-                             */
-                            swapFee: number;
-                            /**
-                             * Settlement layer fee (e.g. Relay, Across)
-                             */
-                            settlementFee: number;
-                        };
-                    };
-                };
-                hasFulfilled: boolean;
-            }>;
-            /**
-             * Transaction fees
-             */
-            sponsorFee: {
-                /**
-                 * Fee charged by relayer
-                 */
-                relayer: number;
-                /**
-                 * Fee charged by Rhinestone
-                 */
-                protocol: number;
-            };
-            /**
-             * Breakdown of gas costs across origin and destination chains
-             */
-            gasCost: {
-                /**
-                 * Gas costs per origin chain
-                 */
-                originChains: Array<{
-                    /**
-                     * Chain ID where the gas cost was incurred
-                     */
-                    chainId: number;
-                    /**
-                     * Gas cost in USD
-                     */
-                    gasUSD: number;
                 }>;
                 /**
-                 * Gas cost on the destination chain
+                 * Typed data for the destination leg
                  */
                 destination: {
                     /**
-                     * Chain ID where the gas cost was incurred
+                     * EIP-712 domain separator fields
                      */
-                    chainId: number;
+                    domain: {
+                        name?: string;
+                        version?: string;
+                        /**
+                         * CAIP-2 chain identifier (`eip155:<chainId>` for EVM chains)
+                         */
+                        chainId?: string;
+                        verifyingContract?: string;
+                        salt?: string;
+                    };
                     /**
-                     * Gas cost in USD
+                     * EIP-712 type definitions keyed by type name
                      */
-                    gasUSD: number;
-                };
-                /**
-                 * Total gas cost in USD across all chains
-                 */
-                totalUSD: number;
-            };
-            /**
-             * Aggregate fee breakdown in USD across all tokens and chains
-             */
-            feeBreakdownUSD: {
-                /**
-                 * Total gas fees in USD (destination fill, swap execution, origin gas)
-                 */
-                gasFeeUSD: number;
-                /**
-                 * Total bridge commission in USD
-                 */
-                bridgeFeeUSD: number;
-                /**
-                 * Total protocol fee in USD
-                 */
-                protocolFeeUSD: number;
-                /**
-                 * Total solver swap commission in USD
-                 */
-                swapFeeUSD: number;
-                /**
-                 * Total settlement layer fee in USD
-                 */
-                settlementFeeUSD: number;
-                /**
-                 * Sum of all fees in USD (including sponsored)
-                 */
-                totalFeeUSD: number;
-            };
-        } | {
-            /**
-             * Indicates that not all tokens have been fulfilled
-             */
-            hasFulfilledAll: false;
-            /**
-             * List of tokens that have not been fulfilled
-             */
-            tokenShortfall: Array<{
-                /**
-                 * Address of the token that has not been fulfilled
-                 */
-                tokenAddress: string;
-                /**
-                 * Target amount of the token that has not been fulfilled
-                 */
-                destinationAmount: number;
-                /**
-                 * Amount spent on the token that has not been fulfilled
-                 */
-                amountSpent: number;
-                /**
-                 * Fee associated with the token that has not been fulfilled
-                 */
-                fee: number;
-                /**
-                 * Fees paid in tokens other than the output token (e.g., settlement fees, origin gas in input token)
-                 */
-                feesByToken: {
-                    [key: string]: {
-                        /**
-                         * Fee amount in this token
-                         */
-                        amount: number;
-                        /**
-                         * Per-category breakdown of fees in token units (BPS-derived computed values)
-                         */
-                        breakdown: {
-                            /**
-                             * Combined gas fees: destination fill, destination swap execution, and origin chain gas
-                             */
-                            gasFee: number;
-                            /**
-                             * Cross-chain bridge commission charged by the relayer
-                             */
-                            bridgeFee: number;
-                            /**
-                             * Protocol fee charged by Rhinestone
-                             */
-                            protocolFee: number;
-                            /**
-                             * Solver swap commission for cross-token conversions
-                             */
-                            swapFee: number;
-                            /**
-                             * Settlement layer fee (e.g. Relay, Across)
-                             */
-                            settlementFee: number;
-                        };
+                    types: {
+                        [key: string]: Array<{
+                            name: string;
+                            type: string;
+                        }>;
+                    };
+                    /**
+                     * Name of the top-level type to sign
+                     */
+                    primaryType: string;
+                    /**
+                     * Message values keyed by field name. uint256 fields are encoded as decimal strings on the wire and re-coerced to bigint client-side before signing.
+                     */
+                    message: {
+                        [key: string]: unknown;
                     };
                 };
                 /**
-                 * Symbol of the token that has not been fulfilled
+                 * Typed data for the target execution, smart sessions only. Omitted for EOA accounts.
                  */
-                tokenSymbol: string;
-                /**
-                 * Number of decimal places for the token
-                 */
-                tokenDecimals: number;
-            }>;
-            /**
-             * Total shortfall of tokens in USD
-             */
-            totalTokenShortfallInUSD: number;
-        };
-        /**
-         * Token requirements for the intent to pass. For EOAs only.
-         */
-        tokenRequirements?: {
-            [key: string]: {
-                [key: string]: {
-                    type: 'approval';
-                    amount: number;
-                    spender: string;
-                } | {
-                    type: 'wrap';
-                    amount: number;
+                targetExecution?: {
+                    /**
+                     * EIP-712 domain separator fields
+                     */
+                    domain: {
+                        name?: string;
+                        version?: string;
+                        /**
+                         * CAIP-2 chain identifier (`eip155:<chainId>` for EVM chains)
+                         */
+                        chainId?: string;
+                        verifyingContract?: string;
+                        salt?: string;
+                    };
+                    /**
+                     * EIP-712 type definitions keyed by type name
+                     */
+                    types: {
+                        [key: string]: Array<{
+                            name: string;
+                            type: string;
+                        }>;
+                    };
+                    /**
+                     * Name of the top-level type to sign
+                     */
+                    primaryType: string;
+                    /**
+                     * Message values keyed by field name. uint256 fields are encoded as decimal strings on the wire and re-coerced to bigint client-side before signing.
+                     */
+                    message: {
+                        [key: string]: unknown;
+                    };
                 };
             };
-        };
+            /**
+             * Route cost: inputs, outputs, and fee breakdown
+             */
+            cost: {
+                /**
+                 * Tokens debited from the user, coalesced by (chainId, tokenAddress)
+                 */
+                input: Array<{
+                    /**
+                     * Chain where this token leg settles
+                     */
+                    chainId: string;
+                    /**
+                     * ERC-20 contract address for this token
+                     */
+                    tokenAddress: string;
+                    /**
+                     * Token symbol. `null` when the internal token registry has no entry for this address.
+                     */
+                    symbol: string | null;
+                    /**
+                     * Token decimals. `null` when the internal token registry has no entry for this address.
+                     */
+                    decimals: number | null;
+                    /**
+                     * Unit price in USD. `null` when the price oracle has no data for this token.
+                     */
+                    price: {
+                        /**
+                         * Unit price in USD
+                         */
+                        usd: number;
+                    } | null;
+                    /**
+                     * Token amount in the token's smallest unit
+                     */
+                    amount: string;
+                }>;
+                /**
+                 * Tokens delivered to the recipient, coalesced by (chainId, tokenAddress)
+                 */
+                output: Array<{
+                    /**
+                     * Chain where this token leg settles
+                     */
+                    chainId: string;
+                    /**
+                     * ERC-20 contract address for this token
+                     */
+                    tokenAddress: string;
+                    /**
+                     * Token symbol. `null` when the internal token registry has no entry for this address.
+                     */
+                    symbol: string | null;
+                    /**
+                     * Token decimals. `null` when the internal token registry has no entry for this address.
+                     */
+                    decimals: number | null;
+                    /**
+                     * Unit price in USD. `null` when the price oracle has no data for this token.
+                     */
+                    price: {
+                        /**
+                         * Unit price in USD
+                         */
+                        usd: number;
+                    } | null;
+                    /**
+                     * Token amount in the token's smallest unit
+                     */
+                    amount: string;
+                }>;
+                /**
+                 * Aggregate route fees with per-category breakdown
+                 */
+                fees: {
+                    /**
+                     * Sum of all categories in USD (including sponsored)
+                     */
+                    total: {
+                        /**
+                         * USD-denominated value
+                         */
+                        usd: number;
+                    };
+                    /**
+                     * Per-category USD fee breakdown
+                     */
+                    breakdown: {
+                        /**
+                         * Aggregate gas cost in USD (destination fill, swap execution, origin gas)
+                         */
+                        gas: {
+                            /**
+                             * USD-denominated value
+                             */
+                            usd: number;
+                        };
+                        /**
+                         * Aggregate bridge commission in USD
+                         */
+                        bridge: {
+                            /**
+                             * USD-denominated value
+                             */
+                            usd: number;
+                        };
+                        /**
+                         * Aggregate protocol fee in USD
+                         */
+                        protocol: {
+                            /**
+                             * USD-denominated value
+                             */
+                            usd: number;
+                        };
+                        /**
+                         * Aggregate solver swap commission in USD
+                         */
+                        swap: {
+                            /**
+                             * USD-denominated value
+                             */
+                            usd: number;
+                        };
+                        /**
+                         * Aggregate settlement layer fee in USD
+                         */
+                        settlement: {
+                            /**
+                             * USD-denominated value
+                             */
+                            usd: number;
+                        };
+                    };
+                };
+            };
+            /**
+             * Token approvals / wrapping required before submission. Emitted for EOAs only; smart accounts handle approvals internally. Object keyed by CAIP-2 chain identifier (e.g. `eip155:42161`).
+             */
+            tokenRequirements?: {
+                [key: string]: {
+                    [key: string]: {
+                        type: 'approval';
+                        amount: string;
+                        spender: string;
+                    } | {
+                        type: 'wrap';
+                        amount: string;
+                    };
+                };
+            };
+            /**
+             * Provider handle for resolving the destination-chain delivery transaction when settlement hands off to a third-party bridge (RHINO, RELAY, NEAR, CCTP, OFT). Absent when the orchestrator settles end-to-end (e.g. ACROSS, ECO).
+             */
+            bridgeFill?: {
+                /**
+                 * Destination chain ID for the bridge fill
+                 */
+                destinationChainId: string;
+                /**
+                 * Bridge type
+                 */
+                type: 'OFT';
+            } | {
+                /**
+                 * Destination chain ID for the bridge fill
+                 */
+                destinationChainId: string;
+                /**
+                 * Bridge type
+                 */
+                type: 'RELAY';
+                /**
+                 * Relay API request ID
+                 */
+                requestId: string;
+            } | {
+                /**
+                 * Destination chain ID for the bridge fill
+                 */
+                destinationChainId: string;
+                /**
+                 * Bridge type
+                 */
+                type: 'NEAR';
+                /**
+                 * NEAR 1Click deposit address for status tracking
+                 */
+                depositAddress: string;
+            } | {
+                /**
+                 * Destination chain ID for the bridge fill
+                 */
+                destinationChainId: string;
+                /**
+                 * Bridge type
+                 */
+                type: 'RHINO';
+                /**
+                 * Rhino.fi commitment ID (hex ObjectId) for fill tracking
+                 */
+                commitmentId: string;
+            } | {
+                /**
+                 * Destination chain ID for the bridge fill
+                 */
+                destinationChainId: string;
+                /**
+                 * Bridge type
+                 */
+                type: 'CCTP';
+                /**
+                 * CCTP source domain ID
+                 */
+                sourceDomainId: number;
+                /**
+                 * CCTP destination domain ID
+                 */
+                destinationDomainId: number;
+            };
+        }>;
     };
 };
 
-export type PostIntentsRouteResponse = PostIntentsRouteResponses[keyof PostIntentsRouteResponses];
+export type PostQuotesResponse = PostQuotesResponses[keyof PostQuotesResponses];
 
-export type PostIntentsSplitData = {
+export type PostIntentsSplitsData = {
     /**
      * Body
      */
@@ -1465,17 +768,17 @@ export type PostIntentsSplitData = {
         /**
          * The destination chain ID
          */
-        chainId: number;
+        chainId: string;
         /**
          * Map of token addresses to amounts
          */
         tokens: {
-            [key: string]: number;
+            [key: string]: string;
         };
         /**
          * Optional array of settlement layers to filter by. If not provided, all layers are considered.
          */
-        settlementLayers?: Array<'INTENT_EXECUTOR' | 'SAME_CHAIN' | 'ACROSS' | 'ECO' | 'RELAY' | 'OFT' | 'NEAR'>;
+        settlementLayers?: Array<'INTENT_EXECUTOR' | 'SAME_CHAIN' | 'ACROSS' | 'ECO' | 'RELAY' | 'OFT' | 'NEAR' | 'RHINO' | 'CCTP'>;
     };
     headers: {
         /**
@@ -1489,24 +792,71 @@ export type PostIntentsSplitData = {
     };
     path?: never;
     query?: never;
-    url: '/intents/split';
+    url: '/intents/splits';
 };
 
-export type PostIntentsSplitErrors = {
+export type PostIntentsSplitsErrors = {
     /**
      * Invalid request parameters
      */
     400: {
-        errors: Array<{
+        code: 'VALIDATION_ERROR';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+        /**
+         * Trace ID
+         */
+        traceId: string;
+        /**
+         * Per-field validation issues
+         */
+        details?: Array<{
             /**
-             * Error message
+             * Human-readable issue description
              */
             message: string;
             /**
-             * Additional error context
+             * Structured issue context (e.g. `{ path: "body.accountAddress" }`)
              */
-            context?: unknown;
+            context?: {
+                [key: string]: unknown;
+            };
         }>;
+    } | {
+        code: 'INSUFFICIENT_LIQUIDITY';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+        /**
+         * Trace ID
+         */
+        traceId: string;
+        /**
+         * Fillable subset and unfillable remainder
+         */
+        details?: {
+            /**
+             * Intents fillable with current liquidity
+             */
+            availableIntents: Array<{
+                [key: string]: string;
+            }>;
+            /**
+             * Token amounts that cannot be filled
+             */
+            unfillable: {
+                [key: string]: string;
+            };
+        };
+    } | {
+        code: 'NOT_FOUND' | 'UNAUTHORIZED' | 'FORBIDDEN' | 'CONFLICT' | 'UNPROCESSABLE_CONTENT' | 'TOO_MANY_REQUESTS' | 'SETTLEMENT_QUOTE_ERROR' | 'SETTLEMENT_EXECUTION_ERROR' | 'EXTERNAL_SERVICE_TIMEOUT' | 'RELAYER_MARKET_UNAVAILABLE' | 'INTERNAL_ERROR';
+        /**
+         * Human-readable error message
+         */
+        message: string;
         /**
          * Trace ID
          */
@@ -1517,40 +867,103 @@ export type PostIntentsSplitErrors = {
      */
     422: {
         /**
-         * Error code indicating insufficient liquidity
+         * Machine-readable error code
          */
-        error: 'INSUFFICIENT_LIQUIDITY';
+        code: 'INSUFFICIENT_LIQUIDITY';
         /**
          * Human-readable error message
          */
         message: string;
         /**
-         * Intents that can be filled with available liquidity
+         * Trace ID
          */
-        availableIntents: Array<{
-            [key: string]: string;
-        }>;
-        /**
-         * Token amounts that cannot be filled due to insufficient liquidity
-         */
-        unfillable: {
-            [key: string]: string;
+        traceId: string;
+        details?: {
+            /**
+             * Intents that can be filled with available liquidity
+             */
+            availableIntents: Array<{
+                [key: string]: string;
+            }>;
+            /**
+             * Token amounts that cannot be filled due to insufficient liquidity
+             */
+            unfillable: {
+                [key: string]: string;
+            };
         };
     };
     /**
      * Server error
      */
     500: {
+        code: 'VALIDATION_ERROR';
         /**
-         * Error message describing the server-side issue
+         * Human-readable error message
          */
-        error: string;
+        message: string;
+        /**
+         * Trace ID
+         */
+        traceId: string;
+        /**
+         * Per-field validation issues
+         */
+        details?: Array<{
+            /**
+             * Human-readable issue description
+             */
+            message: string;
+            /**
+             * Structured issue context (e.g. `{ path: "body.accountAddress" }`)
+             */
+            context?: {
+                [key: string]: unknown;
+            };
+        }>;
+    } | {
+        code: 'INSUFFICIENT_LIQUIDITY';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+        /**
+         * Trace ID
+         */
+        traceId: string;
+        /**
+         * Fillable subset and unfillable remainder
+         */
+        details?: {
+            /**
+             * Intents fillable with current liquidity
+             */
+            availableIntents: Array<{
+                [key: string]: string;
+            }>;
+            /**
+             * Token amounts that cannot be filled
+             */
+            unfillable: {
+                [key: string]: string;
+            };
+        };
+    } | {
+        code: 'NOT_FOUND' | 'UNAUTHORIZED' | 'FORBIDDEN' | 'CONFLICT' | 'UNPROCESSABLE_CONTENT' | 'TOO_MANY_REQUESTS' | 'SETTLEMENT_QUOTE_ERROR' | 'SETTLEMENT_EXECUTION_ERROR' | 'EXTERNAL_SERVICE_TIMEOUT' | 'RELAYER_MARKET_UNAVAILABLE' | 'INTERNAL_ERROR';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+        /**
+         * Trace ID
+         */
+        traceId: string;
     };
 };
 
-export type PostIntentsSplitError = PostIntentsSplitErrors[keyof PostIntentsSplitErrors];
+export type PostIntentsSplitsError = PostIntentsSplitsErrors[keyof PostIntentsSplitsErrors];
 
-export type PostIntentsSplitResponses = {
+export type PostIntentsSplitsResponses = {
     /**
      * Successfully split the intent by available liquidity
      */
@@ -1564,806 +977,93 @@ export type PostIntentsSplitResponses = {
     };
 };
 
-export type PostIntentsSplitResponse = PostIntentsSplitResponses[keyof PostIntentsSplitResponses];
+export type PostIntentsSplitsResponse = PostIntentsSplitsResponses[keyof PostIntentsSplitsResponses];
 
-export type PostIntentOperationsData = {
+export type PostIntentsData = {
     /**
      * Body
      */
     body?: {
-        signedIntentOp: {
+        /**
+         * Identifier of the intent returned by `POST /quotes` (as `routes[].intentId`).
+         */
+        intentId: string;
+        signatures: {
             /**
-             * Address sponsoring the transaction
+             * Origin (source chain) signatures
              */
-            sponsor: string;
-            /**
-             * Transaction nonce
-             */
-            nonce: number;
-            /**
-             * Target execution nonce
-             */
-            targetExecutionNonce?: number;
-            /**
-             * Expiration timestamp
-             */
-            expires: number;
-            /**
-             * Array of execution elements
-             */
-            elements: Array<{
-                /**
-                 * Arbiter address for the element
-                 */
-                arbiter: string;
-                /**
-                 * Chain ID where the element is executed
-                 */
-                chainId: number;
-                /**
-                 * Array of [tokenId, amount] pairs
-                 */
-                idsAndAmounts: unknown;
-                /**
-                 * Array of [tokenId, amount] pairs that were effectively used as resource locks
-                 */
-                spendTokens: unknown;
-                /**
-                 * Mandate containing execution details
-                 */
-                mandate: {
-                    /**
-                     * Recipient address for the mandate
-                     */
-                    recipient: string;
-                    /**
-                     * Array of [tokenId, amount] pairs for output tokens
-                     */
-                    tokenOut: unknown;
-                    /**
-                     * Target chain ID for the mandate
-                     */
-                    destinationChainId: number;
-                    /**
-                     * Deadline timestamp for filling the mandate
-                     */
-                    fillDeadline: number;
-                    /**
-                     * Executions to perform before claiming
-                     */
-                    preClaimOps: unknown;
-                    /**
-                     * Executions to perform on the target chain
-                     */
-                    destinationOps: unknown;
-                    /**
-                     * Qualification data for the mandate
-                     */
-                    qualifier: {
-                        settlementContext: {
-                            /**
-                             * Settlement layer for the qualifier
-                             */
-                            settlementLayer: 'INTENT_EXECUTOR';
-                            /**
-                             * true for ERC7579 smart accounts, false for EOAs (MULTICALL execution)
-                             */
-                            using7579: boolean;
-                            /**
-                             * Must be NO_FUNDING for INTENT_EXECUTOR
-                             */
-                            fundingMethod: 'NO_FUNDING';
-                            /**
-                             * gas refund information
-                             */
-                            gasRefund: {
-                                /**
-                                 * Overhead gas amount add to gas spent when executing destination ops
-                                 */
-                                overhead: number;
-                                /**
-                                 * Exchange rate between token selected for gas refund and native token consumed for gas
-                                 */
-                                exchangeRate: number;
-                                /**
-                                 * token address which will be used for gas refunding
-                                 */
-                                token: string;
-                            };
-                            /**
-                             * Native ETH the relayer sends to user before execution (e.g. OFT lzFee)
-                             */
-                            prefundAmount?: number;
-                            /**
-                             * Bridge-as-fill metadata for cross-chain delivery tracking
-                             */
-                            bridgeFill?: {
-                                /**
-                                 * Destination chain ID for the bridge fill
-                                 */
-                                destinationChainId: number;
-                                /**
-                                 * Bridge type
-                                 */
-                                type: 'OFT';
-                            } | {
-                                /**
-                                 * Destination chain ID for the bridge fill
-                                 */
-                                destinationChainId: number;
-                                /**
-                                 * Bridge type
-                                 */
-                                type: 'Relay';
-                                /**
-                                 * Relay API request ID
-                                 */
-                                requestId: string;
-                            } | {
-                                /**
-                                 * Destination chain ID for the bridge fill
-                                 */
-                                destinationChainId: number;
-                                /**
-                                 * Bridge type
-                                 */
-                                type: 'NEAR';
-                                /**
-                                 * NEAR 1Click deposit address for status tracking
-                                 */
-                                depositAddress: string;
-                            };
-                        } | {
-                            /**
-                             * Settlement layer for the qualifier
-                             */
-                            settlementLayer: 'SAME_CHAIN';
-                            /**
-                             * Whether to use 7579
-                             */
-                            using7579: boolean;
-                            /**
-                             * The method of funding the intent
-                             */
-                            fundingMethod: 'COMPACT' | 'PERMIT2' | 'NO_FUNDING';
-                            /**
-                             * Bridge-as-fill metadata for cross-chain delivery tracking
-                             */
-                            bridgeFill?: {
-                                /**
-                                 * Destination chain ID for the bridge fill
-                                 */
-                                destinationChainId: number;
-                                /**
-                                 * Bridge type
-                                 */
-                                type: 'OFT';
-                            } | {
-                                /**
-                                 * Destination chain ID for the bridge fill
-                                 */
-                                destinationChainId: number;
-                                /**
-                                 * Bridge type
-                                 */
-                                type: 'Relay';
-                                /**
-                                 * Relay API request ID
-                                 */
-                                requestId: string;
-                            } | {
-                                /**
-                                 * Destination chain ID for the bridge fill
-                                 */
-                                destinationChainId: number;
-                                /**
-                                 * Bridge type
-                                 */
-                                type: 'NEAR';
-                                /**
-                                 * NEAR 1Click deposit address for status tracking
-                                 */
-                                depositAddress: string;
-                            };
-                        } | {
-                            /**
-                             * Settlement layer for the qualifier
-                             */
-                            settlementLayer: 'ACROSS';
-                            /**
-                             * Whether to use 7579
-                             */
-                            using7579: boolean;
-                            /**
-                             * The method of funding the intent
-                             */
-                            fundingMethod: 'COMPACT' | 'PERMIT2' | 'NO_FUNDING';
-                        } | {
-                            /**
-                             * Settlement layer for the qualifier
-                             */
-                            settlementLayer: 'ECO';
-                            /**
-                             * Whether to use 7579
-                             */
-                            using7579: boolean;
-                            /**
-                             * The method of funding the intent
-                             */
-                            fundingMethod: 'COMPACT' | 'PERMIT2' | 'NO_FUNDING';
-                            /**
-                             * Hyperlane relay fee for proof dispatch (in destination chain native token)
-                             */
-                            provingFee: number;
-                        } | {
-                            /**
-                             * Settlement layer for the qualifier
-                             */
-                            settlementLayer: 'RELAY';
-                            /**
-                             * Whether to use 7579
-                             */
-                            using7579: boolean;
-                            /**
-                             * The method of funding the intent
-                             */
-                            fundingMethod: 'COMPACT' | 'PERMIT2' | 'NO_FUNDING';
-                            /**
-                             * Relay settlement layer metadata to be broadcasted
-                             */
-                            requestId: string;
-                            /**
-                             * Relay v2 order ID used in the deposit contract calldata
-                             */
-                            orderId: string;
-                            /**
-                             * Relay settlement layer subsidized amount on the intent (denomination in USDC)
-                             */
-                            subsidizedAmount?: string;
-                            /**
-                             * ABI-encoded params for IRelayRouterV3.multicall, used for origin swaps via Relay contracts
-                             */
-                            multicallData?: string;
-                            /**
-                             * Estimated pre-claim validation gas used for originGasOverhead and preClaimGasStipend
-                             */
-                            preClaimValidationGas?: number;
-                        } | {
-                            /**
-                             * Settlement layer for the qualifier
-                             */
-                            settlementLayer: 'NEAR';
-                            /**
-                             * Whether to use 7579
-                             */
-                            using7579: boolean;
-                            /**
-                             * The method of funding the intent
-                             */
-                            fundingMethod: 'COMPACT' | 'PERMIT2' | 'NO_FUNDING';
-                            /**
-                             * NEAR-provided deposit address on the origin chain
-                             */
-                            depositAddress: string;
-                            /**
-                             * NEAR correlation ID for tracking the intent
-                             */
-                            correlationId: string;
-                        };
-                        /**
-                         * Encoded qualification value
-                         */
-                        encodedVal: string;
-                    };
-                    /**
-                     * Mininimum gas for preclaim ops
-                     */
-                    minGas: number;
-                    /**
-                     * Swap execution data for arbitrary output tokens, aligned by index with tokenOut
-                     */
-                    swapDestinations?: Array<{
-                        tokenIn: string;
-                        amountIn: number;
-                        amountOut: number;
-                        slippage: number;
-                        quoter: string;
-                        executions: Array<{
-                            /**
-                             * Target contract address for execution
-                             */
-                            to: string;
-                            /**
-                             * Amount of ETH (in wei) sent in the execution
-                             */
-                            value: number;
-                            /**
-                             * Encoded function call data
-                             */
-                            data: string;
-                            senderAddressPlaceholder?: string;
-                            recipientAddressPlaceholder?: string;
-                        }>;
-                        outputDecimals: number;
-                        outputSymbol: string;
-                    } | null>;
-                };
-                /**
-                 * Swap execution data for arbitrary input tokens, keyed by spendToken address
-                 */
-                swapOrigins?: {
-                    [key: string]: {
-                        tokenIn: string;
-                        tokenOut: string;
-                        amountIn: number;
-                        amountOut: number;
-                        slippage: number;
-                        quoter: string;
-                        executions: Array<{
-                            /**
-                             * Target contract address for execution
-                             */
-                            to: string;
-                            /**
-                             * Amount of ETH (in wei) sent in the execution
-                             */
-                            value: number;
-                            /**
-                             * Encoded function call data
-                             */
-                            data: string;
-                            senderAddressPlaceholder?: string;
-                            recipientAddressPlaceholder?: string;
-                        }>;
-                        inputDecimals: number;
-                        inputSymbol: string;
-                        price: number;
-                        gasEstimate?: number;
-                    };
-                };
-            }>;
-            /**
-             * Intent operation HMAC digest
-             */
-            serverSignature: string;
-            /**
-             * Signed metadata containing prices, fees, and gas parameters
-             */
-            signedMetadata: {
-                /**
-                 * Serialization scheme identifier
-                 */
-                schemeId?: string;
-                /**
-                 * Token prices in USD
-                 */
-                tokenPrices: {
-                    [key: string]: number;
-                };
-                /**
-                 * Gas prices per chain in wei
-                 */
-                gasPrices: {
-                    [key: string]: number;
-                };
-                /**
-                 * Optimism network gas parameters per chain
-                 */
-                opGasParams: {
-                    estimatedCalldataSize?: number;
-                    [key: string]: {
-                        l1BaseFee: number;
-                        l1BlobBaseFee: number;
-                        baseFeeScalar: number;
-                        blobFeeScalar: number;
-                    } | number | undefined;
-                };
-                account: {
-                    /**
-                     * Account address
-                     */
-                    address: string;
-                    /**
-                     * Account type
-                     */
-                    accountType?: 'smartAccount' | 'GENERIC' | 'EOA' | 'ERC7579';
-                    /**
-                     * Setup operations for the smart account. Only used if the account is not deployed
-                     */
-                    setupOps?: Array<{
-                        /**
-                         * Account deployment factory address
-                         */
-                        to: string;
-                        /**
-                         * Account deployment data
-                         */
-                        data: string;
-                    }>;
-                    /**
-                     * Emissary configuration for using resource locking
-                     */
-                    emissaryConfig?: {
-                        /**
-                         * Address of the validator contract
-                         */
-                        validatorAddress: string;
-                        /**
-                         * Address of the emissary contract
-                         */
-                        emissaryAddress: string;
-                        /**
-                         * Emissary enable data
-                         */
-                        emissaryEnable: {
-                            /**
-                             * Signature of the allocator
-                             */
-                            allocatorSig: string;
-                            /**
-                             * Signature of the user
-                             */
-                            userSig: string;
-                            /**
-                             * Expiration timestamp
-                             */
-                            expires: number;
-                            /**
-                             * Nonce
-                             */
-                            nonce: number;
-                            /**
-                             * All chain IDs
-                             */
-                            allChainIds: Array<number>;
-                            /**
-                             * Chain index
-                             */
-                            chainIndex: number;
-                        };
-                        /**
-                         * Emissary configuration
-                         */
-                        settings: {
-                            /**
-                             * Unique identifier for the emissary configuration
-                             */
-                            configId: number;
-                            /**
-                             * Address of the allocator
-                             */
-                            allocator?: string;
-                            /**
-                             * Scope of the emissary
-                             */
-                            scope?: number;
-                            /**
-                             * Reset period of the emissary
-                             */
-                            resetPeriod?: number;
-                            /**
-                             * Address of the validator
-                             */
-                            validator: string;
-                            /**
-                             * Validator configuration
-                             */
-                            validatorConfig: string;
-                        };
-                    };
-                    /**
-                     * Pre-encoded SSX enable payload with a dummy userSig for gas estimation. When present, the orchestrator etches the simulation emissary and uses this as emissaryData.
-                     */
-                    mockSignature?: string;
-                    /**
-                     * Account status per chain
-                     */
-                    accountContext: {
-                        [key: string]: {
-                            /**
-                             * Type of the account
-                             */
-                            accountType: 'EOA';
-                        } | {
-                            /**
-                             * Type of the account
-                             */
-                            accountType: 'smartAccount';
-                            /**
-                             * Whether the account is deployed on this chain
-                             */
-                            isDeployed: boolean;
-                            /**
-                             * Whether the account supports ERC7579 standard
-                             */
-                            isERC7579: boolean;
-                            /**
-                             * Type of ERC7579 account
-                             */
-                            erc7579AccountType?: 'Safe' | 'Kernel' | 'Nexus';
-                            /**
-                             * Version of the ERC7579 account
-                             */
-                            erc7579AccountVersion?: string;
-                        };
-                    };
-                    /**
-                     * Map of chain -> EOA and delegated address required for user to sign for 7702 authorizations
-                     */
-                    requiredDelegations?: {
-                        [key: string]: {
-                            /**
-                             * address of contract to which delegation on behalf of sponsor will be assumed for given chain ID
-                             */
-                            contract: string;
-                        };
-                    };
-                };
-                recipient?: {
-                    /**
-                     * Account address
-                     */
-                    address: string;
-                    /**
-                     * Account type
-                     */
-                    accountType?: 'smartAccount' | 'GENERIC' | 'EOA' | 'ERC7579';
-                    /**
-                     * Setup operations for the smart account. Only used if the account is not deployed
-                     */
-                    setupOps?: Array<{
-                        /**
-                         * Account deployment factory address
-                         */
-                        to: string;
-                        /**
-                         * Account deployment data
-                         */
-                        data: string;
-                    }>;
-                    /**
-                     * Emissary configuration for using resource locking
-                     */
-                    emissaryConfig?: {
-                        /**
-                         * Address of the validator contract
-                         */
-                        validatorAddress: string;
-                        /**
-                         * Address of the emissary contract
-                         */
-                        emissaryAddress: string;
-                        /**
-                         * Emissary enable data
-                         */
-                        emissaryEnable: {
-                            /**
-                             * Signature of the allocator
-                             */
-                            allocatorSig: string;
-                            /**
-                             * Signature of the user
-                             */
-                            userSig: string;
-                            /**
-                             * Expiration timestamp
-                             */
-                            expires: number;
-                            /**
-                             * Nonce
-                             */
-                            nonce: number;
-                            /**
-                             * All chain IDs
-                             */
-                            allChainIds: Array<number>;
-                            /**
-                             * Chain index
-                             */
-                            chainIndex: number;
-                        };
-                        /**
-                         * Emissary configuration
-                         */
-                        settings: {
-                            /**
-                             * Unique identifier for the emissary configuration
-                             */
-                            configId: number;
-                            /**
-                             * Address of the allocator
-                             */
-                            allocator?: string;
-                            /**
-                             * Scope of the emissary
-                             */
-                            scope?: number;
-                            /**
-                             * Reset period of the emissary
-                             */
-                            resetPeriod?: number;
-                            /**
-                             * Address of the validator
-                             */
-                            validator: string;
-                            /**
-                             * Validator configuration
-                             */
-                            validatorConfig: string;
-                        };
-                    };
-                    /**
-                     * Pre-encoded SSX enable payload with a dummy userSig for gas estimation. When present, the orchestrator etches the simulation emissary and uses this as emissaryData.
-                     */
-                    mockSignature?: string;
-                    /**
-                     * Account status per chain
-                     */
-                    accountContext: {
-                        [key: string]: {
-                            /**
-                             * Type of the account
-                             */
-                            accountType: 'EOA';
-                        } | {
-                            /**
-                             * Type of the account
-                             */
-                            accountType: 'smartAccount';
-                            /**
-                             * Whether the account is deployed on this chain
-                             */
-                            isDeployed: boolean;
-                            /**
-                             * Whether the account supports ERC7579 standard
-                             */
-                            isERC7579: boolean;
-                            /**
-                             * Type of ERC7579 account
-                             */
-                            erc7579AccountType?: 'Safe' | 'Kernel' | 'Nexus';
-                            /**
-                             * Version of the ERC7579 account
-                             */
-                            erc7579AccountVersion?: string;
-                        };
-                    };
-                    /**
-                     * Map of chain -> EOA and delegated address required for user to sign for 7702 authorizations
-                     */
-                    requiredDelegations?: {
-                        [key: string]: {
-                            /**
-                             * address of contract to which delegation on behalf of sponsor will be assumed for given chain ID
-                             */
-                            contract: string;
-                        };
-                    };
-                };
-                fees?: {
-                    /**
-                     * Transaction fees
-                     */
-                    sponsorFee?: {
-                        /**
-                         * Fee charged by relayer
-                         */
-                        relayer: number;
-                        /**
-                         * Fee charged by Rhinestone
-                         */
-                        protocol: number;
-                    };
-                    /**
-                     * Protocol fees by token address (in token units)
-                     */
-                    protocolFees?: {
-                        [key: string]: number;
-                    };
-                };
-                /**
-                 * Tokens that will be received by EOA executions. These will be swept to the recipient account.
-                 */
-                executionTokensReceived?: Array<string>;
-                /**
-                 * User-supplied pre-claim executions included in the bundle, keyed by chain ID.
-                 */
-                preClaimExecutions?: {
-                    [key: string]: Array<{
-                        /**
-                         * Target contract address for execution
-                         */
-                        to: string;
-                        /**
-                         * Amount of ETH (in wei) sent in the execution
-                         */
-                        value: number;
-                        /**
-                         * Encoded function call data
-                         */
-                        data: string;
-                    }>;
-                };
-            };
-            /**
-             * List of 7702 authorizations signed by EOA matching sponsor
-             */
-            signedAuthorizations?: Array<{
-                /**
-                 * Chain ID for EIP-7702 delegation, 0 means it can be applied to any chain
-                 */
-                chainId: number;
-                /**
-                 * Address of the delegate for EIP-7702 delegation
-                 */
-                address: string;
-                /**
-                 * Nonce for EIP-7702 delegation
-                 */
-                nonce: number;
-                /**
-                 * Y parity for EIP-7702 delegation
-                 */
-                yParity: number;
-                /**
-                 * R value for EIP-7702 delegation
-                 */
-                r: string;
-                /**
-                 * S value for EIP-7702 delegation
-                 */
-                s: string;
-            }>;
-            /**
-             * List of 7702 authorizations signed by EOA matching recipient account (if present)
-             */
-            recipientSignedAuthorizations?: Array<{
-                /**
-                 * Chain ID for EIP-7702 delegation, 0 means it can be applied to any chain
-                 */
-                chainId: number;
-                /**
-                 * Address of the delegate for EIP-7702 delegation
-                 */
-                address: string;
-                /**
-                 * Nonce for EIP-7702 delegation
-                 */
-                nonce: number;
-                /**
-                 * Y parity for EIP-7702 delegation
-                 */
-                yParity: number;
-                /**
-                 * R value for EIP-7702 delegation
-                 */
-                r: string;
-                /**
-                 * S value for EIP-7702 delegation
-                 */
-                s: string;
+            origin: Array<string | {
+                preClaimSig: string;
+                notarizedClaimSig: string;
             }>;
             /**
              * Destination (target chain) signature
              */
-            destinationSignature: string;
+            destination: string;
             /**
-             * Target execution signature
+             * Target execution signature (smart sessions only; omit for EOA)
              */
-            targetExecutionSignature?: string;
+            targetExecution?: string;
+        };
+        authorizations?: {
             /**
-             * Origin (source chain) signatures
+             * EIP-7702 authorizations signed by the sponsor account
              */
-            originSignatures: Array<string | {
-                preClaimSig: string;
-                notarizedClaimSig: string;
-            }>;
-            options?: {
+            sponsor?: Array<{
                 /**
-                 * Whether to perform a dry run. For internal use only
+                 * Chain ID for EIP-7702 delegation, 0 means it can be applied to any chain
                  */
-                dryRun?: boolean;
-            };
+                chainId: string;
+                /**
+                 * Address of the delegate for EIP-7702 delegation
+                 */
+                address: string;
+                /**
+                 * Nonce for EIP-7702 delegation
+                 */
+                nonce: number;
+                /**
+                 * Y parity for EIP-7702 delegation
+                 */
+                yParity: number;
+                /**
+                 * R value for EIP-7702 delegation
+                 */
+                r: string;
+                /**
+                 * S value for EIP-7702 delegation
+                 */
+                s: string;
+            }>;
+            /**
+             * EIP-7702 authorizations signed by the recipient account
+             */
+            recipient?: Array<{
+                /**
+                 * Chain ID for EIP-7702 delegation, 0 means it can be applied to any chain
+                 */
+                chainId: string;
+                /**
+                 * Address of the delegate for EIP-7702 delegation
+                 */
+                address: string;
+                /**
+                 * Nonce for EIP-7702 delegation
+                 */
+                nonce: number;
+                /**
+                 * Y parity for EIP-7702 delegation
+                 */
+                yParity: number;
+                /**
+                 * R value for EIP-7702 delegation
+                 */
+                r: string;
+                /**
+                 * S value for EIP-7702 delegation
+                 */
+                s: string;
+            }>;
         };
     };
     headers: {
@@ -2378,24 +1078,137 @@ export type PostIntentOperationsData = {
     };
     path?: never;
     query?: never;
-    url: '/intent-operations';
+    url: '/intents';
 };
 
-export type PostIntentOperationsErrors = {
+export type PostIntentsErrors = {
     /**
      * Invalid request parameters
      */
     400: {
-        errors: Array<{
+        code: 'VALIDATION_ERROR';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+        /**
+         * Trace ID
+         */
+        traceId: string;
+        /**
+         * Per-field validation issues
+         */
+        details?: Array<{
             /**
-             * Error message
+             * Human-readable issue description
              */
             message: string;
             /**
-             * Additional error context
+             * Structured issue context (e.g. `{ path: "body.accountAddress" }`)
              */
-            context?: unknown;
+            context?: {
+                [key: string]: unknown;
+            };
         }>;
+    } | {
+        code: 'INSUFFICIENT_LIQUIDITY';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+        /**
+         * Trace ID
+         */
+        traceId: string;
+        /**
+         * Fillable subset and unfillable remainder
+         */
+        details?: {
+            /**
+             * Intents fillable with current liquidity
+             */
+            availableIntents: Array<{
+                [key: string]: string;
+            }>;
+            /**
+             * Token amounts that cannot be filled
+             */
+            unfillable: {
+                [key: string]: string;
+            };
+        };
+    } | {
+        code: 'NOT_FOUND' | 'UNAUTHORIZED' | 'FORBIDDEN' | 'CONFLICT' | 'UNPROCESSABLE_CONTENT' | 'TOO_MANY_REQUESTS' | 'SETTLEMENT_QUOTE_ERROR' | 'SETTLEMENT_EXECUTION_ERROR' | 'EXTERNAL_SERVICE_TIMEOUT' | 'RELAYER_MARKET_UNAVAILABLE' | 'INTERNAL_ERROR';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+        /**
+         * Trace ID
+         */
+        traceId: string;
+    };
+    /**
+     * The quoted intent has expired or was already submitted. Request a new route to retry.
+     */
+    404: {
+        code: 'VALIDATION_ERROR';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+        /**
+         * Trace ID
+         */
+        traceId: string;
+        /**
+         * Per-field validation issues
+         */
+        details?: Array<{
+            /**
+             * Human-readable issue description
+             */
+            message: string;
+            /**
+             * Structured issue context (e.g. `{ path: "body.accountAddress" }`)
+             */
+            context?: {
+                [key: string]: unknown;
+            };
+        }>;
+    } | {
+        code: 'INSUFFICIENT_LIQUIDITY';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+        /**
+         * Trace ID
+         */
+        traceId: string;
+        /**
+         * Fillable subset and unfillable remainder
+         */
+        details?: {
+            /**
+             * Intents fillable with current liquidity
+             */
+            availableIntents: Array<{
+                [key: string]: string;
+            }>;
+            /**
+             * Token amounts that cannot be filled
+             */
+            unfillable: {
+                [key: string]: string;
+            };
+        };
+    } | {
+        code: 'NOT_FOUND' | 'UNAUTHORIZED' | 'FORBIDDEN' | 'CONFLICT' | 'UNPROCESSABLE_CONTENT' | 'TOO_MANY_REQUESTS' | 'SETTLEMENT_QUOTE_ERROR' | 'SETTLEMENT_EXECUTION_ERROR' | 'EXTERNAL_SERVICE_TIMEOUT' | 'RELAYER_MARKET_UNAVAILABLE' | 'INTERNAL_ERROR';
+        /**
+         * Human-readable error message
+         */
+        message: string;
         /**
          * Trace ID
          */
@@ -2405,48 +1218,84 @@ export type PostIntentOperationsErrors = {
      * Server error
      */
     500: {
+        code: 'VALIDATION_ERROR';
         /**
-         * Error message describing the server-side issue
+         * Human-readable error message
          */
-        error: string;
+        message: string;
+        /**
+         * Trace ID
+         */
+        traceId: string;
+        /**
+         * Per-field validation issues
+         */
+        details?: Array<{
+            /**
+             * Human-readable issue description
+             */
+            message: string;
+            /**
+             * Structured issue context (e.g. `{ path: "body.accountAddress" }`)
+             */
+            context?: {
+                [key: string]: unknown;
+            };
+        }>;
+    } | {
+        code: 'INSUFFICIENT_LIQUIDITY';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+        /**
+         * Trace ID
+         */
+        traceId: string;
+        /**
+         * Fillable subset and unfillable remainder
+         */
+        details?: {
+            /**
+             * Intents fillable with current liquidity
+             */
+            availableIntents: Array<{
+                [key: string]: string;
+            }>;
+            /**
+             * Token amounts that cannot be filled
+             */
+            unfillable: {
+                [key: string]: string;
+            };
+        };
+    } | {
+        code: 'NOT_FOUND' | 'UNAUTHORIZED' | 'FORBIDDEN' | 'CONFLICT' | 'UNPROCESSABLE_CONTENT' | 'TOO_MANY_REQUESTS' | 'SETTLEMENT_QUOTE_ERROR' | 'SETTLEMENT_EXECUTION_ERROR' | 'EXTERNAL_SERVICE_TIMEOUT' | 'RELAYER_MARKET_UNAVAILABLE' | 'INTERNAL_ERROR';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+        /**
+         * Trace ID
+         */
+        traceId: string;
     };
 };
 
-export type PostIntentOperationsError = PostIntentOperationsErrors[keyof PostIntentOperationsErrors];
+export type PostIntentsError = PostIntentsErrors[keyof PostIntentsErrors];
 
-export type PostIntentOperationsResponses = {
+export type PostIntentsResponses = {
     /**
      * Intent operations submitted successfully
      */
     201: {
-        /**
-         * Intent operation submission results
-         */
-        result: {
-            /**
-             * Unique identifier
-             */
-            id: number;
-            /**
-             * Status of the intent operations
-             */
-            status: 'PENDING';
-        } | {
-            /**
-             * Nonce of the intent operations, used as identifier
-             */
-            id: number;
-            /**
-             * Status of the intent operations
-             */
-            status: 'FAILED';
-        };
+        intentId: string;
     };
 };
 
-export type PostIntentOperationsResponse = PostIntentOperationsResponses[keyof PostIntentOperationsResponses];
+export type PostIntentsResponse = PostIntentsResponses[keyof PostIntentsResponses];
 
-export type GetIntentOperationByIdData = {
+export type GetIntentsByIdData = {
     body?: never;
     headers: {
         /**
@@ -2470,24 +1319,71 @@ export type GetIntentOperationByIdData = {
          */
         full?: boolean;
     };
-    url: '/intent-operation/{id}';
+    url: '/intents/{id}';
 };
 
-export type GetIntentOperationByIdErrors = {
+export type GetIntentsByIdErrors = {
     /**
      * Invalid intent ID
      */
     400: {
-        errors: Array<{
+        code: 'VALIDATION_ERROR';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+        /**
+         * Trace ID
+         */
+        traceId: string;
+        /**
+         * Per-field validation issues
+         */
+        details?: Array<{
             /**
-             * Error message
+             * Human-readable issue description
              */
             message: string;
             /**
-             * Additional error context
+             * Structured issue context (e.g. `{ path: "body.accountAddress" }`)
              */
-            context?: unknown;
+            context?: {
+                [key: string]: unknown;
+            };
         }>;
+    } | {
+        code: 'INSUFFICIENT_LIQUIDITY';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+        /**
+         * Trace ID
+         */
+        traceId: string;
+        /**
+         * Fillable subset and unfillable remainder
+         */
+        details?: {
+            /**
+             * Intents fillable with current liquidity
+             */
+            availableIntents: Array<{
+                [key: string]: string;
+            }>;
+            /**
+             * Token amounts that cannot be filled
+             */
+            unfillable: {
+                [key: string]: string;
+            };
+        };
+    } | {
+        code: 'NOT_FOUND' | 'UNAUTHORIZED' | 'FORBIDDEN' | 'CONFLICT' | 'UNPROCESSABLE_CONTENT' | 'TOO_MANY_REQUESTS' | 'SETTLEMENT_QUOTE_ERROR' | 'SETTLEMENT_EXECUTION_ERROR' | 'EXTERNAL_SERVICE_TIMEOUT' | 'RELAYER_MARKET_UNAVAILABLE' | 'INTERNAL_ERROR';
+        /**
+         * Human-readable error message
+         */
+        message: string;
         /**
          * Trace ID
          */
@@ -2497,16 +1393,63 @@ export type GetIntentOperationByIdErrors = {
      * Intent ID not found
      */
     404: {
-        errors: Array<{
+        code: 'VALIDATION_ERROR';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+        /**
+         * Trace ID
+         */
+        traceId: string;
+        /**
+         * Per-field validation issues
+         */
+        details?: Array<{
             /**
-             * Error message
+             * Human-readable issue description
              */
             message: string;
             /**
-             * Additional error context
+             * Structured issue context (e.g. `{ path: "body.accountAddress" }`)
              */
-            context?: unknown;
+            context?: {
+                [key: string]: unknown;
+            };
         }>;
+    } | {
+        code: 'INSUFFICIENT_LIQUIDITY';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+        /**
+         * Trace ID
+         */
+        traceId: string;
+        /**
+         * Fillable subset and unfillable remainder
+         */
+        details?: {
+            /**
+             * Intents fillable with current liquidity
+             */
+            availableIntents: Array<{
+                [key: string]: string;
+            }>;
+            /**
+             * Token amounts that cannot be filled
+             */
+            unfillable: {
+                [key: string]: string;
+            };
+        };
+    } | {
+        code: 'NOT_FOUND' | 'UNAUTHORIZED' | 'FORBIDDEN' | 'CONFLICT' | 'UNPROCESSABLE_CONTENT' | 'TOO_MANY_REQUESTS' | 'SETTLEMENT_QUOTE_ERROR' | 'SETTLEMENT_EXECUTION_ERROR' | 'EXTERNAL_SERVICE_TIMEOUT' | 'RELAYER_MARKET_UNAVAILABLE' | 'INTERNAL_ERROR';
+        /**
+         * Human-readable error message
+         */
+        message: string;
         /**
          * Trace ID
          */
@@ -2516,16 +1459,73 @@ export type GetIntentOperationByIdErrors = {
      * Server error
      */
     500: {
+        code: 'VALIDATION_ERROR';
         /**
-         * Error message describing the server-side issue
+         * Human-readable error message
          */
-        error: string;
+        message: string;
+        /**
+         * Trace ID
+         */
+        traceId: string;
+        /**
+         * Per-field validation issues
+         */
+        details?: Array<{
+            /**
+             * Human-readable issue description
+             */
+            message: string;
+            /**
+             * Structured issue context (e.g. `{ path: "body.accountAddress" }`)
+             */
+            context?: {
+                [key: string]: unknown;
+            };
+        }>;
+    } | {
+        code: 'INSUFFICIENT_LIQUIDITY';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+        /**
+         * Trace ID
+         */
+        traceId: string;
+        /**
+         * Fillable subset and unfillable remainder
+         */
+        details?: {
+            /**
+             * Intents fillable with current liquidity
+             */
+            availableIntents: Array<{
+                [key: string]: string;
+            }>;
+            /**
+             * Token amounts that cannot be filled
+             */
+            unfillable: {
+                [key: string]: string;
+            };
+        };
+    } | {
+        code: 'NOT_FOUND' | 'UNAUTHORIZED' | 'FORBIDDEN' | 'CONFLICT' | 'UNPROCESSABLE_CONTENT' | 'TOO_MANY_REQUESTS' | 'SETTLEMENT_QUOTE_ERROR' | 'SETTLEMENT_EXECUTION_ERROR' | 'EXTERNAL_SERVICE_TIMEOUT' | 'RELAYER_MARKET_UNAVAILABLE' | 'INTERNAL_ERROR';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+        /**
+         * Trace ID
+         */
+        traceId: string;
     };
 };
 
-export type GetIntentOperationByIdError = GetIntentOperationByIdErrors[keyof GetIntentOperationByIdErrors];
+export type GetIntentsByIdError = GetIntentsByIdErrors[keyof GetIntentsByIdErrors];
 
-export type GetIntentOperationByIdResponses = {
+export type GetIntentsByIdResponses = {
     /**
      * Successfully retrieved intent operation status
      */
@@ -2545,11 +1545,11 @@ export type GetIntentOperationByIdResponses = {
         /**
          * Chain ID of the fill transaction
          */
-        destinationChainId: number;
+        destinationChainId: string;
         /**
-         * User address
+         * Account address
          */
-        userAddress: string;
+        accountAddress: string;
         /**
          * Array of claims within the intent
          */
@@ -2557,7 +1557,7 @@ export type GetIntentOperationByIdResponses = {
             /**
              * Chain ID of the claim
              */
-            chainId: number;
+            chainId: string;
             /**
              * Status of the claim
              */
@@ -2574,9 +1574,9 @@ export type GetIntentOperationByIdResponses = {
     };
 };
 
-export type GetIntentOperationByIdResponse = GetIntentOperationByIdResponses[keyof GetIntentOperationByIdResponses];
+export type GetIntentsByIdResponse = GetIntentsByIdResponses[keyof GetIntentsByIdResponses];
 
-export type GetAccountsByUserAddressPortfolioData = {
+export type GetAccountsByAccountAddressPortfolioData = {
     body?: never;
     headers: {
         /**
@@ -2592,40 +1592,87 @@ export type GetAccountsByUserAddressPortfolioData = {
         /**
          * Ethereum address of the user account
          */
-        userAddress: string;
+        accountAddress: string;
     };
     query?: {
         /**
-         * Comma-separated list of chain IDs to filter by
+         * Filter by chain. Pass as repeated query parameters: `?chainIds=eip155:1&chainIds=eip155:137`.
          */
-        chainIds?: string;
+        chainIds?: Array<string>;
         /**
-         * Comma-separated list of chain:token pairs to filter by
+         * Filter by `chain:token`. Pass as repeated query parameters: `?tokens=eip155:1:0x...&tokens=eip155:137:0x...`.
          */
-        tokens?: string;
+        tokens?: Array<string>;
         /**
          * Whether to filter out tokens with zero balance
          */
-        filterEmpty?: string;
+        filterEmpty?: boolean;
     };
-    url: '/accounts/{userAddress}/portfolio';
+    url: '/accounts/{accountAddress}/portfolio';
 };
 
-export type GetAccountsByUserAddressPortfolioErrors = {
+export type GetAccountsByAccountAddressPortfolioErrors = {
     /**
      * Invalid request parameters
      */
     400: {
-        errors: Array<{
+        code: 'VALIDATION_ERROR';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+        /**
+         * Trace ID
+         */
+        traceId: string;
+        /**
+         * Per-field validation issues
+         */
+        details?: Array<{
             /**
-             * Error message
+             * Human-readable issue description
              */
             message: string;
             /**
-             * Additional error context
+             * Structured issue context (e.g. `{ path: "body.accountAddress" }`)
              */
-            context?: unknown;
+            context?: {
+                [key: string]: unknown;
+            };
         }>;
+    } | {
+        code: 'INSUFFICIENT_LIQUIDITY';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+        /**
+         * Trace ID
+         */
+        traceId: string;
+        /**
+         * Fillable subset and unfillable remainder
+         */
+        details?: {
+            /**
+             * Intents fillable with current liquidity
+             */
+            availableIntents: Array<{
+                [key: string]: string;
+            }>;
+            /**
+             * Token amounts that cannot be filled
+             */
+            unfillable: {
+                [key: string]: string;
+            };
+        };
+    } | {
+        code: 'NOT_FOUND' | 'UNAUTHORIZED' | 'FORBIDDEN' | 'CONFLICT' | 'UNPROCESSABLE_CONTENT' | 'TOO_MANY_REQUESTS' | 'SETTLEMENT_QUOTE_ERROR' | 'SETTLEMENT_EXECUTION_ERROR' | 'EXTERNAL_SERVICE_TIMEOUT' | 'RELAYER_MARKET_UNAVAILABLE' | 'INTERNAL_ERROR';
+        /**
+         * Human-readable error message
+         */
+        message: string;
         /**
          * Trace ID
          */
@@ -2635,16 +1682,73 @@ export type GetAccountsByUserAddressPortfolioErrors = {
      * Server error
      */
     500: {
+        code: 'VALIDATION_ERROR';
         /**
-         * Error message describing the server-side issue
+         * Human-readable error message
          */
-        error: string;
+        message: string;
+        /**
+         * Trace ID
+         */
+        traceId: string;
+        /**
+         * Per-field validation issues
+         */
+        details?: Array<{
+            /**
+             * Human-readable issue description
+             */
+            message: string;
+            /**
+             * Structured issue context (e.g. `{ path: "body.accountAddress" }`)
+             */
+            context?: {
+                [key: string]: unknown;
+            };
+        }>;
+    } | {
+        code: 'INSUFFICIENT_LIQUIDITY';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+        /**
+         * Trace ID
+         */
+        traceId: string;
+        /**
+         * Fillable subset and unfillable remainder
+         */
+        details?: {
+            /**
+             * Intents fillable with current liquidity
+             */
+            availableIntents: Array<{
+                [key: string]: string;
+            }>;
+            /**
+             * Token amounts that cannot be filled
+             */
+            unfillable: {
+                [key: string]: string;
+            };
+        };
+    } | {
+        code: 'NOT_FOUND' | 'UNAUTHORIZED' | 'FORBIDDEN' | 'CONFLICT' | 'UNPROCESSABLE_CONTENT' | 'TOO_MANY_REQUESTS' | 'SETTLEMENT_QUOTE_ERROR' | 'SETTLEMENT_EXECUTION_ERROR' | 'EXTERNAL_SERVICE_TIMEOUT' | 'RELAYER_MARKET_UNAVAILABLE' | 'INTERNAL_ERROR';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+        /**
+         * Trace ID
+         */
+        traceId: string;
     };
 };
 
-export type GetAccountsByUserAddressPortfolioError = GetAccountsByUserAddressPortfolioErrors[keyof GetAccountsByUserAddressPortfolioErrors];
+export type GetAccountsByAccountAddressPortfolioError = GetAccountsByAccountAddressPortfolioErrors[keyof GetAccountsByAccountAddressPortfolioErrors];
 
-export type GetAccountsByUserAddressPortfolioResponses = {
+export type GetAccountsByAccountAddressPortfolioResponses = {
     /**
      * Successfully retrieved user portfolio
      */
@@ -2656,214 +1760,42 @@ export type GetAccountsByUserAddressPortfolioResponses = {
             /**
              * Short name (symbol) of the token
              */
-            tokenName: string;
-            /**
-             * Number of decimal places for the token
-             */
-            tokenDecimals: number;
-            balance: {
-                /**
-                 * Total balance across all chains (as string to handle BigInt)
-                 */
-                locked: number;
-                /**
-                 * Total balance across all chains (as string to handle BigInt)
-                 */
-                unlocked: number;
-            };
+            symbol: string;
             /**
              * Array of token balances per chain
              */
-            tokenChainBalance: Array<{
+            chains: Array<{
                 /**
                  * Chain ID where the token balance exists
                  */
-                chainId: number;
+                chainId: string;
                 /**
                  * Token contract address on this chain
                  */
-                tokenAddress: string;
-                balance: {
-                    /**
-                     * Token balance on this specific chain (as string to handle BigInt)
-                     */
-                    locked: number;
-                    /**
-                     * Token balance on this specific chain (as string to handle BigInt)
-                     */
-                    unlocked: number;
-                };
+                address: string;
+                /**
+                 * Decimal places for this token on this chain. Sourced per-chain because the same logical token can have different on-chain decimals across chains (e.g. USDC: 6 on Ethereum, 18 on BNB Smart Chain).
+                 */
+                decimals: number;
+                /**
+                 * Token balance on this chain in the token's smallest unit
+                 */
+                amount: string;
             }>;
         }>;
     };
 };
 
-export type GetAccountsByUserAddressPortfolioResponse = GetAccountsByUserAddressPortfolioResponses[keyof GetAccountsByUserAddressPortfolioResponses];
-
-export type PostWithdrawalsData = {
-    /**
-     * Body
-     */
-    body?: {
-        account: string;
-        chainId: number;
-        tokenAddress: string;
-        amount: number;
-        recipient: string;
-    };
-    headers: {
-        /**
-         * Rhinestone API key
-         */
-        'x-api-key': string;
-        /**
-         * API version (YYYY-MM.name). Will become required in a future release.
-         */
-        'x-api-version'?: string;
-    };
-    path?: never;
-    query?: never;
-    url: '/withdrawals';
-};
-
-export type PostWithdrawalsErrors = {
-    /**
-     * Invalid request parameters
-     */
-    400: {
-        errors: Array<{
-            /**
-             * Error message
-             */
-            message: string;
-            /**
-             * Additional error context
-             */
-            context?: unknown;
-        }>;
-        /**
-         * Trace ID
-         */
-        traceId: string;
-    };
-    /**
-     * Server error
-     */
-    500: {
-        /**
-         * Error message describing the server-side issue
-         */
-        error: string;
-    };
-};
-
-export type PostWithdrawalsError = PostWithdrawalsErrors[keyof PostWithdrawalsErrors];
-
-export type PostWithdrawalsResponses = {
-    /**
-     * Successfully retrieved a compact signature
-     */
-    200: {
-        allocatorData: string;
-        transferDetails: {
-            id: number;
-            nonce: number;
-            expires: number;
-            recipients: Array<{
-                claimant: number;
-                amount: number;
-            }>;
-        };
-    };
-};
-
-export type PostWithdrawalsResponse = PostWithdrawalsResponses[keyof PostWithdrawalsResponses];
-
-export type PostBatchWithdrawalsData = {
-    /**
-     * Body
-     */
-    body?: {
-        account: string;
-        chainId: number;
-        transfers: Array<{
-            recipient: string;
-            tokenAddress: string;
-            amount: number;
-        }>;
-    };
-    headers: {
-        /**
-         * Rhinestone API key
-         */
-        'x-api-key': string;
-        /**
-         * API version (YYYY-MM.name). Will become required in a future release.
-         */
-        'x-api-version'?: string;
-    };
-    path?: never;
-    query?: never;
-    url: '/batch-withdrawals';
-};
-
-export type PostBatchWithdrawalsErrors = {
-    /**
-     * Invalid request parameters
-     */
-    400: {
-        errors: Array<{
-            /**
-             * Error message
-             */
-            message: string;
-            /**
-             * Additional error context
-             */
-            context?: unknown;
-        }>;
-        /**
-         * Trace ID
-         */
-        traceId: string;
-    };
-    /**
-     * Server error
-     */
-    500: {
-        /**
-         * Error message describing the server-side issue
-         */
-        error: string;
-    };
-};
-
-export type PostBatchWithdrawalsError = PostBatchWithdrawalsErrors[keyof PostBatchWithdrawalsErrors];
-
-export type PostBatchWithdrawalsResponses = {
-    /**
-     * Successfully retrieved a compact batch withdrawal signature
-     */
-    200: {
-        allocatorData: string;
-        batchTransferDetails: {
-            nonce: number;
-            expires: number;
-            transfers: Array<{
-                id: number;
-                portions: Array<{
-                    claimant: number;
-                    amount: number;
-                }>;
-            }>;
-        };
-    };
-};
-
-export type PostBatchWithdrawalsResponse = PostBatchWithdrawalsResponses[keyof PostBatchWithdrawalsResponses];
+export type GetAccountsByAccountAddressPortfolioResponse = GetAccountsByAccountAddressPortfolioResponses[keyof GetAccountsByAccountAddressPortfolioResponses];
 
 export type GetChainsData = {
     body?: never;
+    headers?: {
+        /**
+         * API version (YYYY-MM.name). Will become required in a future release.
+         */
+        'x-api-version'?: string;
+    };
     path?: never;
     query?: never;
     url: '/chains';
@@ -2871,7 +1803,7 @@ export type GetChainsData = {
 
 export type GetChainsResponses = {
     /**
-     * The supported chains and tokens with additional metadata
+     * The supported chains and tokens with additional metadata Object keyed by CAIP-2 chain identifier (e.g. `eip155:42161`).
      */
     200: {
         [key: string]: {
@@ -2890,3 +1822,200 @@ export type GetChainsResponses = {
 };
 
 export type GetChainsResponse = GetChainsResponses[keyof GetChainsResponses];
+
+export type GetLiquidityData = {
+    body?: never;
+    headers: {
+        /**
+         * Rhinestone API key
+         */
+        'x-api-key': string;
+        /**
+         * API version (YYYY-MM.name). Will become required in a future release.
+         */
+        'x-api-version'?: string;
+    };
+    path?: never;
+    query: {
+        /**
+         * Source chain ID
+         */
+        sourceChainId: string;
+        /**
+         * Source token address
+         */
+        sourceToken: string;
+        /**
+         * Destination chain ID
+         */
+        destinationChainId: string;
+        /**
+         * Destination token address
+         */
+        destinationToken: string;
+    };
+    url: '/liquidity';
+};
+
+export type GetLiquidityErrors = {
+    /**
+     * Invalid request parameters
+     */
+    400: {
+        code: 'VALIDATION_ERROR';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+        /**
+         * Trace ID
+         */
+        traceId: string;
+        /**
+         * Per-field validation issues
+         */
+        details?: Array<{
+            /**
+             * Human-readable issue description
+             */
+            message: string;
+            /**
+             * Structured issue context (e.g. `{ path: "body.accountAddress" }`)
+             */
+            context?: {
+                [key: string]: unknown;
+            };
+        }>;
+    } | {
+        code: 'INSUFFICIENT_LIQUIDITY';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+        /**
+         * Trace ID
+         */
+        traceId: string;
+        /**
+         * Fillable subset and unfillable remainder
+         */
+        details?: {
+            /**
+             * Intents fillable with current liquidity
+             */
+            availableIntents: Array<{
+                [key: string]: string;
+            }>;
+            /**
+             * Token amounts that cannot be filled
+             */
+            unfillable: {
+                [key: string]: string;
+            };
+        };
+    } | {
+        code: 'NOT_FOUND' | 'UNAUTHORIZED' | 'FORBIDDEN' | 'CONFLICT' | 'UNPROCESSABLE_CONTENT' | 'TOO_MANY_REQUESTS' | 'SETTLEMENT_QUOTE_ERROR' | 'SETTLEMENT_EXECUTION_ERROR' | 'EXTERNAL_SERVICE_TIMEOUT' | 'RELAYER_MARKET_UNAVAILABLE' | 'INTERNAL_ERROR';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+        /**
+         * Trace ID
+         */
+        traceId: string;
+    };
+    /**
+     * Server error
+     */
+    500: {
+        code: 'VALIDATION_ERROR';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+        /**
+         * Trace ID
+         */
+        traceId: string;
+        /**
+         * Per-field validation issues
+         */
+        details?: Array<{
+            /**
+             * Human-readable issue description
+             */
+            message: string;
+            /**
+             * Structured issue context (e.g. `{ path: "body.accountAddress" }`)
+             */
+            context?: {
+                [key: string]: unknown;
+            };
+        }>;
+    } | {
+        code: 'INSUFFICIENT_LIQUIDITY';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+        /**
+         * Trace ID
+         */
+        traceId: string;
+        /**
+         * Fillable subset and unfillable remainder
+         */
+        details?: {
+            /**
+             * Intents fillable with current liquidity
+             */
+            availableIntents: Array<{
+                [key: string]: string;
+            }>;
+            /**
+             * Token amounts that cannot be filled
+             */
+            unfillable: {
+                [key: string]: string;
+            };
+        };
+    } | {
+        code: 'NOT_FOUND' | 'UNAUTHORIZED' | 'FORBIDDEN' | 'CONFLICT' | 'UNPROCESSABLE_CONTENT' | 'TOO_MANY_REQUESTS' | 'SETTLEMENT_QUOTE_ERROR' | 'SETTLEMENT_EXECUTION_ERROR' | 'EXTERNAL_SERVICE_TIMEOUT' | 'RELAYER_MARKET_UNAVAILABLE' | 'INTERNAL_ERROR';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+        /**
+         * Trace ID
+         */
+        traceId: string;
+    };
+};
+
+export type GetLiquidityError = GetLiquidityErrors[keyof GetLiquidityErrors];
+
+export type GetLiquidityResponses = {
+    /**
+     * Liquidity information for the requested route
+     */
+    200: {
+        /**
+         * Destination token symbol
+         */
+        symbol: string;
+        /**
+         * Destination token decimals
+         */
+        decimals: number;
+        /**
+         * True when an uncapped settlement layer (e.g. OFT) supports this route
+         */
+        unlimited: boolean;
+        /**
+         * Largest fillable amount for this token by a single relayer instance. Null when unlimited.
+         */
+        maxAmount: string | null;
+    };
+};
+
+export type GetLiquidityResponse = GetLiquidityResponses[keyof GetLiquidityResponses];
