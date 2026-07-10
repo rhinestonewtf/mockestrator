@@ -9,6 +9,9 @@ jobs:
   docker-push-image:
     name: Build and push docker image to AWS ECR
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
     env:
       AWS_REGION: us-east-1
       ECR_REGISTRY: public.ecr.aws/l8u6h3p7
@@ -20,8 +23,7 @@ jobs:
     - name: Configure AWS credentials
       uses: aws-actions/configure-aws-credentials@v4
       with:
-        aws-access-key-id: ${{ secrets.ECR_AWS_ACCESS_KEY_ID }}
-        aws-secret-access-key: ${{ secrets.ECR_AWS_SECRET_ACCESS_KEY }}
+        role-to-assume: arn:aws:iam::336594912921:role/github-actions-ecr-push
         aws-region: ${{ env.AWS_REGION }}
 
     - name: Login to Amazon ECR
