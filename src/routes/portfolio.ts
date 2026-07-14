@@ -1,109 +1,81 @@
-import { Request, Response } from "express";
-import { getAddress } from "viem";
-import { jsonify, logRequest } from "../log";
-import { GetAccountsByUserAddressPortfolioResponse } from "../gen";
-import { zGetAccountsByUserAddressPortfolioData } from "../gen/zod.gen";
-import z, { ZodError } from "zod";
-import { chainContexts } from "../chains";
+import { Request, Response } from 'express';
+import { getAddress } from 'viem';
+import { z } from 'zod';
+import { jsonify, logRequest } from '../log';
+import {
+    zGetAccountsByAccountAddressPortfolioData,
+    zGetAccountsByAccountAddressPortfolioResponse,
+} from '../gen/zod.gen';
+import { chainContexts } from '../chains';
+import { sendError } from '../errors';
+import { fromCaip2, toCaip2 } from '../caip2';
 
-type PortfolioRequestData = z.infer<typeof zGetAccountsByUserAddressPortfolioData>
+type PortfolioRequestData = z.infer<typeof zGetAccountsByAccountAddressPortfolioData>;
+type PortfolioResponse = z.infer<typeof zGetAccountsByAccountAddressPortfolioResponse>;
+
+const toArray = (v: unknown): string[] | undefined => {
+    if (v === undefined) return undefined;
+    if (Array.isArray(v)) return v as string[];
+    return [v as string];
+};
 
 export const portfolio = async (req: Request, resp: Response) => {
-    logRequest(req)
+    logRequest(req);
 
     try {
-        const params = zGetAccountsByUserAddressPortfolioData.parse({
-            body: req.body,
+        // OpenAPI uses `style: form, explode: true` for chainIds/tokens, so a single
+        // `?chainIds=eip155:1` should still parse as an array. Express' default qs
+        // parser surfaces it as a string — coerce before validation.
+        const query = {
+            ...req.query,
+            chainIds: toArray(req.query.chainIds),
+            tokens: toArray(req.query.tokens),
+        };
+        const params = zGetAccountsByAccountAddressPortfolioData.parse({
+            body: undefined,
             path: req.params,
-            query: req.query,
-            headers: req.headers
-        })
-        const body = await getPortfolio(params)
-        console.log('Response: ', jsonify(body))
-        resp.status(200).json(body)
+            query,
+            headers: req.headers,
+        });
+        const body = await getPortfolio(params);
+        console.log('Response: ', jsonify(body));
+        resp.status(200).json(body);
     } catch (e) {
-        console.log(e)
+        console.log(e);
+        sendError(resp, e);
+    }
+};
 
-        if (e instanceof ZodError) {
-            resp.status(400).json({
-                'error': `${e}`
-            })
-        } else {
-            resp.status(500).json({
-                'error': `${e}`
-            })
+const getPortfolio = async (params: PortfolioRequestData): Promise<PortfolioResponse> => {
+    const accountAddress = getAddress(params.path.accountAddress);
+    const filterChainIds = params.query?.chainIds?.map(fromCaip2);
+    const filterEmpty = params.query?.filterEmpty ?? false;
+
+    const contexts = Object.values(chainContexts()).filter((ctx) =>
+        filterChainIds ? filterChainIds.includes(ctx.chainId) : true,
+    );
+    const balancesPerChain = await Promise.all(
+        contexts.map(async (ctx) => ctx.balanceOf(accountAddress, ctx.supportedTokens())),
+    );
+
+    const bySymbol = new Map<string, PortfolioResponse['portfolio'][number]>();
+
+    for (const balances of balancesPerChain) {
+        for (const balance of balances) {
+            if (filterEmpty && BigInt(balance.amount.toString()) === 0n) continue;
+            let entry = bySymbol.get(balance.symbol);
+            if (!entry) {
+                entry = { symbol: balance.symbol, chains: [] };
+                bySymbol.set(balance.symbol, entry);
+            }
+            entry.chains.push({
+                chainId: toCaip2(balance.chainId),
+                address: balance.token,
+                decimals: balance.decimals,
+                amount: balance.amount.toString(),
+            });
         }
     }
-}
 
-type PortfolioBalance = {
-    decimals: number,
-    amount: number,
-    chainBalance: {
-        [key: number]: {
-            [key: string]: number
-        }
-    }
-}
-
-const getPortfolio = async (params: PortfolioRequestData): Promise<GetAccountsByUserAddressPortfolioResponse> => {
-    const userAddress = getAddress(params.path.userAddress)
-
-    const balancesOfBalances = await Promise.all(Object.values(chainContexts()).map(async (chainContext) => chainContext.balanceOf(userAddress, chainContext.supportedTokens())))
-
-    const balanceMap = balancesOfBalances.reduce<{ [key: string]: PortfolioBalance }>((outerMap, balances) => {
-        return balances.reduce<{ [key: string]: PortfolioBalance }>((innerMap, balance) => {
-            let currentEntry = innerMap[balance.symbol]
-            if (!currentEntry) {
-                currentEntry = {
-                    decimals: balance.decimals,
-                    amount: 0,
-                    chainBalance: {}
-                }
-                innerMap[balance.symbol] = currentEntry
-            }
-            currentEntry.amount += Number(balance.amount)
-
-            let currentChainBalance = currentEntry.chainBalance[balance.chainId]
-            if (!currentChainBalance) {
-                currentChainBalance = {}
-                currentEntry.chainBalance[balance.chainId] = currentChainBalance
-            }
-
-            let currentTokenBalance = currentChainBalance[balance.token]
-            if (!currentTokenBalance) {
-                currentTokenBalance = 0
-                currentChainBalance[balance.token] = currentTokenBalance
-            }
-
-            currentEntry.chainBalance[balance.chainId][balance.token] += Number(balance.amount)
-
-            return innerMap
-        }, outerMap)
-    }, {})
-
-    return {
-        portfolio: Object.entries(balanceMap).map(([symbol, portfolio]) => {
-            return {
-                tokenName: symbol,
-                tokenDecimals: portfolio.decimals,
-                balance: {
-                    locked: 0,
-                    unlocked: portfolio.amount
-                },
-                tokenChainBalance: Object.entries(portfolio.chainBalance).flatMap(([chainId, tokenBalance]) => {
-                    return Object.entries(tokenBalance).map(([token, amount]) => {
-                        return {
-                            chainId: parseInt(chainId),
-                            tokenAddress: token,
-                            balance: {
-                                locked: 0,
-                                unlocked: amount
-                            }
-                        }
-                    })
-                })
-            }
-        })
-    }
-}
+    return { portfolio: Array.from(bySymbol.values()) };
+};

@@ -1,0 +1,66 @@
+name: Sync OpenAPI Types
+
+on:
+  schedule:
+    - cron: '0 6 * * 1-5'
+  workflow_dispatch: {}
+
+jobs:
+  sync:
+    name: Regenerate and verify OpenAPI types
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Regenerate OpenAPI types
+        run: pnpm generate
+
+      - name: Check for changes
+        id: check
+        run: |
+          if git diff --quiet src/gen/; then
+            echo "changed=false" >> $GITHUB_OUTPUT
+          else
+            echo "changed=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Verify build
+        if: steps.check.outputs.changed == 'true'
+        run: pnpm build
+
+      - name: Create pull request
+        if: steps.check.outputs.changed == 'true'
+        uses: peter-evans/create-pull-request@v7
+        with:
+          commit-message: 'chore: regenerate OpenAPI types from latest spec'
+          title: 'chore: sync OpenAPI types with latest orchestrator spec'
+          body: |
+            Automated PR to sync generated types with the latest orchestrator OpenAPI spec.
+
+            **Build status**: `tsc` passed with the regenerated types.
+
+            > [!WARNING]
+            > If the build failed, this PR was not created. Check the workflow run for details.
+
+            **Review checklist**:
+            - [ ] Check `src/gen/` diff for breaking changes
+            - [ ] Update route handlers if needed (new required fields, removed fields, renamed fields)
+            - [ ] Run tests locally with Docker/Anvil
+          branch: chore/sync-openapi-types
+          delete-branch: true

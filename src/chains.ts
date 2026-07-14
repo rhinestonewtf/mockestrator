@@ -51,6 +51,23 @@ export class ChainContext {
         });
     }
 
+    get chainId(): number {
+        return this.chain.id
+    }
+
+    get chainName(): string {
+        return this.chain.name
+    }
+
+    get isTestnet(): boolean {
+        return (this.chain as any).testnet ?? true
+    }
+
+    tokenDecimals(symbol: TokenSymbol): number | undefined {
+        const addr = this.maybeAddress(symbol)
+        return addr ? this.tokens[addr]?.decimals : undefined
+    }
+
     maybeAddress(symbol: TokenSymbol): Address | undefined {
         return this.chainConfig.tokens[symbol]?.address
     }
@@ -143,11 +160,20 @@ export class ChainContext {
     }
 
     public async execute(execution: { to: Address, callData: Hex, value: bigint }): Promise<Hash> {
+        // Forks run with `--no-priority-fee` and a low base fee. viem's default
+        // 1 gwei priority fee exceeds the resulting max-fee cap. Pin priority to 0
+        // and use a generous cap (1 gwei) that easily covers any forked base fee.
+        const sendOpts = {
+            maxFeePerGas: 1_000_000_000n,
+            maxPriorityFeePerGas: 0n,
+        } as const
+
         try {
             const receipt = await this.walletClient.sendTransactionSync({
                 to: execution.to,
                 value: execution.value,
                 data: execution.callData,
+                ...sendOpts,
             })
             if (receipt.status == 'reverted') {
                 throw new Error(`Transaction ${receipt.transactionHash} reverted`)
@@ -162,6 +188,7 @@ export class ChainContext {
                     value: execution.value,
                     data: execution.callData,
                     nonce: nextNonce,
+                    ...sendOpts,
                 })
                 if (receipt.status == 'reverted') {
                     throw new Error(`Transaction ${receipt.transactionHash} reverted`)
