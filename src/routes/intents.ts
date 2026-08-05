@@ -3,26 +3,25 @@ import { z } from 'zod';
 import { Address, encodeAbiParameters, encodePacked, Hex, zeroAddress } from 'viem';
 import { jsonify, logRequest } from '../log';
 import {
-    zGetIntentsByIdData,
-    zGetIntentsByIdResponse,
-    zPostIntentsData,
-    zPostIntentsResponse,
+    zGetIntentData,
+    zGetIntentResponse,
+    zCreateIntentData,
+    zCreateIntentResponse,
 } from '../gen/zod.gen';
 import { chainContexts } from '../chains';
 import { ApiError, sendError } from '../errors';
-import { getIntent, IntentRecord, saveIntent } from '../services/intentRepo';
+import { ClaimRecord, getIntent, IntentRecord, saveIntent } from '../services/intentRepo';
 import { QuoteExecutionPlan, takeQuote } from '../services/quoteCache';
-import { toCaip2 } from '../caip2';
 
-type SubmitData = z.infer<typeof zPostIntentsData>;
-type SubmitResponse = z.infer<typeof zPostIntentsResponse>;
-type IntentStatusResponse = z.infer<typeof zGetIntentsByIdResponse>;
+type SubmitData = z.infer<typeof zCreateIntentData>;
+type SubmitResponse = z.infer<typeof zCreateIntentResponse>;
+type IntentStatusResponse = z.infer<typeof zGetIntentResponse>;
 
 export const postIntent = async (req: Request, resp: Response) => {
     logRequest(req);
 
     try {
-        const data = zPostIntentsData.parse({
+        const data = zCreateIntentData.parse({
             body: req.body,
             path: undefined,
             query: undefined,
@@ -52,7 +51,7 @@ export const getIntentStatus = async (req: Request, resp: Response) => {
     logRequest(req);
 
     try {
-        const data = zGetIntentsByIdData.parse({
+        const data = zGetIntentData.parse({
             body: undefined,
             path: req.params,
             query: req.query,
@@ -68,19 +67,59 @@ export const getIntentStatus = async (req: Request, resp: Response) => {
     }
 };
 
-const toStatusResponse = (intent: IntentRecord): IntentStatusResponse => ({
-    status: intent.status,
-    fillTimestamp: intent.fillTimestamp,
-    fillTransactionHash: intent.fillTransactionHash,
-    destinationChainId: toCaip2(intent.destinationChainId),
-    accountAddress: intent.accountAddress,
-    claims: intent.claims.map((c) => ({
-        chainId: toCaip2(c.chainId),
-        status: c.status,
-        claimTimestamp: c.claimTimestamp,
-        claimTransactionHash: c.claimTransactionHash,
-    })),
-});
+type OperationGroup = IntentStatusResponse['operations'][number];
+type Operation = OperationGroup['items'][number];
+type OperationStatus = Operation['status'];
+
+// The wire exposes three terminal states; the repo tracks the finer-grained
+// lifecycle the orchestrator reports internally.
+const toWireStatus = (status: IntentRecord['status'] | ClaimRecord['status']): OperationStatus => {
+    switch (status) {
+        case 'COMPLETED':
+            return 'COMPLETED';
+        case 'FAILED':
+        case 'EXPIRED':
+            return 'FAILED';
+        default:
+            return 'PENDING';
+    }
+};
+
+// Operations are grouped by chain (numeric, not CAIP-2, on this endpoint), so a
+// same-chain intent's claim and fill share one group.
+const toStatusResponse = (intent: IntentRecord): IntentStatusResponse => {
+    const groups = new Map<number, OperationGroup>();
+    const groupFor = (chain: number): OperationGroup => {
+        let group = groups.get(chain);
+        if (!group) {
+            group = { chain, items: [] };
+            groups.set(chain, group);
+        }
+        return group;
+    };
+
+    for (const claim of intent.claims) {
+        groupFor(claim.chainId).items.push({
+            type: 'CLAIM',
+            status: toWireStatus(claim.status),
+            txHash: claim.claimTransactionHash,
+            timestamp: claim.claimTimestamp,
+        });
+    }
+
+    groupFor(intent.destinationChainId).items.push({
+        type: 'FILL',
+        status: toWireStatus(intent.status),
+        txHash: intent.fillTransactionHash,
+        timestamp: intent.fillTimestamp,
+    });
+
+    return {
+        status: toWireStatus(intent.status),
+        accountAddress: intent.accountAddress,
+        operations: Array.from(groups.values()),
+    };
+};
 
 const executeQuote = async (
     intentId: string,

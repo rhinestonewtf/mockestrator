@@ -84,6 +84,20 @@ export class ChainContext {
         return this.tokenSymbols
     }
 
+    // The chains response requires a wrapped native token. Forks rarely configure
+    // one, so fall back to a zero-address placeholder under the conventional
+    // `W<native>` symbol rather than dropping the chain from the response.
+    wrappedNativeToken(): { symbol: TokenSymbol, address: Address, decimals: number } {
+        const { symbol, decimals } = this.chain.nativeCurrency
+        const wrappedSymbol = `W${symbol}`
+        const address = this.maybeAddress(wrappedSymbol)
+        return {
+            symbol: wrappedSymbol,
+            address: address ?? zeroAddress,
+            decimals: address ? this.tokenDecimals(wrappedSymbol) ?? decimals : decimals,
+        }
+    }
+
     public async balanceOf(address: Address, tokenSymbols: TokenSymbol[]): Promise<Balance[]> {
 
         const tokens = tokenSymbols.map((symbol) => {

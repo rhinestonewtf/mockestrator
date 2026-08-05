@@ -54,6 +54,14 @@ async function apiCall<T>(
   return response.json();
 }
 
+// Progress is reported as per-chain operations (numeric chain ids on this
+// endpoint, unlike the CAIP-2 request wire); the fill leg carries the tx hash.
+function fillOperation(status: any, chainId: number): any {
+  return status.operations
+    ?.find((group: any) => group.chain === chainId)
+    ?.items?.find((item: any) => item.type === "FILL");
+}
+
 // Mock signature that mockestrator accepts as "valid" (any non-fake hex)
 const MOCK_DEST_SIG = ("0x" + "ab".repeat(65)) as Hex;
 const MOCK_ORIGIN_SIG = ("0x" + "cd".repeat(65)) as Hex;
@@ -252,15 +260,16 @@ describe("Mockestrator Intent Flow", () => {
       );
 
       expect(statusResponse.status).toBe("COMPLETED");
-      expect(statusResponse.destinationChainId).toBe(BASE_SEPOLIA_CAIP2);
-      expect(statusResponse.fillTransactionHash).toBeDefined();
+      const fill = fillOperation(statusResponse, BASE_SEPOLIA_CHAIN_ID);
+      expect(fill?.status).toBe("COMPLETED");
+      expect(fill?.txHash).toBeDefined();
 
       const publicClient = createPublicClient({
         transport: http(RPC_URLS[BASE_SEPOLIA_CHAIN_ID]),
       });
 
       const receipt = await publicClient.getTransactionReceipt({
-        hash: statusResponse.fillTransactionHash as Hex,
+        hash: fill.txHash as Hex,
       });
       expect(receipt.status).toBe("success");
 
@@ -312,13 +321,14 @@ describe("Mockestrator Intent Flow", () => {
       );
 
       expect(statusResponse.status).toBe("COMPLETED");
-      expect(statusResponse.destinationChainId).toBe(SEPOLIA_CAIP2);
+      const fill = fillOperation(statusResponse, SEPOLIA_CHAIN_ID);
+      expect(fill?.status).toBe("COMPLETED");
 
       const publicClient = createPublicClient({
         transport: http(RPC_URLS[SEPOLIA_CHAIN_ID]),
       });
       const receipt = await publicClient.getTransactionReceipt({
-        hash: statusResponse.fillTransactionHash as Hex,
+        hash: fill.txHash as Hex,
       });
       expect(receipt.status).toBe("success");
 

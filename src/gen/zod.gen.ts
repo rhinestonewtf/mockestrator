@@ -2,19 +2,358 @@
 
 import { z } from 'zod';
 
-export const zPostQuotesData = z.object({
-    body: z.optional(z.object({
-        destinationChainId: z.string().regex(/^eip155:\d+$/),
-        tokenRequests: z.array(z.union([z.object({
-                tokenAddress: z.string(),
+export const zListChainsData = z.object({
+    body: z.optional(z.never()),
+    path: z.optional(z.never()),
+    query: z.optional(z.never()),
+    headers: z.object({
+        'x-api-version': z.enum(['2026-04.blanc'])
+    })
+});
+
+/**
+ * Supported chains and tokens, keyed by CAIP-2 chain id
+ */
+export const zListChainsResponse = z.record(z.string(), z.object({
+    name: z.string(),
+    testnet: z.boolean(),
+    supportedTokens: z.union([
+        z.enum(['all']),
+        z.array(z.object({
+            symbol: z.string(),
+            address: z.string().min(1),
+            decimals: z.number()
+        }))
+    ]),
+    wrappedNativeToken: z.object({
+        symbol: z.string(),
+        address: z.string().min(1),
+        decimals: z.number()
+    })
+}));
+
+export const zListLiquidityData = z.object({
+    body: z.optional(z.never()),
+    path: z.optional(z.never()),
+    query: z.object({
+        sourceChainId: z.string().regex(/^eip155:[0-9]{1,32}$/),
+        sourceToken: z.string(),
+        destinationChainId: z.string().regex(/^(eip155|solana|tron|hypercore):[-_a-zA-Z0-9]{1,32}$/),
+        destinationToken: z.string().min(1)
+    }),
+    headers: z.object({
+        'x-api-version': z.enum(['2026-04.blanc']),
+        'x-api-key': z.string()
+    })
+});
+
+/**
+ * OK
+ */
+export const zListLiquidityResponse = z.object({
+    symbol: z.string(),
+    decimals: z.number(),
+    unlimited: z.boolean(),
+    maxAmount: z.union([
+        z.string(),
+        z.null()
+    ])
+});
+
+export const zGetIntentData = z.object({
+    body: z.optional(z.never()),
+    path: z.object({
+        id: z.string().regex(/^\d+$/)
+    }),
+    query: z.optional(z.object({
+        full: z.optional(z.boolean())
+    })),
+    headers: z.object({
+        'x-api-version': z.enum(['2026-04.blanc']),
+        'x-api-key': z.string()
+    })
+});
+
+/**
+ * Successfully retrieved intent operation status
+ */
+export const zGetIntentResponse = z.object({
+    status: z.enum([
+        'PENDING',
+        'COMPLETED',
+        'FAILED'
+    ]),
+    accountAddress: z.string(),
+    operations: z.array(z.object({
+        chain: z.number(),
+        items: z.array(z.object({
+            type: z.enum([
+                'CLAIM',
+                'FILL',
+                'BRIDGE_FILL'
+            ]),
+            status: z.enum([
+                'PENDING',
+                'COMPLETED',
+                'FAILED'
+            ]),
+            txHash: z.optional(z.string()),
+            timestamp: z.optional(z.number())
+        }))
+    })),
+    details: z.optional(z.object({
+        id: z.string(),
+        nonce: z.string(),
+        recipient: z.string(),
+        createdAt: z.number(),
+        latencyMs: z.union([
+            z.number(),
+            z.null()
+        ]),
+        settlementLayer: z.enum([
+            'INTENT_EXECUTOR',
+            'SAME_CHAIN',
+            'ACROSS',
+            'ECO',
+            'RELAY',
+            'OFT',
+            'NEAR',
+            'RHINO',
+            'CCTP'
+        ]),
+        source: z.array(z.object({
+            chain: z.number(),
+            tokens: z.array(z.object({
+                token: z.string(),
                 amount: z.string()
-            }), z.object({
-                tokenAddress: z.string(),
-                amount: z.optional(z.string())
-            })])),
+            })),
+            txHash: z.optional(z.string()),
+            timestamp: z.optional(z.number()),
+            status: z.enum([
+                'PENDING',
+                'COMPLETED',
+                'FAILED'
+            ])
+        })),
+        destination: z.union([
+            z.object({
+                chain: z.number(),
+                tokens: z.array(z.object({
+                    token: z.string(),
+                    amount: z.string()
+                })),
+                txHash: z.optional(z.string()),
+                timestamp: z.optional(z.number()),
+                status: z.enum([
+                    'PENDING',
+                    'COMPLETED',
+                    'FAILED'
+                ])
+            }),
+            z.null()
+        ]),
+        executions: z.array(z.object({
+            chain: z.number(),
+            phase: z.enum(['PRE_CLAIM', 'DESTINATION']),
+            to: z.string(),
+            value: z.string(),
+            data: z.string()
+        })),
+        cost: z.object({
+            sponsored: z.boolean(),
+            sponsoredValue: z.optional(z.string()),
+            protocolFee: z.optional(z.string())
+        })
+    }))
+});
+
+export const zGetPortfolioData = z.object({
+    body: z.optional(z.never()),
+    path: z.object({
+        accountAddress: z.string()
+    }),
+    query: z.optional(z.object({
+        chainIds: z.optional(z.union([
+            z.array(z.string().regex(/^eip155:[0-9]{1,32}$/)),
+            z.string().regex(/^eip155:[0-9]{1,32}$/)
+        ])),
+        tokens: z.optional(z.union([
+            z.array(z.string().regex(/^eip155:[0-9]{1,32}:0x[a-fA-F0-9]{40}$/)),
+            z.string().regex(/^eip155:[0-9]{1,32}:0x[a-fA-F0-9]{40}$/)
+        ])),
+        filterEmpty: z.optional(z.boolean()).default(false)
+    })),
+    headers: z.object({
+        'x-api-version': z.enum(['2026-04.blanc']),
+        'x-api-key': z.string()
+    })
+});
+
+/**
+ * OK
+ */
+export const zGetPortfolioResponse = z.object({
+    portfolio: z.array(z.object({
+        symbol: z.string(),
+        chains: z.array(z.object({
+            chainId: z.string().regex(/^eip155:[0-9]{1,32}$/),
+            address: z.string(),
+            decimals: z.number().gte(0),
+            amount: z.string()
+        }))
+    }))
+});
+
+export const zListIntentsData = z.object({
+    body: z.optional(z.never()),
+    path: z.optional(z.never()),
+    query: z.optional(z.object({
+        cursor: z.optional(z.string().regex(/^\d+$/)),
+        limit: z.optional(z.int().gte(1).lte(100)).default(20)
+    })),
+    headers: z.object({
+        'x-api-version': z.enum(['2026-04.blanc']),
+        'x-api-key': z.string()
+    })
+});
+
+/**
+ * Paginated list of the client’s intents
+ */
+export const zListIntentsResponse = z.object({
+    data: z.array(z.object({
+        id: z.string(),
+        status: z.enum([
+            'PENDING',
+            'COMPLETED',
+            'FAILED'
+        ]),
+        fromChains: z.array(z.number()),
+        toChain: z.optional(z.number()),
+        token: z.optional(z.string()),
+        amount: z.optional(z.string()),
+        account: z.string(),
+        createdAt: z.number()
+    })),
+    pagination: z.object({
+        nextCursor: z.union([
+            z.string(),
+            z.null()
+        ]),
+        hasNextPage: z.boolean()
+    })
+});
+
+export const zCreateIntentData = z.object({
+    body: z.object({
+        intentId: z.string().regex(/^\d+$/),
+        signatures: z.object({
+            origin: z.array(z.union([z.string().regex(/^0x[a-fA-F0-9]*$/), z.object({
+                    preClaimSig: z.string().regex(/^0x[a-fA-F0-9]*$/),
+                    notarizedClaimSig: z.string().regex(/^0x[a-fA-F0-9]*$/)
+                })])),
+            destination: z.string().regex(/^0x[a-fA-F0-9]*$/),
+            targetExecution: z.optional(z.string().regex(/^0x[a-fA-F0-9]*$/))
+        }),
+        authorizations: z.optional(z.object({
+            sponsor: z.optional(z.array(z.object({
+                chainId: z.number(),
+                address: z.string(),
+                nonce: z.number(),
+                yParity: z.number(),
+                r: z.string().regex(/^0x[a-fA-F0-9]*$/),
+                s: z.string().regex(/^0x[a-fA-F0-9]*$/)
+            }))),
+            recipient: z.optional(z.array(z.object({
+                chainId: z.number(),
+                address: z.string(),
+                nonce: z.number(),
+                yParity: z.number(),
+                r: z.string().regex(/^0x[a-fA-F0-9]*$/),
+                s: z.string().regex(/^0x[a-fA-F0-9]*$/)
+            })))
+        }))
+    }),
+    path: z.optional(z.never()),
+    query: z.optional(z.never()),
+    headers: z.object({
+        'x-api-version': z.enum(['2026-04.blanc']),
+        'x-api-key': z.string()
+    })
+});
+
+/**
+ * OK
+ */
+export const zCreateIntentResponse = z.object({
+    intentId: z.string().regex(/^\d+$/)
+});
+
+export const zGetSplitData = z.object({
+    body: z.object({
+        chainId: z.string().regex(/^eip155:[0-9]{1,32}$/),
+        tokens: z.record(z.string(), z.string()),
+        settlementLayers: z.optional(z.union([
+            z.array(z.enum([
+                'ACROSS',
+                'ECO',
+                'RELAY',
+                'OFT',
+                'NEAR',
+                'RHINO',
+                'CCTP'
+            ])),
+            z.object({
+                include: z.array(z.enum([
+                    'ACROSS',
+                    'ECO',
+                    'RELAY',
+                    'OFT',
+                    'NEAR',
+                    'RHINO',
+                    'CCTP'
+                ]))
+            }),
+            z.object({
+                exclude: z.array(z.enum([
+                    'ACROSS',
+                    'ECO',
+                    'RELAY',
+                    'OFT',
+                    'NEAR',
+                    'RHINO',
+                    'CCTP'
+                ]))
+            })
+        ]))
+    }),
+    path: z.optional(z.never()),
+    query: z.optional(z.never()),
+    headers: z.object({
+        'x-api-version': z.enum(['2026-04.blanc']),
+        'x-api-key': z.string()
+    })
+});
+
+/**
+ * OK
+ */
+export const zGetSplitResponse = z.object({
+    intents: z.array(z.record(z.string(), z.string()))
+});
+
+export const zCreateQuoteData = z.object({
+    body: z.object({
+        destinationChainId: z.string().regex(/^(eip155|solana|tron|hypercore):[-_a-zA-Z0-9]{1,32}$/),
+        tokenRequests: z.array(z.object({
+            tokenAddress: z.string().min(1),
+            amount: z.optional(z.string()),
+            balance: z.optional(z.enum(['spot', 'perp']))
+        })),
         account: z.object({
             address: z.string(),
             accountType: z.optional(z.enum([
+                'smartAccount',
                 'GENERIC',
                 'EOA',
                 'ERC7579'
@@ -24,6 +363,7 @@ export const zPostQuotesData = z.object({
                 data: z.string().regex(/^0x[a-fA-F0-9]*$/)
             }))),
             mockSignatures: z.optional(z.record(z.string(), z.string().regex(/^0x[a-fA-F0-9]*$/))),
+            mockSignature: z.optional(z.unknown()),
             delegations: z.optional(z.record(z.string(), z.object({
                 contract: z.string()
             })))
@@ -40,14 +380,14 @@ export const zPostQuotesData = z.object({
         })).max(10))),
         destinationGasLimit: z.optional(z.string()),
         accountAccessList: z.optional(z.object({
-            chainIds: z.optional(z.array(z.string().regex(/^eip155:\d+$/))),
+            chainIds: z.optional(z.array(z.number().gte(0))),
             tokens: z.optional(z.array(z.union([
                 z.string(),
                 z.literal('ETH'),
                 z.literal('USDC'),
                 z.literal('WETH'),
-                z.literal('USDT0'),
                 z.literal('USDT'),
+                z.literal('USDT0'),
                 z.literal('BNB'),
                 z.literal('WBNB'),
                 z.literal('XDAI'),
@@ -60,17 +400,24 @@ export const zPostQuotesData = z.object({
                 z.literal('WS'),
                 z.literal('HYPE'),
                 z.literal('WHYPE'),
+                z.literal('USDG'),
                 z.literal('XPL'),
                 z.literal('WXPL'),
-                z.literal('MockUSD')
+                z.literal('AVAX'),
+                z.literal('WAVAX'),
+                z.literal('MockUSD'),
+                z.literal('TRX'),
+                z.literal('WTRX'),
+                z.literal('SOL'),
+                z.literal('WSOL')
             ]))),
             chainTokens: z.optional(z.record(z.string(), z.array(z.union([
                 z.string(),
                 z.literal('ETH'),
                 z.literal('USDC'),
                 z.literal('WETH'),
-                z.literal('USDT0'),
                 z.literal('USDT'),
+                z.literal('USDT0'),
                 z.literal('BNB'),
                 z.literal('WBNB'),
                 z.literal('XDAI'),
@@ -83,20 +430,27 @@ export const zPostQuotesData = z.object({
                 z.literal('WS'),
                 z.literal('HYPE'),
                 z.literal('WHYPE'),
+                z.literal('USDG'),
                 z.literal('XPL'),
                 z.literal('WXPL'),
-                z.literal('MockUSD')
+                z.literal('AVAX'),
+                z.literal('WAVAX'),
+                z.literal('MockUSD'),
+                z.literal('TRX'),
+                z.literal('WTRX'),
+                z.literal('SOL'),
+                z.literal('WSOL')
             ])))),
             chainTokenAmounts: z.optional(z.record(z.string(), z.record(z.string(), z.string()))),
             exclude: z.optional(z.object({
-                chainIds: z.optional(z.array(z.string().regex(/^eip155:\d+$/))),
+                chainIds: z.optional(z.array(z.number().gte(0))),
                 tokens: z.optional(z.array(z.union([
                     z.string(),
                     z.literal('ETH'),
                     z.literal('USDC'),
                     z.literal('WETH'),
-                    z.literal('USDT0'),
                     z.literal('USDT'),
+                    z.literal('USDT0'),
                     z.literal('BNB'),
                     z.literal('WBNB'),
                     z.literal('XDAI'),
@@ -109,17 +463,24 @@ export const zPostQuotesData = z.object({
                     z.literal('WS'),
                     z.literal('HYPE'),
                     z.literal('WHYPE'),
+                    z.literal('USDG'),
                     z.literal('XPL'),
                     z.literal('WXPL'),
-                    z.literal('MockUSD')
+                    z.literal('AVAX'),
+                    z.literal('WAVAX'),
+                    z.literal('MockUSD'),
+                    z.literal('TRX'),
+                    z.literal('WTRX'),
+                    z.literal('SOL'),
+                    z.literal('WSOL')
                 ]))),
                 chainTokens: z.optional(z.record(z.string(), z.array(z.union([
                     z.string(),
                     z.literal('ETH'),
                     z.literal('USDC'),
                     z.literal('WETH'),
-                    z.literal('USDT0'),
                     z.literal('USDT'),
+                    z.literal('USDT0'),
                     z.literal('BNB'),
                     z.literal('WBNB'),
                     z.literal('XDAI'),
@@ -132,15 +493,23 @@ export const zPostQuotesData = z.object({
                     z.literal('WS'),
                     z.literal('HYPE'),
                     z.literal('WHYPE'),
+                    z.literal('USDG'),
                     z.literal('XPL'),
                     z.literal('WXPL'),
-                    z.literal('MockUSD')
+                    z.literal('AVAX'),
+                    z.literal('WAVAX'),
+                    z.literal('MockUSD'),
+                    z.literal('TRX'),
+                    z.literal('WTRX'),
+                    z.literal('SOL'),
+                    z.literal('WSOL')
                 ]))))
             }))
         })),
         recipient: z.optional(z.object({
             address: z.string().min(1),
             accountType: z.optional(z.enum([
+                'smartAccount',
                 'GENERIC',
                 'EOA',
                 'ERC7579'
@@ -150,24 +519,50 @@ export const zPostQuotesData = z.object({
                 data: z.string().regex(/^0x[a-fA-F0-9]*$/)
             }))),
             mockSignatures: z.optional(z.record(z.string(), z.string().regex(/^0x[a-fA-F0-9]*$/))),
+            mockSignature: z.optional(z.unknown()),
             delegations: z.optional(z.record(z.string(), z.object({
                 contract: z.string()
             })))
         })),
         options: z.optional(z.object({
-            settlementLayers: z.optional(z.array(z.enum([
-                'ACROSS',
-                'ECO',
-                'RELAY',
-                'OFT',
-                'NEAR',
-                'RHINO',
-                'CCTP'
-            ]))),
+            settlementLayers: z.optional(z.union([
+                z.array(z.enum([
+                    'ACROSS',
+                    'ECO',
+                    'RELAY',
+                    'OFT',
+                    'NEAR',
+                    'RHINO',
+                    'CCTP'
+                ])),
+                z.object({
+                    include: z.array(z.enum([
+                        'ACROSS',
+                        'ECO',
+                        'RELAY',
+                        'OFT',
+                        'NEAR',
+                        'RHINO',
+                        'CCTP'
+                    ]))
+                }),
+                z.object({
+                    exclude: z.array(z.enum([
+                        'ACROSS',
+                        'ECO',
+                        'RELAY',
+                        'OFT',
+                        'NEAR',
+                        'RHINO',
+                        'CCTP'
+                    ]))
+                })
+            ])),
             sponsorSettings: z.optional(z.object({
                 gas: z.optional(z.boolean()).default(false),
                 bridgeFees: z.optional(z.boolean()).default(false),
-                swapFees: z.optional(z.boolean()).default(false)
+                swapFees: z.optional(z.boolean()).default(false),
+                protocolFees: z.optional(z.boolean()).default(false)
             })),
             signatureMode: z.optional(z.union([
                 z.literal('EMISSARY'),
@@ -185,55 +580,39 @@ export const zPostQuotesData = z.object({
                 z.literal(5),
                 z.literal(6)
             ])),
-            feeToken: z.optional(z.enum([
-                'ETH',
-                'USDC',
-                'WETH',
-                'USDT0',
-                'USDT',
-                'BNB',
-                'WBNB',
-                'XDAI',
-                'WXDAI',
-                'POL',
-                'WPOL',
-                'MON',
-                'WMON',
-                'S',
-                'WS',
-                'HYPE',
-                'WHYPE',
-                'XPL',
-                'WXPL',
-                'MockUSD'
-            ])),
+            appFees: z.optional(z.object({
+                feeBps: z.int().gte(0).lte(10000)
+            })),
+            protocolFees: z.optional(z.object({
+                feeBps: z.int().gte(0).lte(10000)
+            })),
             executionTokensReceived: z.optional(z.array(z.string())),
             auxiliaryFunds: z.optional(z.record(z.string(), z.record(z.string(), z.string()))),
             selectionStrategy: z.optional(z.enum([
                 'cheapest',
                 'fastest',
                 'best'
-            ]))
+            ])),
+            customDeadline: z.optional(z.int().gt(0))
         }))
-    })),
+    }),
     path: z.optional(z.never()),
     query: z.optional(z.never()),
     headers: z.object({
-        'x-api-key': z.string(),
-        'x-api-version': z.optional(z.string().regex(/^\d{4}-\d{2}\.[a-z0-9]+$/)),
-        'x-feature-flags': z.optional(z.string())
+        'x-api-version': z.enum(['2026-04.blanc']),
+        'x-api-key': z.string()
     })
 });
 
 /**
  * Response body for `POST /quotes` on the blanc API version
  */
-export const zPostQuotesResponse = z.object({
+export const zCreateQuoteResponse = z.object({
     routes: z.array(z.object({
         intentId: z.string().regex(/^\d+$/),
         expiresAt: z.int().gte(0),
         estimatedFillTime: z.object({
-            seconds: z.int().gte(0)
+            seconds: z.number()
         }),
         settlementLayer: z.enum([
             'INTENT_EXECUTOR',
@@ -251,7 +630,7 @@ export const zPostQuotesResponse = z.object({
                 domain: z.object({
                     name: z.optional(z.string()),
                     version: z.optional(z.string()),
-                    chainId: z.optional(z.string().regex(/^eip155:\d+$/)),
+                    chainId: z.optional(z.number()),
                     verifyingContract: z.optional(z.string()),
                     salt: z.optional(z.string())
                 }),
@@ -266,7 +645,7 @@ export const zPostQuotesResponse = z.object({
                 domain: z.object({
                     name: z.optional(z.string()),
                     version: z.optional(z.string()),
-                    chainId: z.optional(z.string().regex(/^eip155:\d+$/)),
+                    chainId: z.optional(z.number()),
                     verifyingContract: z.optional(z.string()),
                     salt: z.optional(z.string())
                 }),
@@ -281,7 +660,7 @@ export const zPostQuotesResponse = z.object({
                 domain: z.object({
                     name: z.optional(z.string()),
                     version: z.optional(z.string()),
-                    chainId: z.optional(z.string().regex(/^eip155:\d+$/)),
+                    chainId: z.optional(z.number()),
                     verifyingContract: z.optional(z.string()),
                     salt: z.optional(z.string())
                 }),
@@ -295,7 +674,7 @@ export const zPostQuotesResponse = z.object({
         }),
         cost: z.object({
             input: z.array(z.object({
-                chainId: z.string().regex(/^eip155:\d+$/),
+                chainId: z.string().regex(/^eip155:[0-9]{1,32}$/),
                 tokenAddress: z.string(),
                 symbol: z.union([
                     z.string(),
@@ -314,8 +693,8 @@ export const zPostQuotesResponse = z.object({
                 amount: z.string()
             })),
             output: z.array(z.object({
-                chainId: z.string().regex(/^eip155:\d+$/),
-                tokenAddress: z.string(),
+                chainId: z.string().regex(/^(eip155|solana|tron|hypercore):[-_a-zA-Z0-9]{1,32}$/),
+                tokenAddress: z.string().min(1),
                 symbol: z.union([
                     z.string(),
                     z.null()
@@ -338,19 +717,28 @@ export const zPostQuotesResponse = z.object({
                 }),
                 breakdown: z.object({
                     gas: z.object({
-                        usd: z.number()
+                        usd: z.number(),
+                        sponsored: z.boolean()
                     }),
                     bridge: z.object({
-                        usd: z.number()
-                    }),
-                    protocol: z.object({
-                        usd: z.number()
+                        usd: z.number(),
+                        sponsored: z.boolean()
                     }),
                     swap: z.object({
-                        usd: z.number()
+                        usd: z.number(),
+                        sponsored: z.boolean()
                     }),
-                    settlement: z.object({
-                        usd: z.number()
+                    app: z.object({
+                        usd: z.number(),
+                        sponsored: z.boolean()
+                    }),
+                    protocol: z.object({
+                        usd: z.number(),
+                        sponsored: z.boolean()
+                    }),
+                    sponsorSurcharge: z.object({
+                        usd: z.number(),
+                        sponsored: z.boolean()
                     })
                 })
             })
@@ -368,26 +756,36 @@ export const zPostQuotesResponse = z.object({
         ])))),
         bridgeFill: z.optional(z.union([
             z.object({
-                destinationChainId: z.string().regex(/^eip155:\d+$/),
+                destinationChainId: z.number(),
+                fillExpirationPeriod: z.optional(z.int().gte(0)),
+                fillStatusTimeout: z.int().gte(0),
                 type: z.enum(['OFT'])
             }),
             z.object({
-                destinationChainId: z.string().regex(/^eip155:\d+$/),
+                destinationChainId: z.number(),
+                fillExpirationPeriod: z.optional(z.int().gte(0)),
+                fillStatusTimeout: z.int().gte(0),
                 type: z.enum(['RELAY']),
                 requestId: z.string()
             }),
             z.object({
-                destinationChainId: z.string().regex(/^eip155:\d+$/),
+                destinationChainId: z.number(),
+                fillExpirationPeriod: z.optional(z.int().gte(0)),
+                fillStatusTimeout: z.int().gte(0),
                 type: z.enum(['NEAR']),
                 depositAddress: z.string()
             }),
             z.object({
-                destinationChainId: z.string().regex(/^eip155:\d+$/),
+                destinationChainId: z.number(),
+                fillExpirationPeriod: z.optional(z.int().gte(0)),
+                fillStatusTimeout: z.int().gte(0),
                 type: z.enum(['RHINO']),
                 commitmentId: z.string()
             }),
             z.object({
-                destinationChainId: z.string().regex(/^eip155:\d+$/),
+                destinationChainId: z.number(),
+                fillExpirationPeriod: z.optional(z.int().gte(0)),
+                fillStatusTimeout: z.int().gte(0),
                 type: z.enum(['CCTP']),
                 sourceDomainId: z.number(),
                 destinationDomainId: z.number()
@@ -396,11 +794,75 @@ export const zPostQuotesResponse = z.object({
     }))
 });
 
-export const zPostIntentsSplitsData = z.object({
-    body: z.optional(z.object({
-        chainId: z.string().regex(/^eip155:\d+$/),
-        tokens: z.record(z.string(), z.string()),
-        settlementLayers: z.optional(z.array(z.enum([
+export const zCreateQuoteEstimateData = z.object({
+    body: z.object({
+        direction: z.enum(['exactIn', 'exactOut']),
+        sourceChainId: z.string().regex(/^eip155:[0-9]{1,32}$/),
+        sourceToken: z.string(),
+        destinationChainId: z.string().regex(/^(eip155|solana|tron|hypercore):[-_a-zA-Z0-9]{1,32}$/),
+        destinationToken: z.string().min(1),
+        amountIn: z.optional(z.string()),
+        amountOut: z.optional(z.string()),
+        accountType: z.optional(z.enum(['EOA', 'SMART_ACCOUNT'])),
+        accountDeployed: z.optional(z.boolean()),
+        options: z.optional(z.object({
+            settlementLayers: z.optional(z.union([
+                z.object({
+                    include: z.array(z.enum([
+                        'ACROSS',
+                        'ECO',
+                        'RELAY',
+                        'OFT',
+                        'NEAR',
+                        'RHINO',
+                        'CCTP'
+                    ]))
+                }),
+                z.object({
+                    exclude: z.array(z.enum([
+                        'ACROSS',
+                        'ECO',
+                        'RELAY',
+                        'OFT',
+                        'NEAR',
+                        'RHINO',
+                        'CCTP'
+                    ]))
+                })
+            ])),
+            sponsorSettings: z.optional(z.object({
+                gas: z.optional(z.boolean()).default(false),
+                bridgeFees: z.optional(z.boolean()).default(false),
+                swapFees: z.optional(z.boolean()).default(false),
+                protocolFees: z.optional(z.boolean()).default(false)
+            })),
+            selectionStrategy: z.optional(z.enum([
+                'cheapest',
+                'fastest',
+                'best'
+            ])),
+            appFees: z.optional(z.object({
+                feeBps: z.int().gte(0).lte(10000)
+            })),
+            protocolFees: z.optional(z.object({
+                feeBps: z.int().gte(0).lte(10000)
+            }))
+        }))
+    }),
+    path: z.optional(z.never()),
+    query: z.optional(z.never()),
+    headers: z.object({
+        'x-api-version': z.enum(['2026-04.blanc']),
+        'x-api-key': z.string()
+    })
+});
+
+/**
+ * Response body for `POST /quotes/estimate`. Indicative (non-binding): carries no `intentId`, `signData`, or `expiresAt`.
+ */
+export const zCreateQuoteEstimateResponse = z.object({
+    routes: z.array(z.object({
+        settlementLayer: z.enum([
             'INTENT_EXECUTOR',
             'SAME_CHAIN',
             'ACROSS',
@@ -410,193 +872,192 @@ export const zPostIntentsSplitsData = z.object({
             'NEAR',
             'RHINO',
             'CCTP'
-        ])))
-    })),
-    path: z.optional(z.never()),
-    query: z.optional(z.never()),
-    headers: z.object({
-        'x-api-key': z.string(),
-        'x-api-version': z.optional(z.string().regex(/^\d{4}-\d{2}\.[a-z0-9]+$/))
-    })
-});
-
-/**
- * Successfully split the intent by available liquidity
- */
-export const zPostIntentsSplitsResponse = z.object({
-    intents: z.array(z.record(z.string(), z.string()))
-});
-
-export const zPostIntentsData = z.object({
-    body: z.optional(z.object({
-        intentId: z.string().regex(/^\d+$/),
-        signatures: z.object({
-            origin: z.array(z.union([z.string().regex(/^0x[a-fA-F0-9]*$/), z.object({
-                    preClaimSig: z.string().regex(/^0x[a-fA-F0-9]*$/),
-                    notarizedClaimSig: z.string().regex(/^0x[a-fA-F0-9]*$/)
-                })])),
-            destination: z.string().regex(/^0x[a-fA-F0-9]*$/),
-            targetExecution: z.optional(z.string().regex(/^0x[a-fA-F0-9]*$/))
+        ]),
+        accuracy: z.enum(['exact', 'approximated']),
+        status: z.enum(['ok', 'over_capacity']),
+        input: z.object({
+            chainId: z.string().regex(/^eip155:[0-9]{1,32}$/),
+            tokenAddress: z.string(),
+            symbol: z.union([
+                z.string(),
+                z.null()
+            ]),
+            decimals: z.union([
+                z.int(),
+                z.null()
+            ]),
+            price: z.union([
+                z.object({
+                    usd: z.number()
+                }),
+                z.null()
+            ]),
+            amount: z.string()
         }),
-        authorizations: z.optional(z.object({
-            sponsor: z.optional(z.array(z.object({
-                chainId: z.string().regex(/^eip155:\d+$/),
-                address: z.string(),
-                nonce: z.number(),
-                yParity: z.number(),
-                r: z.string().regex(/^0x[a-fA-F0-9]*$/),
-                s: z.string().regex(/^0x[a-fA-F0-9]*$/)
-            }))),
-            recipient: z.optional(z.array(z.object({
-                chainId: z.string().regex(/^eip155:\d+$/),
-                address: z.string(),
-                nonce: z.number(),
-                yParity: z.number(),
-                r: z.string().regex(/^0x[a-fA-F0-9]*$/),
-                s: z.string().regex(/^0x[a-fA-F0-9]*$/)
-            })))
-        }))
+        output: z.object({
+            chainId: z.string().regex(/^(eip155|solana|tron|hypercore):[-_a-zA-Z0-9]{1,32}$/),
+            tokenAddress: z.string().min(1),
+            symbol: z.union([
+                z.string(),
+                z.null()
+            ]),
+            decimals: z.union([
+                z.int(),
+                z.null()
+            ]),
+            price: z.union([
+                z.object({
+                    usd: z.number()
+                }),
+                z.null()
+            ]),
+            amount: z.string()
+        }),
+        fees: z.object({
+            total: z.object({
+                usd: z.number()
+            }),
+            breakdown: z.object({
+                gas: z.object({
+                    usd: z.number(),
+                    sponsored: z.boolean()
+                }),
+                bridge: z.object({
+                    usd: z.number(),
+                    sponsored: z.boolean()
+                }),
+                swap: z.object({
+                    usd: z.number(),
+                    sponsored: z.boolean()
+                }),
+                app: z.object({
+                    usd: z.number(),
+                    sponsored: z.boolean()
+                }),
+                protocol: z.object({
+                    usd: z.number(),
+                    sponsored: z.boolean()
+                }),
+                sponsorSurcharge: z.object({
+                    usd: z.number(),
+                    sponsored: z.boolean()
+                })
+            })
+        }),
+        estimatedFillTime: z.object({
+            seconds: z.number()
+        })
     })),
+    unavailableReason: z.optional(z.enum([
+        'unsupported_token',
+        'no_route_support',
+        'no_price',
+        'below_minimum'
+    ]))
+});
+
+export const zGetAppFeeBalancesData = z.object({
+    body: z.optional(z.never()),
     path: z.optional(z.never()),
     query: z.optional(z.never()),
     headers: z.object({
-        'x-api-key': z.string(),
-        'x-api-version': z.optional(z.string().regex(/^\d{4}-\d{2}\.[a-z0-9]+$/))
+        'x-api-version': z.enum(['2026-04.blanc']),
+        'x-api-key': z.string()
     })
 });
 
 /**
- * Intent operations submitted successfully
+ * OK
  */
-export const zPostIntentsResponse = z.object({
-    intentId: z.string().regex(/^\d+$/)
+export const zGetAppFeeBalancesResponse = z.object({
+    withdrawableUsd: z.number(),
+    pendingUsd: z.number()
 });
 
-export const zGetIntentsByIdData = z.object({
+export const zListAppFeeWithdrawalsData = z.object({
     body: z.optional(z.never()),
-    path: z.object({
-        id: z.string().regex(/^\d+$/)
-    }),
-    query: z.optional(z.object({
-        full: z.optional(z.boolean())
-    })),
+    path: z.optional(z.never()),
+    query: z.optional(z.never()),
     headers: z.object({
-        'x-api-key': z.string(),
-        'x-api-version': z.optional(z.string().regex(/^\d{4}-\d{2}\.[a-z0-9]+$/))
+        'x-api-version': z.enum(['2026-04.blanc']),
+        'x-api-key': z.string()
     })
 });
 
 /**
- * Successfully retrieved intent operation status
+ * OK
  */
-export const zGetIntentsByIdResponse = z.object({
-    status: z.enum([
-        'PENDING',
-        'PRECONFIRMED',
-        'CLAIMED',
-        'FILLED',
-        'COMPLETED',
-        'FAILED',
-        'EXPIRED'
-    ]),
-    fillTimestamp: z.optional(z.number()),
-    fillTransactionHash: z.optional(z.string()),
-    destinationChainId: z.string().regex(/^eip155:\d+$/),
-    accountAddress: z.string(),
-    claims: z.array(z.object({
-        chainId: z.string().regex(/^eip155:\d+$/),
+export const zListAppFeeWithdrawalsResponse = z.object({
+    withdrawals: z.array(z.object({
+        requestNonce: z.string().regex(/^\d+$/),
         status: z.enum([
             'PENDING',
-            'EXPIRED',
-            'PRECONFIRMED',
             'COMPLETED',
             'FAILED'
         ]),
-        claimTimestamp: z.optional(z.number()),
-        claimTransactionHash: z.optional(z.string())
+        payoutUsd: z.number(),
+        targetChainId: z.int(),
+        targetToken: z.string(),
+        targetAmount: z.string(),
+        payoutAddress: z.string(),
+        txHash: z.union([
+            z.string(),
+            z.null()
+        ]),
+        createdAt: z.string()
     }))
 });
 
-export const zGetAccountsByAccountAddressPortfolioData = z.object({
-    body: z.optional(z.never()),
-    path: z.object({
-        accountAddress: z.string()
+export const zCreateAppFeeWithdrawalData = z.object({
+    body: z.object({
+        targetChainId: z.int().gt(0),
+        targetToken: z.string()
     }),
-    query: z.optional(z.object({
-        chainIds: z.optional(z.array(z.string().regex(/^eip155:\d+$/))),
-        tokens: z.optional(z.array(z.string().regex(/^eip155:\d+:0x[a-fA-F0-9]{40}$/))),
-        filterEmpty: z.optional(z.boolean()).default(false)
-    })),
-    headers: z.object({
-        'x-api-key': z.string(),
-        'x-api-version': z.optional(z.string().regex(/^\d{4}-\d{2}\.[a-z0-9]+$/))
-    })
-});
-
-/**
- * Successfully retrieved user portfolio
- */
-export const zGetAccountsByAccountAddressPortfolioResponse = z.object({
-    portfolio: z.array(z.object({
-        symbol: z.string(),
-        chains: z.array(z.object({
-            chainId: z.string().regex(/^eip155:\d+$/),
-            address: z.string(),
-            decimals: z.number().gte(0),
-            amount: z.string()
-        }))
-    }))
-});
-
-export const zGetChainsData = z.object({
-    body: z.optional(z.never()),
     path: z.optional(z.never()),
     query: z.optional(z.never()),
-    headers: z.optional(z.object({
-        'x-api-version': z.optional(z.string().regex(/^\d{4}-\d{2}\.[a-z0-9]+$/))
-    }))
-});
-
-/**
- * The supported chains and tokens with additional metadata Object keyed by CAIP-2 chain identifier (e.g. `eip155:42161`).
- */
-export const zGetChainsResponse = z.record(z.string(), z.object({
-    name: z.string(),
-    supportedTokens: z.union([
-        z.enum(['all']),
-        z.array(z.object({
-            symbol: z.string(),
-            address: z.string(),
-            decimals: z.number()
-        }))
-    ]),
-    testnet: z.boolean()
-}));
-
-export const zGetLiquidityData = z.object({
-    body: z.optional(z.never()),
-    path: z.optional(z.never()),
-    query: z.object({
-        sourceChainId: z.string().regex(/^eip155:\d+$/),
-        sourceToken: z.string(),
-        destinationChainId: z.string().regex(/^eip155:\d+$/),
-        destinationToken: z.string()
-    }),
     headers: z.object({
-        'x-api-key': z.string(),
-        'x-api-version': z.optional(z.string().regex(/^\d{4}-\d{2}\.[a-z0-9]+$/))
+        'x-api-version': z.enum(['2026-04.blanc']),
+        'x-api-key': z.string()
     })
 });
 
 /**
- * Liquidity information for the requested route
+ * OK
  */
-export const zGetLiquidityResponse = z.object({
-    symbol: z.string(),
-    decimals: z.number(),
-    unlimited: z.boolean(),
-    maxAmount: z.union([
+export const zCreateAppFeeWithdrawalResponse = z.object({
+    requestNonce: z.string().regex(/^\d+$/)
+});
+
+export const zGetAppFeeWithdrawalData = z.object({
+    body: z.optional(z.never()),
+    path: z.object({
+        nonce: z.string().regex(/^\d+$/)
+    }),
+    query: z.optional(z.never()),
+    headers: z.object({
+        'x-api-version': z.enum(['2026-04.blanc']),
+        'x-api-key': z.string()
+    })
+});
+
+/**
+ * OK
+ */
+export const zGetAppFeeWithdrawalResponse = z.object({
+    requestNonce: z.string().regex(/^\d+$/),
+    status: z.enum([
+        'PENDING',
+        'COMPLETED',
+        'FAILED'
+    ]),
+    payoutUsd: z.number(),
+    targetChainId: z.int(),
+    targetToken: z.string(),
+    targetAmount: z.string(),
+    payoutAddress: z.string(),
+    txHash: z.union([
         z.string(),
         z.null()
-    ])
+    ]),
+    createdAt: z.string()
 });

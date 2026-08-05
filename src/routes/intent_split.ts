@@ -1,17 +1,17 @@
 import { Request, Response } from 'express';
 import { z } from 'zod';
 import { jsonify, logRequest } from '../log';
-import { zPostIntentsSplitsData, zPostIntentsSplitsResponse } from '../gen/zod.gen';
+import { zGetSplitData, zGetSplitResponse } from '../gen/zod.gen';
 import { sendError } from '../errors';
 
-type SplitData = z.infer<typeof zPostIntentsSplitsData>;
-type SplitResponse = z.infer<typeof zPostIntentsSplitsResponse>;
+type SplitData = z.infer<typeof zGetSplitData>;
+type SplitResponse = z.infer<typeof zGetSplitResponse>;
 
 export const intent_split = async (req: Request, resp: Response) => {
     logRequest(req);
 
     try {
-        const params = zPostIntentsSplitsData.parse({
+        const params = zGetSplitData.parse({
             body: req.body,
             path: undefined,
             query: undefined,

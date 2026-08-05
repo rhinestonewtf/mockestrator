@@ -2,8 +2,8 @@
 
 import type { Client, Options as Options2, TDataShape } from './client';
 import { client } from './client.gen';
-import type { GetAccountsByAccountAddressPortfolioData, GetAccountsByAccountAddressPortfolioErrors, GetAccountsByAccountAddressPortfolioResponses, GetChainsData, GetChainsResponses, GetIntentsByIdData, GetIntentsByIdErrors, GetIntentsByIdResponses, GetLiquidityData, GetLiquidityErrors, GetLiquidityResponses, PostIntentsData, PostIntentsErrors, PostIntentsResponses, PostIntentsSplitsData, PostIntentsSplitsErrors, PostIntentsSplitsResponses, PostQuotesData, PostQuotesErrors, PostQuotesResponses } from './types.gen';
-import { zGetAccountsByAccountAddressPortfolioData, zGetAccountsByAccountAddressPortfolioResponse, zGetChainsData, zGetChainsResponse, zGetIntentsByIdData, zGetIntentsByIdResponse, zGetLiquidityData, zGetLiquidityResponse, zPostIntentsData, zPostIntentsResponse, zPostIntentsSplitsData, zPostIntentsSplitsResponse, zPostQuotesData, zPostQuotesResponse } from './zod.gen';
+import type { CreateAppFeeWithdrawalData, CreateAppFeeWithdrawalErrors, CreateAppFeeWithdrawalResponses, CreateIntentData, CreateIntentErrors, CreateIntentResponses, CreateQuoteData, CreateQuoteErrors, CreateQuoteEstimateData, CreateQuoteEstimateErrors, CreateQuoteEstimateResponses, CreateQuoteResponses, GetAppFeeBalancesData, GetAppFeeBalancesErrors, GetAppFeeBalancesResponses, GetAppFeeWithdrawalData, GetAppFeeWithdrawalErrors, GetAppFeeWithdrawalResponses, GetIntentData, GetIntentErrors, GetIntentResponses, GetPortfolioData, GetPortfolioErrors, GetPortfolioResponses, GetSplitData, GetSplitErrors, GetSplitResponses, ListAppFeeWithdrawalsData, ListAppFeeWithdrawalsErrors, ListAppFeeWithdrawalsResponses, ListChainsData, ListChainsErrors, ListChainsResponses, ListIntentsData, ListIntentsErrors, ListIntentsResponses, ListLiquidityData, ListLiquidityErrors, ListLiquidityResponses } from './types.gen';
+import { zCreateAppFeeWithdrawalData, zCreateAppFeeWithdrawalResponse, zCreateIntentData, zCreateIntentResponse, zCreateQuoteData, zCreateQuoteEstimateData, zCreateQuoteEstimateResponse, zCreateQuoteResponse, zGetAppFeeBalancesData, zGetAppFeeBalancesResponse, zGetAppFeeWithdrawalData, zGetAppFeeWithdrawalResponse, zGetIntentData, zGetIntentResponse, zGetPortfolioData, zGetPortfolioResponse, zGetSplitData, zGetSplitResponse, zListAppFeeWithdrawalsData, zListAppFeeWithdrawalsResponse, zListChainsData, zListChainsResponse, zListIntentsData, zListIntentsResponse, zListLiquidityData, zListLiquidityResponse } from './zod.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean> = Options2<TData, ThrowOnError> & {
     /**
@@ -20,14 +20,74 @@ export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends 
 };
 
 /**
- * Create Quote
+ * Supported chains and tokens
  *
- * Computes a quote for a cross-chain intent: token transfers, target executions, and cost breakdown. Returns a pre-ranked `routes[]` with per-route `intentId` to pass to `POST /intents` for execution.
+ * Get supported chains and tokens with additional metadata
  */
-export const postQuotes = <ThrowOnError extends boolean = false>(options: Options<PostQuotesData, ThrowOnError>) => (options.client ?? client).post<PostQuotesResponses, PostQuotesErrors, ThrowOnError>({
-    requestValidator: async (data) => await zPostQuotesData.parseAsync(data),
-    responseValidator: async (data) => await zPostQuotesResponse.parseAsync(data),
-    url: '/quotes',
+export const listChains = <ThrowOnError extends boolean = false>(options: Options<ListChainsData, ThrowOnError>) => (options.client ?? client).get<ListChainsResponses, ListChainsErrors, ThrowOnError>({
+    requestValidator: async (data) => await zListChainsData.parseAsync(data),
+    responseValidator: async (data) => await zListChainsResponse.parseAsync(data),
+    url: '/chains',
+    ...options
+});
+
+/**
+ * Route liquidity limit
+ *
+ * Returns the largest known fillable amount for a single deposit on the given source→destination route. Relayer-market layers return exact capacity; bridge-backed layers return a conservative probed lower bound.
+ */
+export const listLiquidity = <ThrowOnError extends boolean = false>(options: Options<ListLiquidityData, ThrowOnError>) => (options.client ?? client).get<ListLiquidityResponses, ListLiquidityErrors, ThrowOnError>({
+    requestValidator: async (data) => await zListLiquidityData.parseAsync(data),
+    responseValidator: async (data) => await zListLiquidityResponse.parseAsync(data),
+    url: '/liquidity',
+    ...options
+});
+
+/**
+ * Get Intent
+ *
+ * Retrieves the status of an intent along with per-claim progress across chains.
+ */
+export const getIntent = <ThrowOnError extends boolean = false>(options: Options<GetIntentData, ThrowOnError>) => (options.client ?? client).get<GetIntentResponses, GetIntentErrors, ThrowOnError>({
+    requestValidator: async (data) => await zGetIntentData.parseAsync(data),
+    responseValidator: async (data) => await zGetIntentResponse.parseAsync(data),
+    url: '/intents/{id}',
+    ...options
+});
+
+/**
+ * Get Account Portfolio
+ *
+ * Retrieves the token balances across all supported chains for a user's abstracted account
+ */
+export const getPortfolio = <ThrowOnError extends boolean = false>(options: Options<GetPortfolioData, ThrowOnError>) => (options.client ?? client).get<GetPortfolioResponses, GetPortfolioErrors, ThrowOnError>({
+    requestValidator: async (data) => await zGetPortfolioData.parseAsync(data),
+    responseValidator: async (data) => await zGetPortfolioResponse.parseAsync(data),
+    url: '/accounts/{accountAddress}/portfolio',
+    ...options
+});
+
+/**
+ * List Intents
+ *
+ * Retrieves a paginated list of the authenticated client's intents, newest first.
+ */
+export const listIntents = <ThrowOnError extends boolean = false>(options: Options<ListIntentsData, ThrowOnError>) => (options.client ?? client).get<ListIntentsResponses, ListIntentsErrors, ThrowOnError>({
+    requestValidator: async (data) => await zListIntentsData.parseAsync(data),
+    responseValidator: async (data) => await zListIntentsResponse.parseAsync(data),
+    url: '/intents',
+    ...options
+});
+
+/**
+ * Create Intent
+ *
+ * Submits a quoted intent for execution. Takes the `intentId` from `POST /quotes` (`routes[].intentId`) plus signatures (origin, destination, optionally target-execution) and optional EIP-7702 authorizations.
+ */
+export const createIntent = <ThrowOnError extends boolean = false>(options: Options<CreateIntentData, ThrowOnError>) => (options.client ?? client).post<CreateIntentResponses, CreateIntentErrors, ThrowOnError>({
+    requestValidator: async (data) => await zCreateIntentData.parseAsync(data),
+    responseValidator: async (data) => await zCreateIntentResponse.parseAsync(data),
+    url: '/intents',
     ...options,
     headers: {
         'Content-Type': 'application/json',
@@ -40,9 +100,9 @@ export const postQuotes = <ThrowOnError extends boolean = false>(options: Option
  *
  * Splits token amounts into multiple intents based on available relayer liquidity. Each returned intent can be filled by a single relayer.
  */
-export const postIntentsSplits = <ThrowOnError extends boolean = false>(options: Options<PostIntentsSplitsData, ThrowOnError>) => (options.client ?? client).post<PostIntentsSplitsResponses, PostIntentsSplitsErrors, ThrowOnError>({
-    requestValidator: async (data) => await zPostIntentsSplitsData.parseAsync(data),
-    responseValidator: async (data) => await zPostIntentsSplitsResponse.parseAsync(data),
+export const getSplit = <ThrowOnError extends boolean = false>(options: Options<GetSplitData, ThrowOnError>) => (options.client ?? client).post<GetSplitResponses, GetSplitErrors, ThrowOnError>({
+    requestValidator: async (data) => await zGetSplitData.parseAsync(data),
+    responseValidator: async (data) => await zGetSplitResponse.parseAsync(data),
     url: '/intents/splits',
     ...options,
     headers: {
@@ -52,14 +112,14 @@ export const postIntentsSplits = <ThrowOnError extends boolean = false>(options:
 });
 
 /**
- * Create Intent
+ * Create Quote
  *
- * Submits a quoted intent for execution. Takes the `intentId` from `POST /quotes` (`routes[].intentId`) plus signatures (origin, destination, optionally target-execution) and optional EIP-7702 authorizations.
+ * Computes a quote for an intent: token transfers, target executions, and cost breakdown. Returns a pre-ranked `routes[]` with per-route `intentId` to pass to `POST /intents` for execution.
  */
-export const postIntents = <ThrowOnError extends boolean = false>(options: Options<PostIntentsData, ThrowOnError>) => (options.client ?? client).post<PostIntentsResponses, PostIntentsErrors, ThrowOnError>({
-    requestValidator: async (data) => await zPostIntentsData.parseAsync(data),
-    responseValidator: async (data) => await zPostIntentsResponse.parseAsync(data),
-    url: '/intents',
+export const createQuote = <ThrowOnError extends boolean = false>(options: Options<CreateQuoteData, ThrowOnError>) => (options.client ?? client).post<CreateQuoteResponses, CreateQuoteErrors, ThrowOnError>({
+    requestValidator: async (data) => await zCreateQuoteData.parseAsync(data),
+    responseValidator: async (data) => await zCreateQuoteResponse.parseAsync(data),
+    url: '/quotes',
     ...options,
     headers: {
         'Content-Type': 'application/json',
@@ -68,49 +128,69 @@ export const postIntents = <ThrowOnError extends boolean = false>(options: Optio
 });
 
 /**
- * Get Intent
+ * Create Indicative Quote
  *
- * Retrieves the status of an intent along with per-claim progress across chains.
+ * Computes an indicative (non-binding) quote: ranked route estimates with per-route cost breakdown and fill time. Unlike `POST /quotes`, it returns no `intentId`, `signData`, or `expiresAt` — it cannot be submitted to `POST /intents`. Use it for pre-quote UX (price previews, route discovery) without persisting an intent.
  */
-export const getIntentsById = <ThrowOnError extends boolean = false>(options: Options<GetIntentsByIdData, ThrowOnError>) => (options.client ?? client).get<GetIntentsByIdResponses, GetIntentsByIdErrors, ThrowOnError>({
-    requestValidator: async (data) => await zGetIntentsByIdData.parseAsync(data),
-    responseValidator: async (data) => await zGetIntentsByIdResponse.parseAsync(data),
-    url: '/intents/{id}',
+export const createQuoteEstimate = <ThrowOnError extends boolean = false>(options: Options<CreateQuoteEstimateData, ThrowOnError>) => (options.client ?? client).post<CreateQuoteEstimateResponses, CreateQuoteEstimateErrors, ThrowOnError>({
+    requestValidator: async (data) => await zCreateQuoteEstimateData.parseAsync(data),
+    responseValidator: async (data) => await zCreateQuoteEstimateResponse.parseAsync(data),
+    url: '/quotes/estimate',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Get App-Fee Balances
+ *
+ * The authenticated project's app-fee balance as USD totals valued at collection time. `pendingUsd` is the payout value permanently reserved by signed withdrawals whose target-chain FILL has not completed, including failed or expired payouts.
+ */
+export const getAppFeeBalances = <ThrowOnError extends boolean = false>(options: Options<GetAppFeeBalancesData, ThrowOnError>) => (options.client ?? client).get<GetAppFeeBalancesResponses, GetAppFeeBalancesErrors, ThrowOnError>({
+    requestValidator: async (data) => await zGetAppFeeBalancesData.parseAsync(data),
+    responseValidator: async (data) => await zGetAppFeeBalancesResponse.parseAsync(data),
+    url: '/app-fees/balances',
     ...options
 });
 
 /**
- * Get Account Portfolio
+ * List App-Fee Withdrawals
  *
- * Retrieves the token balances across all supported chains for a user's abstracted account
+ * The authenticated project's app-fee withdrawals (newest first) with each withdrawal's status and USD value paid out.
  */
-export const getAccountsByAccountAddressPortfolio = <ThrowOnError extends boolean = false>(options: Options<GetAccountsByAccountAddressPortfolioData, ThrowOnError>) => (options.client ?? client).get<GetAccountsByAccountAddressPortfolioResponses, GetAccountsByAccountAddressPortfolioErrors, ThrowOnError>({
-    requestValidator: async (data) => await zGetAccountsByAccountAddressPortfolioData.parseAsync(data),
-    responseValidator: async (data) => await zGetAccountsByAccountAddressPortfolioResponse.parseAsync(data),
-    url: '/accounts/{accountAddress}/portfolio',
+export const listAppFeeWithdrawals = <ThrowOnError extends boolean = false>(options: Options<ListAppFeeWithdrawalsData, ThrowOnError>) => (options.client ?? client).get<ListAppFeeWithdrawalsResponses, ListAppFeeWithdrawalsErrors, ThrowOnError>({
+    requestValidator: async (data) => await zListAppFeeWithdrawalsData.parseAsync(data),
+    responseValidator: async (data) => await zListAppFeeWithdrawalsResponse.parseAsync(data),
+    url: '/app-fees/withdrawals',
     ...options
 });
 
 /**
- * Supported chains and tokens
+ * Create App-Fee Withdrawal
  *
- * Get supported chains and tokens with additional metadata
+ * Withdraw the authenticated project's full app-fee balance to a whitelisted stablecoin on the chosen chain, paid to the project's registered payout address.
  */
-export const getChains = <ThrowOnError extends boolean = false>(options?: Options<GetChainsData, ThrowOnError>) => (options?.client ?? client).get<GetChainsResponses, unknown, ThrowOnError>({
-    requestValidator: async (data) => await zGetChainsData.parseAsync(data),
-    responseValidator: async (data) => await zGetChainsResponse.parseAsync(data),
-    url: '/chains',
-    ...options
+export const createAppFeeWithdrawal = <ThrowOnError extends boolean = false>(options: Options<CreateAppFeeWithdrawalData, ThrowOnError>) => (options.client ?? client).post<CreateAppFeeWithdrawalResponses, CreateAppFeeWithdrawalErrors, ThrowOnError>({
+    requestValidator: async (data) => await zCreateAppFeeWithdrawalData.parseAsync(data),
+    responseValidator: async (data) => await zCreateAppFeeWithdrawalResponse.parseAsync(data),
+    url: '/app-fees/withdrawals',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
 });
 
 /**
- * Route liquidity limit
+ * Get App-Fee Withdrawal
  *
- * Returns the maximum fillable amount for a single deposit on the given source→destination route.
+ * A single app-fee withdrawal owned by the authenticated project, with its status and USD value paid out.
  */
-export const getLiquidity = <ThrowOnError extends boolean = false>(options: Options<GetLiquidityData, ThrowOnError>) => (options.client ?? client).get<GetLiquidityResponses, GetLiquidityErrors, ThrowOnError>({
-    requestValidator: async (data) => await zGetLiquidityData.parseAsync(data),
-    responseValidator: async (data) => await zGetLiquidityResponse.parseAsync(data),
-    url: '/liquidity',
+export const getAppFeeWithdrawal = <ThrowOnError extends boolean = false>(options: Options<GetAppFeeWithdrawalData, ThrowOnError>) => (options.client ?? client).get<GetAppFeeWithdrawalResponses, GetAppFeeWithdrawalErrors, ThrowOnError>({
+    requestValidator: async (data) => await zGetAppFeeWithdrawalData.parseAsync(data),
+    responseValidator: async (data) => await zGetAppFeeWithdrawalResponse.parseAsync(data),
+    url: '/app-fees/withdrawals/{nonce}',
     ...options
 });
