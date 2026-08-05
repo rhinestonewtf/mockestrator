@@ -19,7 +19,7 @@ export const quote = async (req: Request, resp: Response) => {
 
     try {
         const data = zCreateQuoteData.parse({
-            body: decodeAccessListChainIds(req.body),
+            body: decodeChainIdArrays(req.body),
             path: undefined,
             query: undefined,
             headers: req.headers,
@@ -37,24 +37,23 @@ export const quote = async (req: Request, resp: Response) => {
     }
 };
 
-// `accountAccessList.chainIds` arrives CAIP-2 on the wire, but the published spec
-// types it numeric: the orchestrator decodes CAIP-2 in a Zod `preprocess`, which
-// OpenAPI generation cannot see. Decode before validating so the mock accepts the
-// same payloads production does.
-const decodeAccessListChainIds = (body: unknown): unknown => {
-    if (!body || typeof body !== 'object') return body;
-    const accessList = (body as { accountAccessList?: unknown }).accountAccessList;
-    if (!accessList || typeof accessList !== 'object') return body;
-    const chainIds = (accessList as { chainIds?: unknown }).chainIds;
-    if (!Array.isArray(chainIds)) return body;
+// `chainIds` arrays arrive CAIP-2 on the wire, but the published spec types them
+// numeric: the orchestrator decodes CAIP-2 in a Zod `preprocess`, which OpenAPI
+// generation cannot see. Decode before validating so the mock accepts the same
+// payloads production does. Recursive because `accountAccessList.exclude` repeats
+// the same fields.
+const decodeChainIdArrays = (node: unknown): unknown => {
+    if (Array.isArray(node)) return node.map(decodeChainIdArrays);
+    if (!node || typeof node !== 'object') return node;
 
-    return {
-        ...body,
-        accountAccessList: {
-            ...accessList,
-            chainIds: chainIds.map((id) => (isCaip2(id) ? fromCaip2(id) : id)),
-        },
-    };
+    return Object.fromEntries(
+        Object.entries(node).map(([key, value]) => [
+            key,
+            key === 'chainIds' && Array.isArray(value)
+                ? value.map((id) => (isCaip2(id) ? fromCaip2(id) : id))
+                : decodeChainIdArrays(value),
+        ]),
+    );
 };
 
 const buildQuoteResponse = async (body: QuoteRequestBody): Promise<QuoteResponseData> => {
