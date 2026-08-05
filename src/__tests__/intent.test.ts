@@ -379,8 +379,16 @@ describe("Mockestrator Intent Flow", () => {
 
       expect(route.cost.fees.total).toHaveProperty("usd");
       const breakdown = route.cost.fees.breakdown;
-      for (const key of ["gas", "bridge", "protocol", "swap", "settlement"]) {
+      for (const key of [
+        "gas",
+        "bridge",
+        "swap",
+        "app",
+        "protocol",
+        "sponsorSurcharge",
+      ]) {
         expect(breakdown[key]).toHaveProperty("usd");
+        expect(breakdown[key]).toHaveProperty("sponsored");
       }
 
       expect(Array.isArray(route.signData.origin)).toBe(true);
