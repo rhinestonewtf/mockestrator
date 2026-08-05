@@ -206,6 +206,24 @@ describe("Mockestrator Intent Flow", () => {
       expect(response.status).toBe(200);
     });
 
+    it("should return 400 for a non-EVM destination chain", async () => {
+      const response = await fetch(`${API_BASE_URL}/quotes`, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({
+          destinationChainId: "solana:mainnet",
+          tokenRequests: [
+            { tokenAddress: USDC_BASE_SEPOLIA, amount: "1000000" },
+          ],
+          account: { address: USER_ADDRESS },
+        }),
+      });
+
+      expect(response.status).toBe(400);
+      const body = await response.json();
+      expect(body.code).toBe("VALIDATION_ERROR");
+    });
+
     it("should return 400 for splits request with missing chainId", async () => {
       const response = await fetch(`${API_BASE_URL}/intents/splits`, {
         method: "POST",

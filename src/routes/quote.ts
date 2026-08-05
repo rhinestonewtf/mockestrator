@@ -56,8 +56,18 @@ const decodeChainIdArrays = (node: unknown): unknown => {
     );
 };
 
+// The spec accepts `solana:`/`tron:`/`hypercore:` destinations, but the mock only
+// serves EVM forks — reject those cleanly instead of letting `fromCaip2` throw its
+// way to a 500.
+const toEvmChainId = (chainId: string): number => {
+    if (!isCaip2(chainId)) {
+        throw new ApiError(400, 'VALIDATION_ERROR', `Unsupported destination chain ${chainId}`);
+    }
+    return fromCaip2(chainId);
+};
+
 const buildQuoteResponse = async (body: QuoteRequestBody): Promise<QuoteResponseData> => {
-    const destinationChainId = fromCaip2(body.destinationChainId);
+    const destinationChainId = toEvmChainId(body.destinationChainId);
     const sourceChainId = pickSourceChain(body.accountAccessList, destinationChainId);
     const accountAddress = getAddress(body.account.address);
     const recipientAddress = body.recipient ? getAddress(body.recipient.address) : accountAddress;
@@ -199,13 +209,9 @@ const pickSourceChain = (list: AccountAccessList | undefined, fallback: number):
     if (list.chainIds && list.chainIds.length > 0) {
         return list.chainIds[0];
     }
-    if (list.chainTokens) {
-        const keys = Object.keys(list.chainTokens);
-        if (keys.length > 0) return fromCaip2(keys[0]);
-    }
-    if (list.chainTokenAmounts) {
-        const keys = Object.keys(list.chainTokenAmounts);
-        if (keys.length > 0) return fromCaip2(keys[0]);
+    for (const map of [list.chainTokens, list.chainTokenAmounts]) {
+        const evmKey = Object.keys(map ?? {}).find(isCaip2);
+        if (evmKey) return fromCaip2(evmKey);
     }
     return fallback;
 };
