@@ -9,15 +9,10 @@ import {
 import { chainContexts } from '../chains';
 import { sendError } from '../errors';
 import { fromCaip2, toCaip2 } from '../caip2';
+import { queryArray, queryBoolean } from '../query';
 
 type PortfolioRequestData = z.infer<typeof zGetPortfolioData>;
 type PortfolioResponse = z.infer<typeof zGetPortfolioResponse>;
-
-const toArray = (v: unknown): string[] | undefined => {
-    if (v === undefined) return undefined;
-    if (Array.isArray(v)) return v as string[];
-    return [v as string];
-};
 
 export const portfolio = async (req: Request, resp: Response) => {
     logRequest(req);
@@ -28,8 +23,9 @@ export const portfolio = async (req: Request, resp: Response) => {
         // parser surfaces it as a string — coerce before validation.
         const query = {
             ...req.query,
-            chainIds: toArray(req.query.chainIds),
-            tokens: toArray(req.query.tokens),
+            chainIds: queryArray(req.query.chainIds),
+            tokens: queryArray(req.query.tokens),
+            filterEmpty: queryBoolean(req.query.filterEmpty),
         };
         const params = zGetPortfolioData.parse({
             body: undefined,
@@ -48,7 +44,7 @@ export const portfolio = async (req: Request, resp: Response) => {
 
 const getPortfolio = async (params: PortfolioRequestData): Promise<PortfolioResponse> => {
     const accountAddress = getAddress(params.path.accountAddress);
-    const filterChainIds = toArray(params.query?.chainIds)?.map(fromCaip2);
+    const filterChainIds = queryArray(params.query?.chainIds)?.map(fromCaip2);
     const filterEmpty = params.query?.filterEmpty ?? false;
 
     const contexts = Object.values(chainContexts()).filter((ctx) =>

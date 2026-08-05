@@ -299,6 +299,12 @@ describe("Mockestrator Intent Flow", () => {
       expect(fill?.status).toBe("COMPLETED");
       expect(fill?.txHash).toBeDefined();
 
+      const fullResponse = await fetch(
+        `${API_BASE_URL}/intents/${route.intentId}?full=true`,
+        { method: "GET", headers }
+      );
+      expect(fullResponse.status).toBe(200);
+
       const publicClient = createPublicClient({
         transport: http(RPC_URLS[BASE_SEPOLIA_CHAIN_ID]),
       });
@@ -559,6 +565,15 @@ describe("Mockestrator Intent Flow", () => {
       for (const id of allChainIds) {
         expect(id).toBe(BASE_SEPOLIA_CAIP2);
       }
+    });
+
+    it("should accept the filterEmpty query flag", async () => {
+      const response = await fetch(
+        `${API_BASE_URL}/accounts/${USER_ADDRESS}/portfolio?filterEmpty=true`,
+        { method: "GET", headers }
+      );
+
+      expect(response.status).toBe(200);
     });
   });
 

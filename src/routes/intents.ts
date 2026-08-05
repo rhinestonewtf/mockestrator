@@ -12,6 +12,7 @@ import { chainContexts } from '../chains';
 import { ApiError, sendError } from '../errors';
 import { ClaimRecord, getIntent, IntentRecord, saveIntent } from '../services/intentRepo';
 import { QuoteExecutionPlan, takeQuote } from '../services/quoteCache';
+import { queryBoolean } from '../query';
 
 type SubmitData = z.infer<typeof zCreateIntentData>;
 type SubmitResponse = z.infer<typeof zCreateIntentResponse>;
@@ -54,7 +55,7 @@ export const getIntentStatus = async (req: Request, resp: Response) => {
         const data = zGetIntentData.parse({
             body: undefined,
             path: req.params,
-            query: req.query,
+            query: { ...req.query, full: queryBoolean(req.query.full) },
             headers: req.headers,
         });
         const intent = getIntent(data.path.id);
