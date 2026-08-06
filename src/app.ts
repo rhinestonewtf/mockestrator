@@ -2,7 +2,14 @@ import express from 'express';
 import { portfolio } from './routes/portfolio';
 import { logRequest } from './log';
 import { quote } from './routes/quote';
-import { getIntentStatus, postIntent } from './routes/intents';
+import { getIntents, getIntentStatus, postIntent } from './routes/intents';
+import { quoteEstimate } from './routes/quote_estimate';
+import {
+    appFeeBalances,
+    createAppFeeWithdrawal,
+    getAppFeeWithdrawal,
+    listAppFeeWithdrawals,
+} from './routes/app_fees';
 import { intent_split } from './routes/intent_split';
 import { chains } from './routes/chains';
 import { liquidity } from './routes/liquidity';
@@ -20,11 +27,17 @@ app.use(requireApiVersion);
 
 app.get('/accounts/:accountAddress/portfolio', portfolio);
 app.post('/quotes', quote);
+app.post('/quotes/estimate', quoteEstimate);
 app.post('/intents', postIntent);
+app.get('/intents', getIntents);
 app.post('/intents/splits', intent_split);
 app.get('/intents/:id', getIntentStatus);
 app.get('/chains', chains);
 app.get('/liquidity', liquidity);
+app.get('/app-fees/balances', appFeeBalances);
+app.get('/app-fees/withdrawals', listAppFeeWithdrawals);
+app.post('/app-fees/withdrawals', createAppFeeWithdrawal);
+app.get('/app-fees/withdrawals/:nonce', getAppFeeWithdrawal);
 
 app.all(/.*/, (req, res) => {
     console.log('**** Unmapped request ****');

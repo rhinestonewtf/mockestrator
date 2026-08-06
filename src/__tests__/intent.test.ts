@@ -304,6 +304,17 @@ describe("Mockestrator Intent Flow", () => {
         { method: "GET", headers }
       );
       expect(fullResponse.status).toBe(200);
+      const { details } = await fullResponse.json();
+      expect(details.id).toBe(route.intentId);
+      expect(details.nonce).toMatch(/^0x[0-9a-f]{64}$/);
+      expect(details.recipient.toLowerCase()).toBe(USER_ADDRESS.toLowerCase());
+      expect(details.settlementLayer).toBe("INTENT_EXECUTOR");
+      expect(details.destination.chain).toBe(BASE_SEPOLIA_CHAIN_ID);
+      expect(details.source[0].chain).toBe(BASE_SEPOLIA_CHAIN_ID);
+      expect(details.cost).toHaveProperty("sponsored");
+
+      const minimal = await apiCall<any>("GET", `/intents/${route.intentId}`);
+      expect(minimal.details).toBeUndefined();
 
       const publicClient = createPublicClient({
         transport: http(RPC_URLS[BASE_SEPOLIA_CHAIN_ID]),
@@ -594,6 +605,93 @@ describe("Mockestrator Intent Flow", () => {
       });
       expect(typeof response.symbol).toBe("string");
       expect(typeof response.decimals).toBe("number");
+    });
+  });
+
+  describe("Intent list endpoint", () => {
+    it("should page over submitted intents", async () => {
+      const response = await apiCall<any>("GET", "/intents?limit=1");
+
+      expect(Array.isArray(response.data)).toBe(true);
+      expect(response.data.length).toBeLessThanOrEqual(1);
+      expect(typeof response.pagination.nextCursor).toBe("string");
+      expect(typeof response.pagination.hasNextPage).toBe("boolean");
+
+      for (const intent of response.data) {
+        expect(intent.id).toMatch(/^\d+$/);
+        expect(["PENDING", "COMPLETED", "FAILED"]).toContain(intent.status);
+        expect(Array.isArray(intent.fromChains)).toBe(true);
+        expect(typeof intent.account).toBe("string");
+        expect(typeof intent.createdAt).toBe("number");
+      }
+    });
+  });
+
+  describe("Quote estimate endpoint", () => {
+    it("should return an indicative route", async () => {
+      const response = await apiCall<any>("POST", "/quotes/estimate", {
+        direction: "exactIn",
+        sourceChainId: BASE_SEPOLIA_CAIP2,
+        sourceToken: USDC_BASE_SEPOLIA,
+        destinationChainId: SEPOLIA_CAIP2,
+        destinationToken: USDC_SEPOLIA,
+        amountIn: "1000000",
+      });
+
+      expect(response.routes).toHaveLength(1);
+      const route = response.routes[0];
+      expect(route.settlementLayer).toBe("ACROSS");
+      expect(route.accuracy).toBe("approximated");
+      expect(route.status).toBe("ok");
+      expect(route.input.chainId).toBe(BASE_SEPOLIA_CAIP2);
+      expect(route.input.amount).toBe("1000000");
+      expect(route.output.chainId).toBe(SEPOLIA_CAIP2);
+      expect(route.fees.total).toHaveProperty("usd");
+    });
+  });
+
+  describe("App fee endpoints", () => {
+    it("should report zero balances", async () => {
+      const response = await apiCall<any>("GET", "/app-fees/balances");
+
+      expect(response).toEqual({ withdrawableUsd: 0, pendingUsd: 0 });
+    });
+
+    it("should accept a withdrawal and serve it back", async () => {
+      const created = await fetch(`${API_BASE_URL}/app-fees/withdrawals`, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({
+          targetChainId: BASE_SEPOLIA_CHAIN_ID,
+          targetToken: USDC_BASE_SEPOLIA,
+        }),
+      });
+
+      expect(created.status).toBe(202);
+      const { requestNonce } = await created.json();
+      expect(requestNonce).toMatch(/^\d+$/);
+
+      const withdrawal = await apiCall<any>(
+        "GET",
+        `/app-fees/withdrawals/${requestNonce}`
+      );
+      expect(withdrawal.requestNonce).toBe(requestNonce);
+      expect(withdrawal.status).toBe("PENDING");
+      expect(withdrawal.targetChainId).toBe(BASE_SEPOLIA_CHAIN_ID);
+
+      const list = await apiCall<any>("GET", "/app-fees/withdrawals");
+      expect(
+        list.withdrawals.some((w: any) => w.requestNonce === requestNonce)
+      ).toBe(true);
+    });
+
+    it("should return 404 for an unknown withdrawal nonce", async () => {
+      const response = await fetch(
+        `${API_BASE_URL}/app-fees/withdrawals/99999999`,
+        { method: "GET", headers }
+      );
+
+      expect(response.status).toBe(404);
     });
   });
 });

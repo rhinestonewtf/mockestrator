@@ -13,3 +13,9 @@ export const queryBoolean = (value: unknown): unknown => {
     if (value === 'false') return false;
     return value;
 };
+
+export const queryNumber = (value: unknown): unknown => {
+    if (typeof value !== 'string' || value === '') return value;
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : value;
+};
