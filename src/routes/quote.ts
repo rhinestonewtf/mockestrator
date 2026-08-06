@@ -3,14 +3,14 @@ import { Address, getAddress, Hex } from 'viem';
 import { randomBytes } from 'crypto';
 import { z } from 'zod';
 import { jsonify, logRequest } from '../log';
-import { zPostQuotesData, zPostQuotesResponse } from '../gen/zod.gen';
+import { zCreateQuoteData, zCreateQuoteResponse } from '../gen/zod.gen';
 import { chainContexts } from '../chains';
-import { fromCaip2, toCaip2 } from '../caip2';
+import { fromCaip2, isCaip2, toCaip2, toEvmChainId } from '../caip2';
 import { ApiError, sendError } from '../errors';
 import { saveQuote } from '../services/quoteCache';
 
-type QuoteRequestData = z.infer<typeof zPostQuotesData>;
-type QuoteResponseData = z.infer<typeof zPostQuotesResponse>;
+type QuoteRequestData = z.infer<typeof zCreateQuoteData>;
+type QuoteResponseData = z.infer<typeof zCreateQuoteResponse>;
 type QuoteRequestBody = NonNullable<QuoteRequestData['body']>;
 type AccountAccessList = NonNullable<QuoteRequestBody['accountAccessList']>;
 
@@ -18,8 +18,8 @@ export const quote = async (req: Request, resp: Response) => {
     logRequest(req);
 
     try {
-        const data = zPostQuotesData.parse({
-            body: req.body,
+        const data = zCreateQuoteData.parse({
+            body: decodeChainIdArrays(req.body),
             path: undefined,
             query: undefined,
             headers: req.headers,
@@ -37,8 +37,27 @@ export const quote = async (req: Request, resp: Response) => {
     }
 };
 
+// `chainIds` arrays arrive CAIP-2 on the wire, but the published spec types them
+// numeric: the orchestrator decodes CAIP-2 in a Zod `preprocess`, which OpenAPI
+// generation cannot see. Decode before validating so the mock accepts the same
+// payloads production does. Recursive because `accountAccessList.exclude` repeats
+// the same fields.
+const decodeChainIdArrays = (node: unknown): unknown => {
+    if (Array.isArray(node)) return node.map(decodeChainIdArrays);
+    if (!node || typeof node !== 'object') return node;
+
+    return Object.fromEntries(
+        Object.entries(node).map(([key, value]) => [
+            key,
+            key === 'chainIds' && Array.isArray(value)
+                ? value.map((id) => (isCaip2(id) ? fromCaip2(id) : id))
+                : decodeChainIdArrays(value),
+        ]),
+    );
+};
+
 const buildQuoteResponse = async (body: QuoteRequestBody): Promise<QuoteResponseData> => {
-    const destinationChainId = fromCaip2(body.destinationChainId);
+    const destinationChainId = toEvmChainId(body.destinationChainId);
     const sourceChainId = pickSourceChain(body.accountAccessList, destinationChainId);
     const accountAddress = getAddress(body.account.address);
     const recipientAddress = body.recipient ? getAddress(body.recipient.address) : accountAddress;
@@ -114,14 +133,13 @@ const buildSignData = (
     const message = { account: accountAddress, intentId };
     const verifyingContract = '0x0000000000000000000000000000000000000000';
 
-    // Despite the OpenAPI spec showing `domain.chainId` as a CAIP-2 string, the
-    // SDK feeds the domain straight into viem's `hashDomain` (uint256), so the
-    // production server actually emits a numeric chainId here.
+    // Numeric, not CAIP-2: the SDK feeds this domain straight into viem's
+    // `hashDomain` (uint256).
     const buildTyped = (chainId: number) => ({
         domain: {
             name: 'Mockestrator',
             version: '1',
-            chainId: chainId as unknown as string,
+            chainId,
             verifyingContract,
         },
         types,
@@ -162,11 +180,12 @@ const buildMockCost = (
         fees: {
             total: { usd: 0 },
             breakdown: {
-                gas: { usd: 0 },
-                bridge: { usd: 0 },
-                protocol: { usd: 0 },
-                swap: { usd: 0 },
-                settlement: { usd: 0 },
+                gas: { usd: 0, sponsored: false },
+                bridge: { usd: 0, sponsored: false },
+                swap: { usd: 0, sponsored: false },
+                app: { usd: 0, sponsored: false },
+                protocol: { usd: 0, sponsored: false },
+                sponsorSurcharge: { usd: 0, sponsored: false },
             },
         },
     };
@@ -178,15 +197,11 @@ const pickSourceChain = (list: AccountAccessList | undefined, fallback: number):
         return first ? parseInt(first) : fallback;
     }
     if (list.chainIds && list.chainIds.length > 0) {
-        return fromCaip2(list.chainIds[0]);
+        return list.chainIds[0];
     }
-    if (list.chainTokens) {
-        const keys = Object.keys(list.chainTokens);
-        if (keys.length > 0) return fromCaip2(keys[0]);
-    }
-    if (list.chainTokenAmounts) {
-        const keys = Object.keys(list.chainTokenAmounts);
-        if (keys.length > 0) return fromCaip2(keys[0]);
+    for (const map of [list.chainTokens, list.chainTokenAmounts]) {
+        const evmKey = Object.keys(map ?? {}).find(isCaip2);
+        if (evmKey) return fromCaip2(evmKey);
     }
     return fallback;
 };

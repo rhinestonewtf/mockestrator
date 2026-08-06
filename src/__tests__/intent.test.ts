@@ -54,6 +54,14 @@ async function apiCall<T>(
   return response.json();
 }
 
+// Progress is reported as per-chain operations (numeric chain ids on this
+// endpoint, unlike the CAIP-2 request wire); the fill leg carries the tx hash.
+function fillOperation(status: any, chainId: number): any {
+  return status.operations
+    ?.find((group: any) => group.chain === chainId)
+    ?.items?.find((item: any) => item.type === "FILL");
+}
+
 // Mock signature that mockestrator accepts as "valid" (any non-fake hex)
 const MOCK_DEST_SIG = ("0x" + "ab".repeat(65)) as Hex;
 const MOCK_ORIGIN_SIG = ("0x" + "cd".repeat(65)) as Hex;
@@ -181,6 +189,41 @@ describe("Mockestrator Intent Flow", () => {
       expect(response.status).toBe(400);
     });
 
+    it("should accept CAIP-2 chain ids in accountAccessList.exclude", async () => {
+      const response = await fetch(`${API_BASE_URL}/quotes`, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({
+          destinationChainId: BASE_SEPOLIA_CAIP2,
+          tokenRequests: [
+            { tokenAddress: USDC_BASE_SEPOLIA, amount: "1000000" },
+          ],
+          account: { address: USER_ADDRESS },
+          accountAccessList: { exclude: { chainIds: [SEPOLIA_CAIP2] } },
+        }),
+      });
+
+      expect(response.status).toBe(200);
+    });
+
+    it("should return 400 for a non-EVM destination chain", async () => {
+      const response = await fetch(`${API_BASE_URL}/quotes`, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({
+          destinationChainId: "solana:mainnet",
+          tokenRequests: [
+            { tokenAddress: USDC_BASE_SEPOLIA, amount: "1000000" },
+          ],
+          account: { address: USER_ADDRESS },
+        }),
+      });
+
+      expect(response.status).toBe(400);
+      const body = await response.json();
+      expect(body.code).toBe("VALIDATION_ERROR");
+    });
+
     it("should return 400 for splits request with missing chainId", async () => {
       const response = await fetch(`${API_BASE_URL}/intents/splits`, {
         method: "POST",
@@ -252,15 +295,33 @@ describe("Mockestrator Intent Flow", () => {
       );
 
       expect(statusResponse.status).toBe("COMPLETED");
-      expect(statusResponse.destinationChainId).toBe(BASE_SEPOLIA_CAIP2);
-      expect(statusResponse.fillTransactionHash).toBeDefined();
+      const fill = fillOperation(statusResponse, BASE_SEPOLIA_CHAIN_ID);
+      expect(fill?.status).toBe("COMPLETED");
+      expect(fill?.txHash).toBeDefined();
+
+      const fullResponse = await fetch(
+        `${API_BASE_URL}/intents/${route.intentId}?full=true`,
+        { method: "GET", headers }
+      );
+      expect(fullResponse.status).toBe(200);
+      const { details } = await fullResponse.json();
+      expect(details.id).toBe(route.intentId);
+      expect(details.nonce).toMatch(/^0x[0-9a-f]{64}$/);
+      expect(details.recipient.toLowerCase()).toBe(USER_ADDRESS.toLowerCase());
+      expect(details.settlementLayer).toBe("INTENT_EXECUTOR");
+      expect(details.destination.chain).toBe(BASE_SEPOLIA_CHAIN_ID);
+      expect(details.source[0].chain).toBe(BASE_SEPOLIA_CHAIN_ID);
+      expect(details.cost).toHaveProperty("sponsored");
+
+      const minimal = await apiCall<any>("GET", `/intents/${route.intentId}`);
+      expect(minimal.details).toBeUndefined();
 
       const publicClient = createPublicClient({
         transport: http(RPC_URLS[BASE_SEPOLIA_CHAIN_ID]),
       });
 
       const receipt = await publicClient.getTransactionReceipt({
-        hash: statusResponse.fillTransactionHash as Hex,
+        hash: fill.txHash as Hex,
       });
       expect(receipt.status).toBe("success");
 
@@ -312,13 +373,14 @@ describe("Mockestrator Intent Flow", () => {
       );
 
       expect(statusResponse.status).toBe("COMPLETED");
-      expect(statusResponse.destinationChainId).toBe(SEPOLIA_CAIP2);
+      const fill = fillOperation(statusResponse, SEPOLIA_CHAIN_ID);
+      expect(fill?.status).toBe("COMPLETED");
 
       const publicClient = createPublicClient({
         transport: http(RPC_URLS[SEPOLIA_CHAIN_ID]),
       });
       const receipt = await publicClient.getTransactionReceipt({
-        hash: statusResponse.fillTransactionHash as Hex,
+        hash: fill.txHash as Hex,
       });
       expect(receipt.status).toBe("success");
 
@@ -369,8 +431,16 @@ describe("Mockestrator Intent Flow", () => {
 
       expect(route.cost.fees.total).toHaveProperty("usd");
       const breakdown = route.cost.fees.breakdown;
-      for (const key of ["gas", "bridge", "protocol", "swap", "settlement"]) {
+      for (const key of [
+        "gas",
+        "bridge",
+        "swap",
+        "app",
+        "protocol",
+        "sponsorSurcharge",
+      ]) {
         expect(breakdown[key]).toHaveProperty("usd");
+        expect(breakdown[key]).toHaveProperty("sponsored");
       }
 
       expect(Array.isArray(route.signData.origin)).toBe(true);
@@ -507,6 +577,15 @@ describe("Mockestrator Intent Flow", () => {
         expect(id).toBe(BASE_SEPOLIA_CAIP2);
       }
     });
+
+    it("should accept the filterEmpty query flag", async () => {
+      const response = await fetch(
+        `${API_BASE_URL}/accounts/${USER_ADDRESS}/portfolio?filterEmpty=true`,
+        { method: "GET", headers }
+      );
+
+      expect(response.status).toBe(200);
+    });
   });
 
   describe("Liquidity endpoint", () => {
@@ -526,6 +605,159 @@ describe("Mockestrator Intent Flow", () => {
       });
       expect(typeof response.symbol).toBe("string");
       expect(typeof response.decimals).toBe("number");
+    });
+
+    it("should return 400 for a non-EVM destination chain", async () => {
+      const response = await fetch(
+        `${API_BASE_URL}/liquidity?sourceChainId=${encodeURIComponent(
+          BASE_SEPOLIA_CAIP2
+        )}&sourceToken=${USDC_BASE_SEPOLIA}&destinationChainId=${encodeURIComponent(
+          "solana:mainnet"
+        )}&destinationToken=${USDC_SEPOLIA}`,
+        { method: "GET", headers }
+      );
+
+      expect(response.status).toBe(400);
+      const body = await response.json();
+      expect(body.code).toBe("VALIDATION_ERROR");
+    });
+  });
+
+  describe("Intent list endpoint", () => {
+    it("should page over submitted intents", async () => {
+      const response = await apiCall<any>("GET", "/intents?limit=1");
+
+      expect(Array.isArray(response.data)).toBe(true);
+      expect(response.data.length).toBeLessThanOrEqual(1);
+      expect(typeof response.pagination.nextCursor).toBe("string");
+      expect(typeof response.pagination.hasNextPage).toBe("boolean");
+
+      for (const intent of response.data) {
+        expect(intent.id).toMatch(/^\d+$/);
+        expect(["PENDING", "COMPLETED", "FAILED"]).toContain(intent.status);
+        expect(Array.isArray(intent.fromChains)).toBe(true);
+        expect(typeof intent.account).toBe("string");
+        expect(typeof intent.createdAt).toBe("number");
+      }
+    });
+
+    it("should return the newest intent first", async () => {
+      const quoteResponse = await apiCall<any>("POST", "/quotes", {
+        destinationChainId: BASE_SEPOLIA_CAIP2,
+        tokenRequests: [
+          { tokenAddress: USDC_BASE_SEPOLIA, amount: "1000000" },
+        ],
+        account: { address: USER_ADDRESS },
+        accountAccessList: { chainIds: [BASE_SEPOLIA_CAIP2] },
+      });
+      const { intentId } = quoteResponse.routes[0];
+
+      await apiCall<any>("POST", "/intents", {
+        intentId,
+        signatures: {
+          origin: [MOCK_ORIGIN_SIG],
+          destination: MOCK_DEST_SIG,
+        },
+      });
+
+      const response = await apiCall<any>("GET", "/intents?limit=1");
+      expect(response.data[0].id).toBe(intentId);
+    });
+
+    it("should return a null cursor on the terminal page", async () => {
+      const response = await apiCall<any>("GET", "/intents?limit=100");
+
+      expect(response.pagination.hasNextPage).toBe(false);
+      expect(response.pagination.nextCursor).toBeNull();
+    });
+  });
+
+  describe("Quote estimate endpoint", () => {
+    it("should return an indicative route", async () => {
+      const response = await apiCall<any>("POST", "/quotes/estimate", {
+        direction: "exactIn",
+        sourceChainId: BASE_SEPOLIA_CAIP2,
+        sourceToken: USDC_BASE_SEPOLIA,
+        destinationChainId: SEPOLIA_CAIP2,
+        destinationToken: USDC_SEPOLIA,
+        amountIn: "1000000",
+      });
+
+      expect(response.routes).toHaveLength(1);
+      const route = response.routes[0];
+      expect(route.settlementLayer).toBe("ACROSS");
+      expect(route.accuracy).toBe("approximated");
+      expect(route.status).toBe("ok");
+      expect(route.input.chainId).toBe(BASE_SEPOLIA_CAIP2);
+      expect(route.input.amount).toBe("1000000");
+      expect(route.output.chainId).toBe(SEPOLIA_CAIP2);
+      expect(route.fees.total).toHaveProperty("usd");
+    });
+  });
+
+  describe("App fee endpoints", () => {
+    it("should report zero balances", async () => {
+      const response = await apiCall<any>("GET", "/app-fees/balances");
+
+      expect(response).toEqual({ withdrawableUsd: 0, pendingUsd: 0 });
+    });
+
+    it("should accept a withdrawal and serve it back", async () => {
+      const created = await fetch(`${API_BASE_URL}/app-fees/withdrawals`, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({
+          targetChainId: BASE_SEPOLIA_CHAIN_ID,
+          targetToken: USDC_BASE_SEPOLIA,
+        }),
+      });
+
+      expect(created.status).toBe(202);
+      const { requestNonce } = await created.json();
+      expect(requestNonce).toMatch(/^\d+$/);
+
+      const withdrawal = await apiCall<any>(
+        "GET",
+        `/app-fees/withdrawals/${requestNonce}`
+      );
+      expect(withdrawal.requestNonce).toBe(requestNonce);
+      expect(withdrawal.status).toBe("PENDING");
+      expect(withdrawal.targetChainId).toBe(BASE_SEPOLIA_CHAIN_ID);
+
+      const list = await apiCall<any>("GET", "/app-fees/withdrawals");
+      expect(
+        list.withdrawals.some((w: any) => w.requestNonce === requestNonce)
+      ).toBe(true);
+    });
+
+    it("should list withdrawals newest first", async () => {
+      const create = async () => {
+        const response = await fetch(`${API_BASE_URL}/app-fees/withdrawals`, {
+          method: "POST",
+          headers,
+          body: JSON.stringify({
+            targetChainId: BASE_SEPOLIA_CHAIN_ID,
+            targetToken: USDC_BASE_SEPOLIA,
+          }),
+        });
+        const { requestNonce } = await response.json();
+        return requestNonce as string;
+      };
+
+      await create();
+      const newest = await create();
+
+      const list = await apiCall<any>("GET", "/app-fees/withdrawals");
+      expect(list.withdrawals[0].requestNonce).toBe(newest);
+    });
+
+    it("should return 404 for an unknown withdrawal nonce", async () => {
+      const response = await fetch(
+        `${API_BASE_URL}/app-fees/withdrawals/99999999`,
+        { method: "GET", headers }
+      );
+
+      expect(response.status).toBe(404);
     });
   });
 });

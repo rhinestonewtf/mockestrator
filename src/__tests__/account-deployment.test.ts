@@ -47,6 +47,13 @@ async function apiCall<T>(
   return response.json();
 }
 
+// Progress is reported as per-chain operations; the fill leg carries the tx hash.
+function fillOperation(status: any): any {
+  return status.operations
+    ?.flatMap((group: any) => group.items ?? [])
+    .find((item: any) => item.type === "FILL");
+}
+
 describe("Account Deployment via Intent Execution", () => {
   let ownerPrivateKey: Hex;
   let ownerAddress: Address;
@@ -130,8 +137,10 @@ describe("Account Deployment via Intent Execution", () => {
     );
 
     expect(statusResponse.status).toBe("COMPLETED");
-    expect(statusResponse.fillTransactionHash).toBeDefined();
-    expect(statusResponse.fillTransactionHash).not.toBe(
+    const fill = fillOperation(statusResponse);
+    expect(fill?.status).toBe("COMPLETED");
+    expect(fill?.txHash).toBeDefined();
+    expect(fill?.txHash).not.toBe(
       "0x0000000000000000000000000000000000000000000000000000000000000000"
     );
 

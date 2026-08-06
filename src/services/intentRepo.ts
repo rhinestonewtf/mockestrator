@@ -1,5 +1,6 @@
 import { Address, Hex } from 'viem';
 import { ApiError } from '../errors';
+import { QuoteExecutionPlan } from './quoteCache';
 
 export type IntentStatus = 'PENDING' | 'PRECONFIRMED' | 'CLAIMED' | 'FILLED' | 'COMPLETED' | 'FAILED' | 'EXPIRED';
 
@@ -17,6 +18,9 @@ export type IntentRecord = {
     fillTimestamp?: number;
     fillTransactionHash?: Hex;
     claims: ClaimRecord[];
+    // Quote-time data, kept so `GET /intents/:id?full=true` can serve `details`.
+    plan: QuoteExecutionPlan;
+    createdAt: number;
 };
 
 const intents = new Map<string, IntentRecord>();
@@ -37,4 +41,9 @@ export function getIntent(intentId: string): IntentRecord {
 
 export function saveIntent(intentId: string, record: IntentRecord): void {
     intents.set(intentId, record);
+}
+
+// Insertion order is creation order; `GET /intents` pages newest first.
+export function listIntents(): { id: string; record: IntentRecord }[] {
+    return Array.from(intents, ([id, record]) => ({ id, record }));
 }
