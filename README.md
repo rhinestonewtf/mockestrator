@@ -12,7 +12,7 @@ From the public ECR image
 
 ```sh
 docker pull public.ecr.aws/rhinestone/mockestrator:latest
-docker run -p 4000:4000 public.ecr.aws/rhinestone/mockestrator:latest
+docker run -p 4000:3000 public.ecr.aws/rhinestone/mockestrator:latest
 ```
 
 From source:
