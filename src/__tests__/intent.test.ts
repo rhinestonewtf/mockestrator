@@ -642,7 +642,7 @@ describe("Mockestrator Intent Flow", () => {
     });
 
     it("should return a null cursor on the terminal page", async () => {
-      const response = await apiCall<any>("GET", "/intents?limit=1000");
+      const response = await apiCall<any>("GET", "/intents?limit=100");
 
       expect(response.pagination.hasNextPage).toBe(false);
       expect(response.pagination.nextCursor).toBeNull();
