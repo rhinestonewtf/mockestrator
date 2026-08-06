@@ -3,26 +3,26 @@ import { z } from 'zod';
 import { Address, encodeAbiParameters, encodePacked, Hex, zeroAddress } from 'viem';
 import { jsonify, logRequest } from '../log';
 import {
-    zGetIntentsByIdData,
-    zGetIntentsByIdResponse,
-    zPostIntentsData,
-    zPostIntentsResponse,
+    zGetIntentData,
+    zGetIntentResponse,
+    zCreateIntentData,
+    zCreateIntentResponse,
 } from '../gen/zod.gen';
 import { chainContexts } from '../chains';
 import { ApiError, sendError } from '../errors';
-import { getIntent, IntentRecord, saveIntent } from '../services/intentRepo';
+import { getIntent, IntentRecord, IntentStatus, saveIntent } from '../services/intentRepo';
 import { QuoteExecutionPlan, takeQuote } from '../services/quoteCache';
 import { toCaip2 } from '../caip2';
 
-type SubmitData = z.infer<typeof zPostIntentsData>;
-type SubmitResponse = z.infer<typeof zPostIntentsResponse>;
-type IntentStatusResponse = z.infer<typeof zGetIntentsByIdResponse>;
+type SubmitData = z.infer<typeof zCreateIntentData>;
+type SubmitResponse = z.infer<typeof zCreateIntentResponse>;
+type IntentStatusResponse = z.infer<typeof zGetIntentResponse>;
 
 export const postIntent = async (req: Request, resp: Response) => {
     logRequest(req);
 
     try {
-        const data = zPostIntentsData.parse({
+        const data = zCreateIntentData.parse({
             body: req.body,
             path: undefined,
             query: undefined,
@@ -52,7 +52,7 @@ export const getIntentStatus = async (req: Request, resp: Response) => {
     logRequest(req);
 
     try {
-        const data = zGetIntentsByIdData.parse({
+        const data = zGetIntentData.parse({
             body: undefined,
             path: req.params,
             query: req.query,
@@ -68,19 +68,64 @@ export const getIntentStatus = async (req: Request, resp: Response) => {
     }
 };
 
-const toStatusResponse = (intent: IntentRecord): IntentStatusResponse => ({
-    status: intent.status,
-    fillTimestamp: intent.fillTimestamp,
-    fillTransactionHash: intent.fillTransactionHash,
-    destinationChainId: toCaip2(intent.destinationChainId),
-    accountAddress: intent.accountAddress,
-    claims: intent.claims.map((c) => ({
-        chainId: toCaip2(c.chainId),
-        status: c.status,
-        claimTimestamp: c.claimTimestamp,
-        claimTransactionHash: c.claimTransactionHash,
-    })),
-});
+type ApiStatus = IntentStatusResponse['status'];
+
+// The mock tracks a finer-grained lifecycle internally than the API exposes.
+// The API only ever returns PENDING / COMPLETED / FAILED, so project onto those
+// rather than leaking an internal state a real client would never see.
+const toApiStatus = (status: IntentStatus): ApiStatus => {
+    switch (status) {
+        case 'COMPLETED':
+            return 'COMPLETED';
+        case 'FAILED':
+        case 'EXPIRED':
+            return 'FAILED';
+        default:
+            // PENDING, PRECONFIRMED, CLAIMED, FILLED — in flight, not terminal.
+            return 'PENDING';
+    }
+};
+
+type OperationItem = IntentStatusResponse['operations'][number]['items'][number];
+
+// 2026-04.blanc replaced the flat `claims` / `fillTransactionHash` /
+// `destinationChainId` fields with `operations`: per-chain groups of CLAIM and
+// FILL items. Nothing is lost — the fill hash now lives on the FILL item.
+//
+// The optional `details` block is deliberately omitted. It would require
+// `settlementLayer`, `latencyMs`, `nonce`, `cost` and `executions`, none of
+// which the mock models; emitting invented values would be worse than leaving
+// the block absent, which the schema allows.
+const toStatusResponse = (intent: IntentRecord): IntentStatusResponse => {
+    const byChain = new Map<number, OperationItem[]>();
+    const add = (chain: number, item: OperationItem) => {
+        const items = byChain.get(chain);
+        if (items) items.push(item);
+        else byChain.set(chain, [item]);
+    };
+
+    for (const c of intent.claims) {
+        add(c.chainId, {
+            type: 'CLAIM',
+            status: toApiStatus(c.status),
+            txHash: c.claimTransactionHash,
+            timestamp: c.claimTimestamp,
+        });
+    }
+
+    add(intent.destinationChainId, {
+        type: 'FILL',
+        status: toApiStatus(intent.status),
+        txHash: intent.fillTransactionHash,
+        timestamp: intent.fillTimestamp,
+    });
+
+    return {
+        status: toApiStatus(intent.status),
+        accountAddress: intent.accountAddress,
+        operations: [...byChain.entries()].map(([chain, items]) => ({ chain, items })),
+    };
+};
 
 const executeQuote = async (
     intentId: string,

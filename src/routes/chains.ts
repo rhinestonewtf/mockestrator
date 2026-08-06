@@ -2,11 +2,11 @@ import { Request, Response } from 'express';
 import { z } from 'zod';
 import { jsonify, logRequest } from '../log';
 import { chainContexts } from '../chains';
-import { zGetChainsResponse } from '../gen/zod.gen';
+import { zListChainsResponse } from '../gen/zod.gen';
 import { toCaip2 } from '../caip2';
 import { sendError } from '../errors';
 
-type ChainsResponse = z.infer<typeof zGetChainsResponse>;
+type ChainsResponse = z.infer<typeof zListChainsResponse>;
 
 export const chains = async (req: Request, resp: Response) => {
     logRequest(req);
@@ -23,6 +23,7 @@ export const chains = async (req: Request, resp: Response) => {
                     address: ctx.getTokenAddress(symbol),
                     decimals: ctx.tokenDecimals(symbol) ?? 0,
                 })),
+                wrappedNativeToken: ctx.wrappedNativeToken,
                 testnet: ctx.isTestnet,
             };
         }

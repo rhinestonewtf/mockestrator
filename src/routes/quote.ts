@@ -3,14 +3,14 @@ import { Address, getAddress, Hex } from 'viem';
 import { randomBytes } from 'crypto';
 import { z } from 'zod';
 import { jsonify, logRequest } from '../log';
-import { zPostQuotesData, zPostQuotesResponse } from '../gen/zod.gen';
+import { zCreateQuoteData, zCreateQuoteResponse } from '../gen/zod.gen';
 import { chainContexts } from '../chains';
 import { fromCaip2, toCaip2 } from '../caip2';
 import { ApiError, sendError } from '../errors';
 import { saveQuote } from '../services/quoteCache';
 
-type QuoteRequestData = z.infer<typeof zPostQuotesData>;
-type QuoteResponseData = z.infer<typeof zPostQuotesResponse>;
+type QuoteRequestData = z.infer<typeof zCreateQuoteData>;
+type QuoteResponseData = z.infer<typeof zCreateQuoteResponse>;
 type QuoteRequestBody = NonNullable<QuoteRequestData['body']>;
 type AccountAccessList = NonNullable<QuoteRequestBody['accountAccessList']>;
 
@@ -18,7 +18,7 @@ export const quote = async (req: Request, resp: Response) => {
     logRequest(req);
 
     try {
-        const data = zPostQuotesData.parse({
+        const data = zCreateQuoteData.parse({
             body: req.body,
             path: undefined,
             query: undefined,
@@ -114,14 +114,15 @@ const buildSignData = (
     const message = { account: accountAddress, intentId };
     const verifyingContract = '0x0000000000000000000000000000000000000000';
 
-    // Despite the OpenAPI spec showing `domain.chainId` as a CAIP-2 string, the
-    // SDK feeds the domain straight into viem's `hashDomain` (uint256), so the
-    // production server actually emits a numeric chainId here.
+    // The SDK feeds the domain straight into viem's `hashDomain` (uint256), so
+    // the chainId is numeric. Earlier specs typed it as a CAIP-2 string and this
+    // needed a cast; 2026-04.blanc types it as a number, matching what the
+    // production server emits.
     const buildTyped = (chainId: number) => ({
         domain: {
             name: 'Mockestrator',
             version: '1',
-            chainId: chainId as unknown as string,
+            chainId,
             verifyingContract,
         },
         types,
@@ -159,14 +160,17 @@ const buildMockCost = (
     return {
         input,
         output,
+        // `sponsored` is false throughout: the mock never models a sponsor
+        // absorbing a fee, so every category is paid by the user.
         fees: {
             total: { usd: 0 },
             breakdown: {
-                gas: { usd: 0 },
-                bridge: { usd: 0 },
-                protocol: { usd: 0 },
-                swap: { usd: 0 },
-                settlement: { usd: 0 },
+                gas: { usd: 0, sponsored: false },
+                bridge: { usd: 0, sponsored: false },
+                swap: { usd: 0, sponsored: false },
+                app: { usd: 0, sponsored: false },
+                protocol: { usd: 0, sponsored: false },
+                sponsorSurcharge: { usd: 0, sponsored: false },
             },
         },
     };
@@ -178,7 +182,9 @@ const pickSourceChain = (list: AccountAccessList | undefined, fallback: number):
         return first ? parseInt(first) : fallback;
     }
     if (list.chainIds && list.chainIds.length > 0) {
-        return fromCaip2(list.chainIds[0]);
+        // Numeric chain ids on the request side; the `chainTokens` maps below
+        // are still keyed by CAIP-2.
+        return list.chainIds[0];
     }
     if (list.chainTokens) {
         const keys = Object.keys(list.chainTokens);

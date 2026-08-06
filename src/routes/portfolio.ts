@@ -3,15 +3,15 @@ import { getAddress } from 'viem';
 import { z } from 'zod';
 import { jsonify, logRequest } from '../log';
 import {
-    zGetAccountsByAccountAddressPortfolioData,
-    zGetAccountsByAccountAddressPortfolioResponse,
+    zGetPortfolioData,
+    zGetPortfolioResponse,
 } from '../gen/zod.gen';
 import { chainContexts } from '../chains';
 import { sendError } from '../errors';
 import { fromCaip2, toCaip2 } from '../caip2';
 
-type PortfolioRequestData = z.infer<typeof zGetAccountsByAccountAddressPortfolioData>;
-type PortfolioResponse = z.infer<typeof zGetAccountsByAccountAddressPortfolioResponse>;
+type PortfolioRequestData = z.infer<typeof zGetPortfolioData>;
+type PortfolioResponse = z.infer<typeof zGetPortfolioResponse>;
 
 const toArray = (v: unknown): string[] | undefined => {
     if (v === undefined) return undefined;
@@ -31,7 +31,7 @@ export const portfolio = async (req: Request, resp: Response) => {
             chainIds: toArray(req.query.chainIds),
             tokens: toArray(req.query.tokens),
         };
-        const params = zGetAccountsByAccountAddressPortfolioData.parse({
+        const params = zGetPortfolioData.parse({
             body: undefined,
             path: req.params,
             query,
@@ -48,7 +48,11 @@ export const portfolio = async (req: Request, resp: Response) => {
 
 const getPortfolio = async (params: PortfolioRequestData): Promise<PortfolioResponse> => {
     const accountAddress = getAddress(params.path.accountAddress);
-    const filterChainIds = params.query?.chainIds?.map(fromCaip2);
+    // `chainIds` accepts either a single CAIP-2 id or an array of them.
+    const rawChainIds = params.query?.chainIds;
+    const filterChainIds = rawChainIds
+        ? (Array.isArray(rawChainIds) ? rawChainIds : [rawChainIds]).map(fromCaip2)
+        : undefined;
     const filterEmpty = params.query?.filterEmpty ?? false;
 
     const contexts = Object.values(chainContexts()).filter((ctx) =>

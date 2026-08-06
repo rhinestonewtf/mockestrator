@@ -130,8 +130,15 @@ describe("Account Deployment via Intent Execution", () => {
     );
 
     expect(statusResponse.status).toBe("COMPLETED");
-    expect(statusResponse.fillTransactionHash).toBeDefined();
-    expect(statusResponse.fillTransactionHash).not.toBe(
+
+    // 2026-04.blanc: the fill hash lives on the FILL item of the destination
+    // chain's `operations` entry, not on a flat `fillTransactionHash` field.
+    const fill = statusResponse.operations
+      .flatMap((op: any) => op.items)
+      .find((i: any) => i.type === "FILL");
+    expect(fill).toBeDefined();
+    expect(fill.txHash).toBeDefined();
+    expect(fill.txHash).not.toBe(
       "0x0000000000000000000000000000000000000000000000000000000000000000"
     );
 

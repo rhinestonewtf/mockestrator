@@ -84,6 +84,10 @@ export class ChainContext {
         return this.tokenSymbols
     }
 
+    get wrappedNativeToken(): { symbol: string; address: Address; decimals: number } {
+        return this.chainConfig.wrappedNativeToken
+    }
+
     public async balanceOf(address: Address, tokenSymbols: TokenSymbol[]): Promise<Balance[]> {
 
         const tokens = tokenSymbols.map((symbol) => {
@@ -371,6 +375,13 @@ type CodeOverrides = z.infer<typeof CodeSchema>
 
 const ChainConfigSchema = z.object({
     multicall3: AddressSchema.optional(),
+    // Required by the `/chains` response. Kept mandatory so adding a chain
+    // without one fails at config-load rather than serving a wrong address.
+    wrappedNativeToken: z.object({
+        symbol: z.string(),
+        address: AddressSchema,
+        decimals: z.number()
+    }),
     tokens: z.record(z.string(), z.object({
         address: AddressSchema,
         decimals: z.number(),

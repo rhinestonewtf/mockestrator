@@ -252,15 +252,25 @@ describe("Mockestrator Intent Flow", () => {
       );
 
       expect(statusResponse.status).toBe("COMPLETED");
-      expect(statusResponse.destinationChainId).toBe(BASE_SEPOLIA_CAIP2);
-      expect(statusResponse.fillTransactionHash).toBeDefined();
+
+      // 2026-04.blanc replaced the flat destinationChainId/fillTransactionHash
+      // fields with per-chain `operations`; the fill hash lives on the FILL item.
+      const destinationOps = statusResponse.operations.find(
+        (op: any) => op.chain === BASE_SEPOLIA_CHAIN_ID
+      );
+      expect(destinationOps).toBeDefined();
+
+      const fill = destinationOps.items.find((i: any) => i.type === "FILL");
+      expect(fill).toBeDefined();
+      expect(fill.status).toBe("COMPLETED");
+      expect(fill.txHash).toBeDefined();
 
       const publicClient = createPublicClient({
         transport: http(RPC_URLS[BASE_SEPOLIA_CHAIN_ID]),
       });
 
       const receipt = await publicClient.getTransactionReceipt({
-        hash: statusResponse.fillTransactionHash as Hex,
+        hash: fill.txHash as Hex,
       });
       expect(receipt.status).toBe("success");
 
@@ -312,13 +322,19 @@ describe("Mockestrator Intent Flow", () => {
       );
 
       expect(statusResponse.status).toBe("COMPLETED");
-      expect(statusResponse.destinationChainId).toBe(SEPOLIA_CAIP2);
+
+      const destinationOps = statusResponse.operations.find(
+        (op: any) => op.chain === SEPOLIA_CHAIN_ID
+      );
+      expect(destinationOps).toBeDefined();
+      const fill = destinationOps.items.find((i: any) => i.type === "FILL");
+      expect(fill?.txHash).toBeDefined();
 
       const publicClient = createPublicClient({
         transport: http(RPC_URLS[SEPOLIA_CHAIN_ID]),
       });
       const receipt = await publicClient.getTransactionReceipt({
-        hash: statusResponse.fillTransactionHash as Hex,
+        hash: fill.txHash as Hex,
       });
       expect(receipt.status).toBe("success");
 

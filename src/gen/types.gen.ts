@@ -4,13 +4,2890 @@ export type ClientOptions = {
     baseUrl: 'https://v1.orchestrator.rhinestone.dev' | (string & {});
 };
 
-export type PostQuotesData = {
-    /**
-     * Body
-     */
-    body?: {
+export type ListChainsData = {
+    body?: never;
+    headers: {
         /**
-         * The ID of the target blockchain
+         * API version. Required; pinned to this document.
+         */
+        'x-api-version': '2026-04.blanc';
+    };
+    path?: never;
+    query?: never;
+    url: '/chains';
+};
+
+export type ListChainsErrors = {
+    /**
+     * Validation error
+     */
+    400: {
+        code: 'VALIDATION_ERROR';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+        /**
+         * Per-field validation issues
+         */
+        details?: Array<{
+            /**
+             * Human-readable issue description
+             */
+            message: string;
+            /**
+             * Structured issue context (e.g. `{ path: "body.accountAddress" }`)
+             */
+            context?: {
+                [key: string]: unknown;
+            };
+        }>;
+    } | {
+        code: 'SIMULATION_FAILED';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+        /**
+         * Classified on-chain simulation failure details
+         */
+        details?: {
+            nonce?: string;
+            category: string;
+            errorSelector: string;
+            errorName: string;
+            errorArgs?: {
+                [key: string]: string;
+            };
+            retryable: boolean;
+            retryHint?: 'RE_PREPARE' | 'RETRY_LATER';
+            simulations?: unknown;
+            [key: string]: unknown | string | {
+                [key: string]: string;
+            } | boolean | 'RE_PREPARE' | 'RETRY_LATER' | undefined;
+        };
+    } | {
+        code: 'INSUFFICIENT_LIQUIDITY';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+        /**
+         * Fillable subset and unfillable remainder
+         */
+        details?: {
+            /**
+             * Intents fillable with current liquidity
+             */
+            availableIntents: Array<{
+                [key: string]: string;
+            }>;
+            /**
+             * Token amounts that cannot be filled
+             */
+            unfillable: {
+                [key: string]: string;
+            };
+        };
+    } | {
+        code: 'KEY_SCOPE_DENIED';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+        /**
+         * Single-element list describing the failing scope
+         */
+        details?: Array<{
+            message: string;
+            context: {
+                /**
+                 * Which scope rejected the request
+                 */
+                scope: 'allowMainnet' | 'intents' | 'deposits';
+                /**
+                 * Minimum level the endpoint demands
+                 */
+                required: boolean | 'read' | 'write';
+                /**
+                 * Level resolved on the key
+                 */
+                actual: boolean | 'none' | 'read' | 'write';
+            };
+        }>;
+    } | {
+        code: 'NOT_FOUND' | 'UNAUTHORIZED' | 'FORBIDDEN' | 'CONFLICT' | 'WITHDRAWAL_IN_PROGRESS' | 'UNPROCESSABLE_CONTENT' | 'TOO_MANY_REQUESTS' | 'SETTLEMENT_QUOTE_ERROR' | 'SETTLEMENT_EXECUTION_ERROR' | 'EXTERNAL_SERVICE_TIMEOUT' | 'RELAYER_MARKET_UNAVAILABLE' | 'INTERNAL_ERROR';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+    };
+};
+
+export type ListChainsError = ListChainsErrors[keyof ListChainsErrors];
+
+export type ListChainsResponses = {
+    /**
+     * Supported chains and tokens, keyed by CAIP-2 chain id
+     */
+    200: {
+        [key: string]: {
+            /**
+             * The name of the chain
+             */
+            name: string;
+            testnet: boolean;
+            supportedTokens: 'all' | Array<{
+                symbol: string;
+                /**
+                 * Token contract address (format depends on the chain)
+                 */
+                address: string;
+                decimals: number;
+            }>;
+            /**
+             * The wrapped-native token (e.g. WETH) for the chain. Lets clients resolve the wrapped-native address without bundling a token registry.
+             */
+            wrappedNativeToken: {
+                symbol: string;
+                /**
+                 * Token contract address (format depends on the chain)
+                 */
+                address: string;
+                decimals: number;
+            };
+        };
+    };
+};
+
+export type ListChainsResponse = ListChainsResponses[keyof ListChainsResponses];
+
+export type ListLiquidityData = {
+    body?: never;
+    headers: {
+        /**
+         * API version. Required; pinned to this document.
+         */
+        'x-api-version': '2026-04.blanc';
+        /**
+         * API key.
+         */
+        'x-api-key': string;
+    };
+    path?: never;
+    query: {
+        /**
+         * Source chain ID (CAIP-2)
+         */
+        sourceChainId: string;
+        /**
+         * Source token address
+         */
+        sourceToken: string;
+        /**
+         * Destination chain ID (CAIP-2)
+         */
+        destinationChainId: string;
+        /**
+         * Destination token address (EVM 0x or non-EVM base58)
+         */
+        destinationToken: string;
+    };
+    url: '/liquidity';
+};
+
+export type ListLiquidityErrors = {
+    /**
+     * Validation error
+     */
+    400: {
+        code: 'VALIDATION_ERROR';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+        /**
+         * Per-field validation issues
+         */
+        details?: Array<{
+            /**
+             * Human-readable issue description
+             */
+            message: string;
+            /**
+             * Structured issue context (e.g. `{ path: "body.accountAddress" }`)
+             */
+            context?: {
+                [key: string]: unknown;
+            };
+        }>;
+    } | {
+        code: 'SIMULATION_FAILED';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+        /**
+         * Classified on-chain simulation failure details
+         */
+        details?: {
+            nonce?: string;
+            category: string;
+            errorSelector: string;
+            errorName: string;
+            errorArgs?: {
+                [key: string]: string;
+            };
+            retryable: boolean;
+            retryHint?: 'RE_PREPARE' | 'RETRY_LATER';
+            simulations?: unknown;
+            [key: string]: unknown | string | {
+                [key: string]: string;
+            } | boolean | 'RE_PREPARE' | 'RETRY_LATER' | undefined;
+        };
+    } | {
+        code: 'INSUFFICIENT_LIQUIDITY';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+        /**
+         * Fillable subset and unfillable remainder
+         */
+        details?: {
+            /**
+             * Intents fillable with current liquidity
+             */
+            availableIntents: Array<{
+                [key: string]: string;
+            }>;
+            /**
+             * Token amounts that cannot be filled
+             */
+            unfillable: {
+                [key: string]: string;
+            };
+        };
+    } | {
+        code: 'KEY_SCOPE_DENIED';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+        /**
+         * Single-element list describing the failing scope
+         */
+        details?: Array<{
+            message: string;
+            context: {
+                /**
+                 * Which scope rejected the request
+                 */
+                scope: 'allowMainnet' | 'intents' | 'deposits';
+                /**
+                 * Minimum level the endpoint demands
+                 */
+                required: boolean | 'read' | 'write';
+                /**
+                 * Level resolved on the key
+                 */
+                actual: boolean | 'none' | 'read' | 'write';
+            };
+        }>;
+    } | {
+        code: 'NOT_FOUND' | 'UNAUTHORIZED' | 'FORBIDDEN' | 'CONFLICT' | 'WITHDRAWAL_IN_PROGRESS' | 'UNPROCESSABLE_CONTENT' | 'TOO_MANY_REQUESTS' | 'SETTLEMENT_QUOTE_ERROR' | 'SETTLEMENT_EXECUTION_ERROR' | 'EXTERNAL_SERVICE_TIMEOUT' | 'RELAYER_MARKET_UNAVAILABLE' | 'INTERNAL_ERROR';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+    };
+    /**
+     * API key scope denied
+     */
+    403: {
+        code: 'VALIDATION_ERROR';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+        /**
+         * Per-field validation issues
+         */
+        details?: Array<{
+            /**
+             * Human-readable issue description
+             */
+            message: string;
+            /**
+             * Structured issue context (e.g. `{ path: "body.accountAddress" }`)
+             */
+            context?: {
+                [key: string]: unknown;
+            };
+        }>;
+    } | {
+        code: 'SIMULATION_FAILED';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+        /**
+         * Classified on-chain simulation failure details
+         */
+        details?: {
+            nonce?: string;
+            category: string;
+            errorSelector: string;
+            errorName: string;
+            errorArgs?: {
+                [key: string]: string;
+            };
+            retryable: boolean;
+            retryHint?: 'RE_PREPARE' | 'RETRY_LATER';
+            simulations?: unknown;
+            [key: string]: unknown | string | {
+                [key: string]: string;
+            } | boolean | 'RE_PREPARE' | 'RETRY_LATER' | undefined;
+        };
+    } | {
+        code: 'INSUFFICIENT_LIQUIDITY';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+        /**
+         * Fillable subset and unfillable remainder
+         */
+        details?: {
+            /**
+             * Intents fillable with current liquidity
+             */
+            availableIntents: Array<{
+                [key: string]: string;
+            }>;
+            /**
+             * Token amounts that cannot be filled
+             */
+            unfillable: {
+                [key: string]: string;
+            };
+        };
+    } | {
+        code: 'KEY_SCOPE_DENIED';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+        /**
+         * Single-element list describing the failing scope
+         */
+        details?: Array<{
+            message: string;
+            context: {
+                /**
+                 * Which scope rejected the request
+                 */
+                scope: 'allowMainnet' | 'intents' | 'deposits';
+                /**
+                 * Minimum level the endpoint demands
+                 */
+                required: boolean | 'read' | 'write';
+                /**
+                 * Level resolved on the key
+                 */
+                actual: boolean | 'none' | 'read' | 'write';
+            };
+        }>;
+    } | {
+        code: 'NOT_FOUND' | 'UNAUTHORIZED' | 'FORBIDDEN' | 'CONFLICT' | 'WITHDRAWAL_IN_PROGRESS' | 'UNPROCESSABLE_CONTENT' | 'TOO_MANY_REQUESTS' | 'SETTLEMENT_QUOTE_ERROR' | 'SETTLEMENT_EXECUTION_ERROR' | 'EXTERNAL_SERVICE_TIMEOUT' | 'RELAYER_MARKET_UNAVAILABLE' | 'INTERNAL_ERROR';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+    };
+    /**
+     * Server error
+     */
+    500: {
+        code: 'VALIDATION_ERROR';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+        /**
+         * Per-field validation issues
+         */
+        details?: Array<{
+            /**
+             * Human-readable issue description
+             */
+            message: string;
+            /**
+             * Structured issue context (e.g. `{ path: "body.accountAddress" }`)
+             */
+            context?: {
+                [key: string]: unknown;
+            };
+        }>;
+    } | {
+        code: 'SIMULATION_FAILED';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+        /**
+         * Classified on-chain simulation failure details
+         */
+        details?: {
+            nonce?: string;
+            category: string;
+            errorSelector: string;
+            errorName: string;
+            errorArgs?: {
+                [key: string]: string;
+            };
+            retryable: boolean;
+            retryHint?: 'RE_PREPARE' | 'RETRY_LATER';
+            simulations?: unknown;
+            [key: string]: unknown | string | {
+                [key: string]: string;
+            } | boolean | 'RE_PREPARE' | 'RETRY_LATER' | undefined;
+        };
+    } | {
+        code: 'INSUFFICIENT_LIQUIDITY';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+        /**
+         * Fillable subset and unfillable remainder
+         */
+        details?: {
+            /**
+             * Intents fillable with current liquidity
+             */
+            availableIntents: Array<{
+                [key: string]: string;
+            }>;
+            /**
+             * Token amounts that cannot be filled
+             */
+            unfillable: {
+                [key: string]: string;
+            };
+        };
+    } | {
+        code: 'KEY_SCOPE_DENIED';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+        /**
+         * Single-element list describing the failing scope
+         */
+        details?: Array<{
+            message: string;
+            context: {
+                /**
+                 * Which scope rejected the request
+                 */
+                scope: 'allowMainnet' | 'intents' | 'deposits';
+                /**
+                 * Minimum level the endpoint demands
+                 */
+                required: boolean | 'read' | 'write';
+                /**
+                 * Level resolved on the key
+                 */
+                actual: boolean | 'none' | 'read' | 'write';
+            };
+        }>;
+    } | {
+        code: 'NOT_FOUND' | 'UNAUTHORIZED' | 'FORBIDDEN' | 'CONFLICT' | 'WITHDRAWAL_IN_PROGRESS' | 'UNPROCESSABLE_CONTENT' | 'TOO_MANY_REQUESTS' | 'SETTLEMENT_QUOTE_ERROR' | 'SETTLEMENT_EXECUTION_ERROR' | 'EXTERNAL_SERVICE_TIMEOUT' | 'RELAYER_MARKET_UNAVAILABLE' | 'INTERNAL_ERROR';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+    };
+};
+
+export type ListLiquidityError = ListLiquidityErrors[keyof ListLiquidityErrors];
+
+export type ListLiquidityResponses = {
+    /**
+     * OK
+     */
+    200: {
+        /**
+         * Destination token symbol
+         */
+        symbol: string;
+        /**
+         * Destination token decimals
+         */
+        decimals: number;
+        /**
+         * True when an uncapped settlement layer (e.g. OFT) supports this route
+         */
+        unlimited: boolean;
+        /**
+         * Largest known fillable amount for this token by a single relayer instance. Exact for relayer-market settlement layers (ACROSS, ECO); bridge-backed layers (Relay, NEAR, Rhino) return a conservative probed lower bound. Null when unlimited.
+         */
+        maxAmount: string | null;
+    };
+};
+
+export type ListLiquidityResponse = ListLiquidityResponses[keyof ListLiquidityResponses];
+
+export type GetIntentData = {
+    body?: never;
+    headers: {
+        /**
+         * API version. Required; pinned to this document.
+         */
+        'x-api-version': '2026-04.blanc';
+        /**
+         * API key.
+         */
+        'x-api-key': string;
+    };
+    path: {
+        /**
+         * Unique identifier of the intent operation
+         */
+        id: string;
+    };
+    query?: {
+        /**
+         * Whether to include intent operation details
+         */
+        full?: boolean;
+    };
+    url: '/intents/{id}';
+};
+
+export type GetIntentErrors = {
+    /**
+     * Invalid intent ID
+     */
+    400: {
+        code: 'VALIDATION_ERROR';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+        /**
+         * Per-field validation issues
+         */
+        details?: Array<{
+            /**
+             * Human-readable issue description
+             */
+            message: string;
+            /**
+             * Structured issue context (e.g. `{ path: "body.accountAddress" }`)
+             */
+            context?: {
+                [key: string]: unknown;
+            };
+        }>;
+    } | {
+        code: 'SIMULATION_FAILED';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+        /**
+         * Classified on-chain simulation failure details
+         */
+        details?: {
+            nonce?: string;
+            category: string;
+            errorSelector: string;
+            errorName: string;
+            errorArgs?: {
+                [key: string]: string;
+            };
+            retryable: boolean;
+            retryHint?: 'RE_PREPARE' | 'RETRY_LATER';
+            simulations?: unknown;
+            [key: string]: unknown | string | {
+                [key: string]: string;
+            } | boolean | 'RE_PREPARE' | 'RETRY_LATER' | undefined;
+        };
+    } | {
+        code: 'INSUFFICIENT_LIQUIDITY';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+        /**
+         * Fillable subset and unfillable remainder
+         */
+        details?: {
+            /**
+             * Intents fillable with current liquidity
+             */
+            availableIntents: Array<{
+                [key: string]: string;
+            }>;
+            /**
+             * Token amounts that cannot be filled
+             */
+            unfillable: {
+                [key: string]: string;
+            };
+        };
+    } | {
+        code: 'KEY_SCOPE_DENIED';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+        /**
+         * Single-element list describing the failing scope
+         */
+        details?: Array<{
+            message: string;
+            context: {
+                /**
+                 * Which scope rejected the request
+                 */
+                scope: 'allowMainnet' | 'intents' | 'deposits';
+                /**
+                 * Minimum level the endpoint demands
+                 */
+                required: boolean | 'read' | 'write';
+                /**
+                 * Level resolved on the key
+                 */
+                actual: boolean | 'none' | 'read' | 'write';
+            };
+        }>;
+    } | {
+        code: 'NOT_FOUND' | 'UNAUTHORIZED' | 'FORBIDDEN' | 'CONFLICT' | 'WITHDRAWAL_IN_PROGRESS' | 'UNPROCESSABLE_CONTENT' | 'TOO_MANY_REQUESTS' | 'SETTLEMENT_QUOTE_ERROR' | 'SETTLEMENT_EXECUTION_ERROR' | 'EXTERNAL_SERVICE_TIMEOUT' | 'RELAYER_MARKET_UNAVAILABLE' | 'INTERNAL_ERROR';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+    };
+    /**
+     * API key scope denied
+     */
+    403: {
+        code: 'VALIDATION_ERROR';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+        /**
+         * Per-field validation issues
+         */
+        details?: Array<{
+            /**
+             * Human-readable issue description
+             */
+            message: string;
+            /**
+             * Structured issue context (e.g. `{ path: "body.accountAddress" }`)
+             */
+            context?: {
+                [key: string]: unknown;
+            };
+        }>;
+    } | {
+        code: 'SIMULATION_FAILED';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+        /**
+         * Classified on-chain simulation failure details
+         */
+        details?: {
+            nonce?: string;
+            category: string;
+            errorSelector: string;
+            errorName: string;
+            errorArgs?: {
+                [key: string]: string;
+            };
+            retryable: boolean;
+            retryHint?: 'RE_PREPARE' | 'RETRY_LATER';
+            simulations?: unknown;
+            [key: string]: unknown | string | {
+                [key: string]: string;
+            } | boolean | 'RE_PREPARE' | 'RETRY_LATER' | undefined;
+        };
+    } | {
+        code: 'INSUFFICIENT_LIQUIDITY';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+        /**
+         * Fillable subset and unfillable remainder
+         */
+        details?: {
+            /**
+             * Intents fillable with current liquidity
+             */
+            availableIntents: Array<{
+                [key: string]: string;
+            }>;
+            /**
+             * Token amounts that cannot be filled
+             */
+            unfillable: {
+                [key: string]: string;
+            };
+        };
+    } | {
+        code: 'KEY_SCOPE_DENIED';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+        /**
+         * Single-element list describing the failing scope
+         */
+        details?: Array<{
+            message: string;
+            context: {
+                /**
+                 * Which scope rejected the request
+                 */
+                scope: 'allowMainnet' | 'intents' | 'deposits';
+                /**
+                 * Minimum level the endpoint demands
+                 */
+                required: boolean | 'read' | 'write';
+                /**
+                 * Level resolved on the key
+                 */
+                actual: boolean | 'none' | 'read' | 'write';
+            };
+        }>;
+    } | {
+        code: 'NOT_FOUND' | 'UNAUTHORIZED' | 'FORBIDDEN' | 'CONFLICT' | 'WITHDRAWAL_IN_PROGRESS' | 'UNPROCESSABLE_CONTENT' | 'TOO_MANY_REQUESTS' | 'SETTLEMENT_QUOTE_ERROR' | 'SETTLEMENT_EXECUTION_ERROR' | 'EXTERNAL_SERVICE_TIMEOUT' | 'RELAYER_MARKET_UNAVAILABLE' | 'INTERNAL_ERROR';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+    };
+    /**
+     * Intent ID not found
+     */
+    404: {
+        code: 'VALIDATION_ERROR';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+        /**
+         * Per-field validation issues
+         */
+        details?: Array<{
+            /**
+             * Human-readable issue description
+             */
+            message: string;
+            /**
+             * Structured issue context (e.g. `{ path: "body.accountAddress" }`)
+             */
+            context?: {
+                [key: string]: unknown;
+            };
+        }>;
+    } | {
+        code: 'SIMULATION_FAILED';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+        /**
+         * Classified on-chain simulation failure details
+         */
+        details?: {
+            nonce?: string;
+            category: string;
+            errorSelector: string;
+            errorName: string;
+            errorArgs?: {
+                [key: string]: string;
+            };
+            retryable: boolean;
+            retryHint?: 'RE_PREPARE' | 'RETRY_LATER';
+            simulations?: unknown;
+            [key: string]: unknown | string | {
+                [key: string]: string;
+            } | boolean | 'RE_PREPARE' | 'RETRY_LATER' | undefined;
+        };
+    } | {
+        code: 'INSUFFICIENT_LIQUIDITY';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+        /**
+         * Fillable subset and unfillable remainder
+         */
+        details?: {
+            /**
+             * Intents fillable with current liquidity
+             */
+            availableIntents: Array<{
+                [key: string]: string;
+            }>;
+            /**
+             * Token amounts that cannot be filled
+             */
+            unfillable: {
+                [key: string]: string;
+            };
+        };
+    } | {
+        code: 'KEY_SCOPE_DENIED';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+        /**
+         * Single-element list describing the failing scope
+         */
+        details?: Array<{
+            message: string;
+            context: {
+                /**
+                 * Which scope rejected the request
+                 */
+                scope: 'allowMainnet' | 'intents' | 'deposits';
+                /**
+                 * Minimum level the endpoint demands
+                 */
+                required: boolean | 'read' | 'write';
+                /**
+                 * Level resolved on the key
+                 */
+                actual: boolean | 'none' | 'read' | 'write';
+            };
+        }>;
+    } | {
+        code: 'NOT_FOUND' | 'UNAUTHORIZED' | 'FORBIDDEN' | 'CONFLICT' | 'WITHDRAWAL_IN_PROGRESS' | 'UNPROCESSABLE_CONTENT' | 'TOO_MANY_REQUESTS' | 'SETTLEMENT_QUOTE_ERROR' | 'SETTLEMENT_EXECUTION_ERROR' | 'EXTERNAL_SERVICE_TIMEOUT' | 'RELAYER_MARKET_UNAVAILABLE' | 'INTERNAL_ERROR';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+    };
+    /**
+     * Server error
+     */
+    500: {
+        code: 'VALIDATION_ERROR';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+        /**
+         * Per-field validation issues
+         */
+        details?: Array<{
+            /**
+             * Human-readable issue description
+             */
+            message: string;
+            /**
+             * Structured issue context (e.g. `{ path: "body.accountAddress" }`)
+             */
+            context?: {
+                [key: string]: unknown;
+            };
+        }>;
+    } | {
+        code: 'SIMULATION_FAILED';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+        /**
+         * Classified on-chain simulation failure details
+         */
+        details?: {
+            nonce?: string;
+            category: string;
+            errorSelector: string;
+            errorName: string;
+            errorArgs?: {
+                [key: string]: string;
+            };
+            retryable: boolean;
+            retryHint?: 'RE_PREPARE' | 'RETRY_LATER';
+            simulations?: unknown;
+            [key: string]: unknown | string | {
+                [key: string]: string;
+            } | boolean | 'RE_PREPARE' | 'RETRY_LATER' | undefined;
+        };
+    } | {
+        code: 'INSUFFICIENT_LIQUIDITY';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+        /**
+         * Fillable subset and unfillable remainder
+         */
+        details?: {
+            /**
+             * Intents fillable with current liquidity
+             */
+            availableIntents: Array<{
+                [key: string]: string;
+            }>;
+            /**
+             * Token amounts that cannot be filled
+             */
+            unfillable: {
+                [key: string]: string;
+            };
+        };
+    } | {
+        code: 'KEY_SCOPE_DENIED';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+        /**
+         * Single-element list describing the failing scope
+         */
+        details?: Array<{
+            message: string;
+            context: {
+                /**
+                 * Which scope rejected the request
+                 */
+                scope: 'allowMainnet' | 'intents' | 'deposits';
+                /**
+                 * Minimum level the endpoint demands
+                 */
+                required: boolean | 'read' | 'write';
+                /**
+                 * Level resolved on the key
+                 */
+                actual: boolean | 'none' | 'read' | 'write';
+            };
+        }>;
+    } | {
+        code: 'NOT_FOUND' | 'UNAUTHORIZED' | 'FORBIDDEN' | 'CONFLICT' | 'WITHDRAWAL_IN_PROGRESS' | 'UNPROCESSABLE_CONTENT' | 'TOO_MANY_REQUESTS' | 'SETTLEMENT_QUOTE_ERROR' | 'SETTLEMENT_EXECUTION_ERROR' | 'EXTERNAL_SERVICE_TIMEOUT' | 'RELAYER_MARKET_UNAVAILABLE' | 'INTERNAL_ERROR';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+    };
+};
+
+export type GetIntentError = GetIntentErrors[keyof GetIntentErrors];
+
+export type GetIntentResponses = {
+    /**
+     * Successfully retrieved intent operation status
+     */
+    200: {
+        /**
+         * Overall intent status: PENDING, COMPLETED, or FAILED
+         */
+        status: 'PENDING' | 'COMPLETED' | 'FAILED';
+        /**
+         * Account address
+         */
+        accountAddress: string;
+        /**
+         * Operations grouped by chain. Each chain has one or more operations (e.g. CLAIM, FILL, BRIDGE_FILL).
+         */
+        operations: Array<{
+            /**
+             * Chain ID
+             */
+            chain: number;
+            /**
+             * Operations on this chain
+             */
+            items: Array<{
+                /**
+                 * Operation type: CLAIM, FILL, or BRIDGE_FILL
+                 */
+                type: 'CLAIM' | 'FILL' | 'BRIDGE_FILL';
+                /**
+                 * Operation status
+                 */
+                status: 'PENDING' | 'COMPLETED' | 'FAILED';
+                /**
+                 * Transaction hash (present when COMPLETED)
+                 */
+                txHash?: string;
+                /**
+                 * Block timestamp in unix seconds (present when COMPLETED)
+                 */
+                timestamp?: number;
+            }>;
+        }>;
+        /**
+         * Extended intent details, returned only when `full=true`
+         */
+        details?: {
+            /**
+             * Intent id — pass to `GET /intents/:id`
+             */
+            id: string;
+            /**
+             * Intent nonce (hex)
+             */
+            nonce: string;
+            /**
+             * Destination recipient account
+             */
+            recipient: string;
+            /**
+             * Intent creation time in unix seconds
+             */
+            createdAt: number;
+            /**
+             * Time from creation to the latest leg landing, in ms. Null until any leg lands.
+             */
+            latencyMs: number | null;
+            /**
+             * Settlement layer; null if the routing strategy is unrecognized
+             */
+            settlementLayer: 'INTENT_EXECUTOR' | 'SAME_CHAIN' | 'ACROSS' | 'ECO' | 'RELAY' | 'OFT' | 'NEAR' | 'RHINO' | 'CCTP';
+            /**
+             * Source (claim) legs
+             */
+            source: Array<{
+                /**
+                 * Chain ID
+                 */
+                chain: number;
+                /**
+                 * All tokens moved on this leg
+                 */
+                tokens: Array<{
+                    /**
+                     * Token address
+                     */
+                    token: string;
+                    /**
+                     * Token amount in base units
+                     */
+                    amount: string;
+                }>;
+                /**
+                 * Transaction hash (present once the leg lands)
+                 */
+                txHash?: string;
+                /**
+                 * Block timestamp in unix seconds (present once landed)
+                 */
+                timestamp?: number;
+                /**
+                 * Leg status
+                 */
+                status: 'PENDING' | 'COMPLETED' | 'FAILED';
+            }>;
+            /**
+             * Destination (fill) leg; null before a fill is dispatched
+             */
+            destination: {
+                /**
+                 * Chain ID
+                 */
+                chain: number;
+                /**
+                 * All tokens moved on this leg
+                 */
+                tokens: Array<{
+                    /**
+                     * Token address
+                     */
+                    token: string;
+                    /**
+                     * Token amount in base units
+                     */
+                    amount: string;
+                }>;
+                /**
+                 * Transaction hash (present once the leg lands)
+                 */
+                txHash?: string;
+                /**
+                 * Block timestamp in unix seconds (present once landed)
+                 */
+                timestamp?: number;
+                /**
+                 * Leg status
+                 */
+                status: 'PENDING' | 'COMPLETED' | 'FAILED';
+            } | null;
+            /**
+             * Calls the intent executes — preClaim ops on their origin chain and destination ops on the destination chain. The signed intended calls; no per-call result is recorded. Empty for token-only intents with no custom calls.
+             */
+            executions: Array<{
+                /**
+                 * Chain ID the call executes on
+                 */
+                chain: number;
+                /**
+                 * PRE_CLAIM runs on the origin chain before funds are claimed; DESTINATION runs on the destination chain after funds are delivered.
+                 */
+                phase: 'PRE_CLAIM' | 'DESTINATION';
+                /**
+                 * Call target address
+                 */
+                to: string;
+                /**
+                 * Native value sent with the call, in wei (base units)
+                 */
+                value: string;
+                /**
+                 * Encoded calldata
+                 */
+                data: string;
+            }>;
+            /**
+             * Cost summary from the recorded fee sponsorship. Amounts are raw base units; omitted when no sponsorship row exists.
+             */
+            cost: {
+                /**
+                 * Whether gas/fees were sponsored for this intent
+                 */
+                sponsored: boolean;
+                /**
+                 * Sponsored value in fee-token base units
+                 */
+                sponsoredValue?: string;
+                /**
+                 * Protocol fee in fee-token base units
+                 */
+                protocolFee?: string;
+            };
+        };
+    };
+};
+
+export type GetIntentResponse = GetIntentResponses[keyof GetIntentResponses];
+
+export type GetPortfolioData = {
+    body?: never;
+    headers: {
+        /**
+         * API version. Required; pinned to this document.
+         */
+        'x-api-version': '2026-04.blanc';
+        /**
+         * API key.
+         */
+        'x-api-key': string;
+    };
+    path: {
+        accountAddress: string;
+    };
+    query?: {
+        chainIds?: Array<string> | string;
+        tokens?: Array<string> | string;
+        filterEmpty?: boolean;
+    };
+    url: '/accounts/{accountAddress}/portfolio';
+};
+
+export type GetPortfolioErrors = {
+    /**
+     * Invalid request parameters
+     */
+    400: {
+        code: 'VALIDATION_ERROR';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+        /**
+         * Per-field validation issues
+         */
+        details?: Array<{
+            /**
+             * Human-readable issue description
+             */
+            message: string;
+            /**
+             * Structured issue context (e.g. `{ path: "body.accountAddress" }`)
+             */
+            context?: {
+                [key: string]: unknown;
+            };
+        }>;
+    } | {
+        code: 'SIMULATION_FAILED';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+        /**
+         * Classified on-chain simulation failure details
+         */
+        details?: {
+            nonce?: string;
+            category: string;
+            errorSelector: string;
+            errorName: string;
+            errorArgs?: {
+                [key: string]: string;
+            };
+            retryable: boolean;
+            retryHint?: 'RE_PREPARE' | 'RETRY_LATER';
+            simulations?: unknown;
+            [key: string]: unknown | string | {
+                [key: string]: string;
+            } | boolean | 'RE_PREPARE' | 'RETRY_LATER' | undefined;
+        };
+    } | {
+        code: 'INSUFFICIENT_LIQUIDITY';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+        /**
+         * Fillable subset and unfillable remainder
+         */
+        details?: {
+            /**
+             * Intents fillable with current liquidity
+             */
+            availableIntents: Array<{
+                [key: string]: string;
+            }>;
+            /**
+             * Token amounts that cannot be filled
+             */
+            unfillable: {
+                [key: string]: string;
+            };
+        };
+    } | {
+        code: 'KEY_SCOPE_DENIED';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+        /**
+         * Single-element list describing the failing scope
+         */
+        details?: Array<{
+            message: string;
+            context: {
+                /**
+                 * Which scope rejected the request
+                 */
+                scope: 'allowMainnet' | 'intents' | 'deposits';
+                /**
+                 * Minimum level the endpoint demands
+                 */
+                required: boolean | 'read' | 'write';
+                /**
+                 * Level resolved on the key
+                 */
+                actual: boolean | 'none' | 'read' | 'write';
+            };
+        }>;
+    } | {
+        code: 'NOT_FOUND' | 'UNAUTHORIZED' | 'FORBIDDEN' | 'CONFLICT' | 'WITHDRAWAL_IN_PROGRESS' | 'UNPROCESSABLE_CONTENT' | 'TOO_MANY_REQUESTS' | 'SETTLEMENT_QUOTE_ERROR' | 'SETTLEMENT_EXECUTION_ERROR' | 'EXTERNAL_SERVICE_TIMEOUT' | 'RELAYER_MARKET_UNAVAILABLE' | 'INTERNAL_ERROR';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+    };
+    /**
+     * API key scope denied
+     */
+    403: {
+        code: 'VALIDATION_ERROR';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+        /**
+         * Per-field validation issues
+         */
+        details?: Array<{
+            /**
+             * Human-readable issue description
+             */
+            message: string;
+            /**
+             * Structured issue context (e.g. `{ path: "body.accountAddress" }`)
+             */
+            context?: {
+                [key: string]: unknown;
+            };
+        }>;
+    } | {
+        code: 'SIMULATION_FAILED';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+        /**
+         * Classified on-chain simulation failure details
+         */
+        details?: {
+            nonce?: string;
+            category: string;
+            errorSelector: string;
+            errorName: string;
+            errorArgs?: {
+                [key: string]: string;
+            };
+            retryable: boolean;
+            retryHint?: 'RE_PREPARE' | 'RETRY_LATER';
+            simulations?: unknown;
+            [key: string]: unknown | string | {
+                [key: string]: string;
+            } | boolean | 'RE_PREPARE' | 'RETRY_LATER' | undefined;
+        };
+    } | {
+        code: 'INSUFFICIENT_LIQUIDITY';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+        /**
+         * Fillable subset and unfillable remainder
+         */
+        details?: {
+            /**
+             * Intents fillable with current liquidity
+             */
+            availableIntents: Array<{
+                [key: string]: string;
+            }>;
+            /**
+             * Token amounts that cannot be filled
+             */
+            unfillable: {
+                [key: string]: string;
+            };
+        };
+    } | {
+        code: 'KEY_SCOPE_DENIED';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+        /**
+         * Single-element list describing the failing scope
+         */
+        details?: Array<{
+            message: string;
+            context: {
+                /**
+                 * Which scope rejected the request
+                 */
+                scope: 'allowMainnet' | 'intents' | 'deposits';
+                /**
+                 * Minimum level the endpoint demands
+                 */
+                required: boolean | 'read' | 'write';
+                /**
+                 * Level resolved on the key
+                 */
+                actual: boolean | 'none' | 'read' | 'write';
+            };
+        }>;
+    } | {
+        code: 'NOT_FOUND' | 'UNAUTHORIZED' | 'FORBIDDEN' | 'CONFLICT' | 'WITHDRAWAL_IN_PROGRESS' | 'UNPROCESSABLE_CONTENT' | 'TOO_MANY_REQUESTS' | 'SETTLEMENT_QUOTE_ERROR' | 'SETTLEMENT_EXECUTION_ERROR' | 'EXTERNAL_SERVICE_TIMEOUT' | 'RELAYER_MARKET_UNAVAILABLE' | 'INTERNAL_ERROR';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+    };
+    /**
+     * Server error
+     */
+    500: {
+        code: 'VALIDATION_ERROR';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+        /**
+         * Per-field validation issues
+         */
+        details?: Array<{
+            /**
+             * Human-readable issue description
+             */
+            message: string;
+            /**
+             * Structured issue context (e.g. `{ path: "body.accountAddress" }`)
+             */
+            context?: {
+                [key: string]: unknown;
+            };
+        }>;
+    } | {
+        code: 'SIMULATION_FAILED';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+        /**
+         * Classified on-chain simulation failure details
+         */
+        details?: {
+            nonce?: string;
+            category: string;
+            errorSelector: string;
+            errorName: string;
+            errorArgs?: {
+                [key: string]: string;
+            };
+            retryable: boolean;
+            retryHint?: 'RE_PREPARE' | 'RETRY_LATER';
+            simulations?: unknown;
+            [key: string]: unknown | string | {
+                [key: string]: string;
+            } | boolean | 'RE_PREPARE' | 'RETRY_LATER' | undefined;
+        };
+    } | {
+        code: 'INSUFFICIENT_LIQUIDITY';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+        /**
+         * Fillable subset and unfillable remainder
+         */
+        details?: {
+            /**
+             * Intents fillable with current liquidity
+             */
+            availableIntents: Array<{
+                [key: string]: string;
+            }>;
+            /**
+             * Token amounts that cannot be filled
+             */
+            unfillable: {
+                [key: string]: string;
+            };
+        };
+    } | {
+        code: 'KEY_SCOPE_DENIED';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+        /**
+         * Single-element list describing the failing scope
+         */
+        details?: Array<{
+            message: string;
+            context: {
+                /**
+                 * Which scope rejected the request
+                 */
+                scope: 'allowMainnet' | 'intents' | 'deposits';
+                /**
+                 * Minimum level the endpoint demands
+                 */
+                required: boolean | 'read' | 'write';
+                /**
+                 * Level resolved on the key
+                 */
+                actual: boolean | 'none' | 'read' | 'write';
+            };
+        }>;
+    } | {
+        code: 'NOT_FOUND' | 'UNAUTHORIZED' | 'FORBIDDEN' | 'CONFLICT' | 'WITHDRAWAL_IN_PROGRESS' | 'UNPROCESSABLE_CONTENT' | 'TOO_MANY_REQUESTS' | 'SETTLEMENT_QUOTE_ERROR' | 'SETTLEMENT_EXECUTION_ERROR' | 'EXTERNAL_SERVICE_TIMEOUT' | 'RELAYER_MARKET_UNAVAILABLE' | 'INTERNAL_ERROR';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+    };
+};
+
+export type GetPortfolioError = GetPortfolioErrors[keyof GetPortfolioErrors];
+
+export type GetPortfolioResponses = {
+    /**
+     * OK
+     */
+    200: {
+        /**
+         * Array of token portfolio entries
+         */
+        portfolio: Array<{
+            /**
+             * Short name (symbol) of the token
+             */
+            symbol: string;
+            /**
+             * Array of token balances per chain
+             */
+            chains: Array<{
+                /**
+                 * Chain ID where the token balance exists (CAIP-2)
+                 */
+                chainId: string;
+                /**
+                 * Token contract address on this chain
+                 */
+                address: string;
+                /**
+                 * Decimal places for this token on this chain. Sourced per-chain because the same logical token can have different on-chain decimals across chains (e.g. USDC: 6 on Ethereum, 18 on BNB Smart Chain).
+                 */
+                decimals: number;
+                /**
+                 * Token balance on this chain in the token's smallest unit
+                 */
+                amount: string;
+            }>;
+        }>;
+    };
+};
+
+export type GetPortfolioResponse = GetPortfolioResponses[keyof GetPortfolioResponses];
+
+export type ListIntentsData = {
+    body?: never;
+    headers: {
+        /**
+         * API version. Required; pinned to this document.
+         */
+        'x-api-version': '2026-04.blanc';
+        /**
+         * API key.
+         */
+        'x-api-key': string;
+    };
+    path?: never;
+    query?: {
+        /**
+         * Opaque cursor from a previous response (`pagination.nextCursor`). Omit for the first page.
+         */
+        cursor?: string;
+        /**
+         * Max items per page (max 100)
+         */
+        limit?: number;
+    };
+    url: '/intents';
+};
+
+export type ListIntentsErrors = {
+    /**
+     * Validation error
+     */
+    400: {
+        code: 'VALIDATION_ERROR';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+        /**
+         * Per-field validation issues
+         */
+        details?: Array<{
+            /**
+             * Human-readable issue description
+             */
+            message: string;
+            /**
+             * Structured issue context (e.g. `{ path: "body.accountAddress" }`)
+             */
+            context?: {
+                [key: string]: unknown;
+            };
+        }>;
+    } | {
+        code: 'SIMULATION_FAILED';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+        /**
+         * Classified on-chain simulation failure details
+         */
+        details?: {
+            nonce?: string;
+            category: string;
+            errorSelector: string;
+            errorName: string;
+            errorArgs?: {
+                [key: string]: string;
+            };
+            retryable: boolean;
+            retryHint?: 'RE_PREPARE' | 'RETRY_LATER';
+            simulations?: unknown;
+            [key: string]: unknown | string | {
+                [key: string]: string;
+            } | boolean | 'RE_PREPARE' | 'RETRY_LATER' | undefined;
+        };
+    } | {
+        code: 'INSUFFICIENT_LIQUIDITY';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+        /**
+         * Fillable subset and unfillable remainder
+         */
+        details?: {
+            /**
+             * Intents fillable with current liquidity
+             */
+            availableIntents: Array<{
+                [key: string]: string;
+            }>;
+            /**
+             * Token amounts that cannot be filled
+             */
+            unfillable: {
+                [key: string]: string;
+            };
+        };
+    } | {
+        code: 'KEY_SCOPE_DENIED';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+        /**
+         * Single-element list describing the failing scope
+         */
+        details?: Array<{
+            message: string;
+            context: {
+                /**
+                 * Which scope rejected the request
+                 */
+                scope: 'allowMainnet' | 'intents' | 'deposits';
+                /**
+                 * Minimum level the endpoint demands
+                 */
+                required: boolean | 'read' | 'write';
+                /**
+                 * Level resolved on the key
+                 */
+                actual: boolean | 'none' | 'read' | 'write';
+            };
+        }>;
+    } | {
+        code: 'NOT_FOUND' | 'UNAUTHORIZED' | 'FORBIDDEN' | 'CONFLICT' | 'WITHDRAWAL_IN_PROGRESS' | 'UNPROCESSABLE_CONTENT' | 'TOO_MANY_REQUESTS' | 'SETTLEMENT_QUOTE_ERROR' | 'SETTLEMENT_EXECUTION_ERROR' | 'EXTERNAL_SERVICE_TIMEOUT' | 'RELAYER_MARKET_UNAVAILABLE' | 'INTERNAL_ERROR';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+    };
+    /**
+     * API key scope denied
+     */
+    403: {
+        code: 'VALIDATION_ERROR';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+        /**
+         * Per-field validation issues
+         */
+        details?: Array<{
+            /**
+             * Human-readable issue description
+             */
+            message: string;
+            /**
+             * Structured issue context (e.g. `{ path: "body.accountAddress" }`)
+             */
+            context?: {
+                [key: string]: unknown;
+            };
+        }>;
+    } | {
+        code: 'SIMULATION_FAILED';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+        /**
+         * Classified on-chain simulation failure details
+         */
+        details?: {
+            nonce?: string;
+            category: string;
+            errorSelector: string;
+            errorName: string;
+            errorArgs?: {
+                [key: string]: string;
+            };
+            retryable: boolean;
+            retryHint?: 'RE_PREPARE' | 'RETRY_LATER';
+            simulations?: unknown;
+            [key: string]: unknown | string | {
+                [key: string]: string;
+            } | boolean | 'RE_PREPARE' | 'RETRY_LATER' | undefined;
+        };
+    } | {
+        code: 'INSUFFICIENT_LIQUIDITY';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+        /**
+         * Fillable subset and unfillable remainder
+         */
+        details?: {
+            /**
+             * Intents fillable with current liquidity
+             */
+            availableIntents: Array<{
+                [key: string]: string;
+            }>;
+            /**
+             * Token amounts that cannot be filled
+             */
+            unfillable: {
+                [key: string]: string;
+            };
+        };
+    } | {
+        code: 'KEY_SCOPE_DENIED';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+        /**
+         * Single-element list describing the failing scope
+         */
+        details?: Array<{
+            message: string;
+            context: {
+                /**
+                 * Which scope rejected the request
+                 */
+                scope: 'allowMainnet' | 'intents' | 'deposits';
+                /**
+                 * Minimum level the endpoint demands
+                 */
+                required: boolean | 'read' | 'write';
+                /**
+                 * Level resolved on the key
+                 */
+                actual: boolean | 'none' | 'read' | 'write';
+            };
+        }>;
+    } | {
+        code: 'NOT_FOUND' | 'UNAUTHORIZED' | 'FORBIDDEN' | 'CONFLICT' | 'WITHDRAWAL_IN_PROGRESS' | 'UNPROCESSABLE_CONTENT' | 'TOO_MANY_REQUESTS' | 'SETTLEMENT_QUOTE_ERROR' | 'SETTLEMENT_EXECUTION_ERROR' | 'EXTERNAL_SERVICE_TIMEOUT' | 'RELAYER_MARKET_UNAVAILABLE' | 'INTERNAL_ERROR';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+    };
+    /**
+     * Server error
+     */
+    500: {
+        code: 'VALIDATION_ERROR';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+        /**
+         * Per-field validation issues
+         */
+        details?: Array<{
+            /**
+             * Human-readable issue description
+             */
+            message: string;
+            /**
+             * Structured issue context (e.g. `{ path: "body.accountAddress" }`)
+             */
+            context?: {
+                [key: string]: unknown;
+            };
+        }>;
+    } | {
+        code: 'SIMULATION_FAILED';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+        /**
+         * Classified on-chain simulation failure details
+         */
+        details?: {
+            nonce?: string;
+            category: string;
+            errorSelector: string;
+            errorName: string;
+            errorArgs?: {
+                [key: string]: string;
+            };
+            retryable: boolean;
+            retryHint?: 'RE_PREPARE' | 'RETRY_LATER';
+            simulations?: unknown;
+            [key: string]: unknown | string | {
+                [key: string]: string;
+            } | boolean | 'RE_PREPARE' | 'RETRY_LATER' | undefined;
+        };
+    } | {
+        code: 'INSUFFICIENT_LIQUIDITY';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+        /**
+         * Fillable subset and unfillable remainder
+         */
+        details?: {
+            /**
+             * Intents fillable with current liquidity
+             */
+            availableIntents: Array<{
+                [key: string]: string;
+            }>;
+            /**
+             * Token amounts that cannot be filled
+             */
+            unfillable: {
+                [key: string]: string;
+            };
+        };
+    } | {
+        code: 'KEY_SCOPE_DENIED';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+        /**
+         * Single-element list describing the failing scope
+         */
+        details?: Array<{
+            message: string;
+            context: {
+                /**
+                 * Which scope rejected the request
+                 */
+                scope: 'allowMainnet' | 'intents' | 'deposits';
+                /**
+                 * Minimum level the endpoint demands
+                 */
+                required: boolean | 'read' | 'write';
+                /**
+                 * Level resolved on the key
+                 */
+                actual: boolean | 'none' | 'read' | 'write';
+            };
+        }>;
+    } | {
+        code: 'NOT_FOUND' | 'UNAUTHORIZED' | 'FORBIDDEN' | 'CONFLICT' | 'WITHDRAWAL_IN_PROGRESS' | 'UNPROCESSABLE_CONTENT' | 'TOO_MANY_REQUESTS' | 'SETTLEMENT_QUOTE_ERROR' | 'SETTLEMENT_EXECUTION_ERROR' | 'EXTERNAL_SERVICE_TIMEOUT' | 'RELAYER_MARKET_UNAVAILABLE' | 'INTERNAL_ERROR';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+    };
+};
+
+export type ListIntentsError = ListIntentsErrors[keyof ListIntentsErrors];
+
+export type ListIntentsResponses = {
+    /**
+     * Paginated list of the client’s intents
+     */
+    200: {
+        /**
+         * Intents on this page, newest first
+         */
+        data: Array<{
+            /**
+             * Intent id — pass to `GET /intents/:id`
+             */
+            id: string;
+            /**
+             * Overall intent status
+             */
+            status: 'PENDING' | 'COMPLETED' | 'FAILED';
+            /**
+             * Source chain IDs — one per distinct chain the intent spends on
+             */
+            fromChains: Array<number>;
+            /**
+             * Destination chain ID
+             */
+            toChain?: number;
+            /**
+             * Intent value token. The token delivered on the destination chain, or the spent token for same-chain intents (which have no persisted delivery).
+             */
+            token?: string;
+            /**
+             * Intent value in base units — delivered on the destination chain, or spent for same-chain intents (which have no persisted delivery; for same-chain swaps this is the input, not the received amount).
+             */
+            amount?: string;
+            /**
+             * Account that submitted the intent
+             */
+            account: string;
+            /**
+             * Intent creation time in unix seconds
+             */
+            createdAt: number;
+        }>;
+        /**
+         * Keyset pagination metadata
+         */
+        pagination: {
+            /**
+             * Pass as `cursor` to fetch the next page; null when no more results.
+             */
+            nextCursor: string | null;
+            hasNextPage: boolean;
+        };
+    };
+};
+
+export type ListIntentsResponse = ListIntentsResponses[keyof ListIntentsResponses];
+
+export type CreateIntentData = {
+    body: {
+        /**
+         * Identifier of the intent returned by `POST /quotes` (as `routes[].intentId`).
+         */
+        intentId: string;
+        signatures: {
+            /**
+             * Origin (source chain) signatures
+             */
+            origin: Array<string | {
+                preClaimSig: string;
+                notarizedClaimSig: string;
+            }>;
+            /**
+             * Destination (target chain) signature
+             */
+            destination: string;
+            /**
+             * Target execution signature (smart sessions only; omit for EOA)
+             */
+            targetExecution?: string;
+        };
+        authorizations?: {
+            /**
+             * EIP-7702 authorizations signed by the sponsor account. Each entry `chainId` is a CAIP-2 string (e.g. `eip155:8453`); the `0` any-chain sentinel is sent as a number.
+             */
+            sponsor?: Array<{
+                /**
+                 * Chain ID for EIP-7702 delegation, 0 means it can be applied to any chain
+                 */
+                chainId: number;
+                /**
+                 * Address of the delegate for EIP-7702 delegation
+                 */
+                address: string;
+                /**
+                 * Nonce for EIP-7702 delegation
+                 */
+                nonce: number;
+                /**
+                 * Y parity for EIP-7702 delegation
+                 */
+                yParity: number;
+                /**
+                 * R value for EIP-7702 delegation
+                 */
+                r: string;
+                /**
+                 * S value for EIP-7702 delegation
+                 */
+                s: string;
+            }>;
+            /**
+             * EIP-7702 authorizations signed by the recipient account. Each entry `chainId` is a CAIP-2 string (e.g. `eip155:8453`); the `0` any-chain sentinel is sent as a number.
+             */
+            recipient?: Array<{
+                /**
+                 * Chain ID for EIP-7702 delegation, 0 means it can be applied to any chain
+                 */
+                chainId: number;
+                /**
+                 * Address of the delegate for EIP-7702 delegation
+                 */
+                address: string;
+                /**
+                 * Nonce for EIP-7702 delegation
+                 */
+                nonce: number;
+                /**
+                 * Y parity for EIP-7702 delegation
+                 */
+                yParity: number;
+                /**
+                 * R value for EIP-7702 delegation
+                 */
+                r: string;
+                /**
+                 * S value for EIP-7702 delegation
+                 */
+                s: string;
+            }>;
+        };
+    };
+    headers: {
+        /**
+         * API version. Required; pinned to this document.
+         */
+        'x-api-version': '2026-04.blanc';
+        /**
+         * API key.
+         */
+        'x-api-key': string;
+    };
+    path?: never;
+    query?: never;
+    url: '/intents';
+};
+
+export type CreateIntentErrors = {
+    /**
+     * Validation error
+     */
+    400: {
+        code: 'VALIDATION_ERROR';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+        /**
+         * Per-field validation issues
+         */
+        details?: Array<{
+            /**
+             * Human-readable issue description
+             */
+            message: string;
+            /**
+             * Structured issue context (e.g. `{ path: "body.accountAddress" }`)
+             */
+            context?: {
+                [key: string]: unknown;
+            };
+        }>;
+    } | {
+        code: 'SIMULATION_FAILED';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+        /**
+         * Classified on-chain simulation failure details
+         */
+        details?: {
+            nonce?: string;
+            category: string;
+            errorSelector: string;
+            errorName: string;
+            errorArgs?: {
+                [key: string]: string;
+            };
+            retryable: boolean;
+            retryHint?: 'RE_PREPARE' | 'RETRY_LATER';
+            simulations?: unknown;
+            [key: string]: unknown | string | {
+                [key: string]: string;
+            } | boolean | 'RE_PREPARE' | 'RETRY_LATER' | undefined;
+        };
+    } | {
+        code: 'INSUFFICIENT_LIQUIDITY';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+        /**
+         * Fillable subset and unfillable remainder
+         */
+        details?: {
+            /**
+             * Intents fillable with current liquidity
+             */
+            availableIntents: Array<{
+                [key: string]: string;
+            }>;
+            /**
+             * Token amounts that cannot be filled
+             */
+            unfillable: {
+                [key: string]: string;
+            };
+        };
+    } | {
+        code: 'KEY_SCOPE_DENIED';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+        /**
+         * Single-element list describing the failing scope
+         */
+        details?: Array<{
+            message: string;
+            context: {
+                /**
+                 * Which scope rejected the request
+                 */
+                scope: 'allowMainnet' | 'intents' | 'deposits';
+                /**
+                 * Minimum level the endpoint demands
+                 */
+                required: boolean | 'read' | 'write';
+                /**
+                 * Level resolved on the key
+                 */
+                actual: boolean | 'none' | 'read' | 'write';
+            };
+        }>;
+    } | {
+        code: 'NOT_FOUND' | 'UNAUTHORIZED' | 'FORBIDDEN' | 'CONFLICT' | 'WITHDRAWAL_IN_PROGRESS' | 'UNPROCESSABLE_CONTENT' | 'TOO_MANY_REQUESTS' | 'SETTLEMENT_QUOTE_ERROR' | 'SETTLEMENT_EXECUTION_ERROR' | 'EXTERNAL_SERVICE_TIMEOUT' | 'RELAYER_MARKET_UNAVAILABLE' | 'INTERNAL_ERROR';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+    };
+    /**
+     * API key scope denied
+     */
+    403: {
+        code: 'VALIDATION_ERROR';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+        /**
+         * Per-field validation issues
+         */
+        details?: Array<{
+            /**
+             * Human-readable issue description
+             */
+            message: string;
+            /**
+             * Structured issue context (e.g. `{ path: "body.accountAddress" }`)
+             */
+            context?: {
+                [key: string]: unknown;
+            };
+        }>;
+    } | {
+        code: 'SIMULATION_FAILED';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+        /**
+         * Classified on-chain simulation failure details
+         */
+        details?: {
+            nonce?: string;
+            category: string;
+            errorSelector: string;
+            errorName: string;
+            errorArgs?: {
+                [key: string]: string;
+            };
+            retryable: boolean;
+            retryHint?: 'RE_PREPARE' | 'RETRY_LATER';
+            simulations?: unknown;
+            [key: string]: unknown | string | {
+                [key: string]: string;
+            } | boolean | 'RE_PREPARE' | 'RETRY_LATER' | undefined;
+        };
+    } | {
+        code: 'INSUFFICIENT_LIQUIDITY';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+        /**
+         * Fillable subset and unfillable remainder
+         */
+        details?: {
+            /**
+             * Intents fillable with current liquidity
+             */
+            availableIntents: Array<{
+                [key: string]: string;
+            }>;
+            /**
+             * Token amounts that cannot be filled
+             */
+            unfillable: {
+                [key: string]: string;
+            };
+        };
+    } | {
+        code: 'KEY_SCOPE_DENIED';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+        /**
+         * Single-element list describing the failing scope
+         */
+        details?: Array<{
+            message: string;
+            context: {
+                /**
+                 * Which scope rejected the request
+                 */
+                scope: 'allowMainnet' | 'intents' | 'deposits';
+                /**
+                 * Minimum level the endpoint demands
+                 */
+                required: boolean | 'read' | 'write';
+                /**
+                 * Level resolved on the key
+                 */
+                actual: boolean | 'none' | 'read' | 'write';
+            };
+        }>;
+    } | {
+        code: 'NOT_FOUND' | 'UNAUTHORIZED' | 'FORBIDDEN' | 'CONFLICT' | 'WITHDRAWAL_IN_PROGRESS' | 'UNPROCESSABLE_CONTENT' | 'TOO_MANY_REQUESTS' | 'SETTLEMENT_QUOTE_ERROR' | 'SETTLEMENT_EXECUTION_ERROR' | 'EXTERNAL_SERVICE_TIMEOUT' | 'RELAYER_MARKET_UNAVAILABLE' | 'INTERNAL_ERROR';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+    };
+    /**
+     * The quoted intent has expired or was already submitted. Request a new route to retry.
+     */
+    404: {
+        code: 'VALIDATION_ERROR';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+        /**
+         * Per-field validation issues
+         */
+        details?: Array<{
+            /**
+             * Human-readable issue description
+             */
+            message: string;
+            /**
+             * Structured issue context (e.g. `{ path: "body.accountAddress" }`)
+             */
+            context?: {
+                [key: string]: unknown;
+            };
+        }>;
+    } | {
+        code: 'SIMULATION_FAILED';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+        /**
+         * Classified on-chain simulation failure details
+         */
+        details?: {
+            nonce?: string;
+            category: string;
+            errorSelector: string;
+            errorName: string;
+            errorArgs?: {
+                [key: string]: string;
+            };
+            retryable: boolean;
+            retryHint?: 'RE_PREPARE' | 'RETRY_LATER';
+            simulations?: unknown;
+            [key: string]: unknown | string | {
+                [key: string]: string;
+            } | boolean | 'RE_PREPARE' | 'RETRY_LATER' | undefined;
+        };
+    } | {
+        code: 'INSUFFICIENT_LIQUIDITY';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+        /**
+         * Fillable subset and unfillable remainder
+         */
+        details?: {
+            /**
+             * Intents fillable with current liquidity
+             */
+            availableIntents: Array<{
+                [key: string]: string;
+            }>;
+            /**
+             * Token amounts that cannot be filled
+             */
+            unfillable: {
+                [key: string]: string;
+            };
+        };
+    } | {
+        code: 'KEY_SCOPE_DENIED';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+        /**
+         * Single-element list describing the failing scope
+         */
+        details?: Array<{
+            message: string;
+            context: {
+                /**
+                 * Which scope rejected the request
+                 */
+                scope: 'allowMainnet' | 'intents' | 'deposits';
+                /**
+                 * Minimum level the endpoint demands
+                 */
+                required: boolean | 'read' | 'write';
+                /**
+                 * Level resolved on the key
+                 */
+                actual: boolean | 'none' | 'read' | 'write';
+            };
+        }>;
+    } | {
+        code: 'NOT_FOUND' | 'UNAUTHORIZED' | 'FORBIDDEN' | 'CONFLICT' | 'WITHDRAWAL_IN_PROGRESS' | 'UNPROCESSABLE_CONTENT' | 'TOO_MANY_REQUESTS' | 'SETTLEMENT_QUOTE_ERROR' | 'SETTLEMENT_EXECUTION_ERROR' | 'EXTERNAL_SERVICE_TIMEOUT' | 'RELAYER_MARKET_UNAVAILABLE' | 'INTERNAL_ERROR';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+    };
+    /**
+     * Server error
+     */
+    500: {
+        code: 'VALIDATION_ERROR';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+        /**
+         * Per-field validation issues
+         */
+        details?: Array<{
+            /**
+             * Human-readable issue description
+             */
+            message: string;
+            /**
+             * Structured issue context (e.g. `{ path: "body.accountAddress" }`)
+             */
+            context?: {
+                [key: string]: unknown;
+            };
+        }>;
+    } | {
+        code: 'SIMULATION_FAILED';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+        /**
+         * Classified on-chain simulation failure details
+         */
+        details?: {
+            nonce?: string;
+            category: string;
+            errorSelector: string;
+            errorName: string;
+            errorArgs?: {
+                [key: string]: string;
+            };
+            retryable: boolean;
+            retryHint?: 'RE_PREPARE' | 'RETRY_LATER';
+            simulations?: unknown;
+            [key: string]: unknown | string | {
+                [key: string]: string;
+            } | boolean | 'RE_PREPARE' | 'RETRY_LATER' | undefined;
+        };
+    } | {
+        code: 'INSUFFICIENT_LIQUIDITY';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+        /**
+         * Fillable subset and unfillable remainder
+         */
+        details?: {
+            /**
+             * Intents fillable with current liquidity
+             */
+            availableIntents: Array<{
+                [key: string]: string;
+            }>;
+            /**
+             * Token amounts that cannot be filled
+             */
+            unfillable: {
+                [key: string]: string;
+            };
+        };
+    } | {
+        code: 'KEY_SCOPE_DENIED';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+        /**
+         * Single-element list describing the failing scope
+         */
+        details?: Array<{
+            message: string;
+            context: {
+                /**
+                 * Which scope rejected the request
+                 */
+                scope: 'allowMainnet' | 'intents' | 'deposits';
+                /**
+                 * Minimum level the endpoint demands
+                 */
+                required: boolean | 'read' | 'write';
+                /**
+                 * Level resolved on the key
+                 */
+                actual: boolean | 'none' | 'read' | 'write';
+            };
+        }>;
+    } | {
+        code: 'NOT_FOUND' | 'UNAUTHORIZED' | 'FORBIDDEN' | 'CONFLICT' | 'WITHDRAWAL_IN_PROGRESS' | 'UNPROCESSABLE_CONTENT' | 'TOO_MANY_REQUESTS' | 'SETTLEMENT_QUOTE_ERROR' | 'SETTLEMENT_EXECUTION_ERROR' | 'EXTERNAL_SERVICE_TIMEOUT' | 'RELAYER_MARKET_UNAVAILABLE' | 'INTERNAL_ERROR';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+    };
+};
+
+export type CreateIntentError = CreateIntentErrors[keyof CreateIntentErrors];
+
+export type CreateIntentResponses = {
+    /**
+     * OK
+     */
+    201: {
+        intentId: string;
+    };
+};
+
+export type CreateIntentResponse = CreateIntentResponses[keyof CreateIntentResponses];
+
+export type GetSplitData = {
+    body: {
+        /**
+         * The chain ID the intents settle on (CAIP-2)
+         */
+        chainId: string;
+        /**
+         * Map of token addresses to amounts
+         */
+        tokens: {
+            [key: string]: string;
+        };
+        /**
+         * Which settlement layers the orchestrator may use. `{ include: [...] }` (allow-list) or `{ exclude: [...] }` (deny-list, inverted against the orchestrator's live layer set); a bare array means `include`. Internal modes (`SAME_CHAIN`, `INTENT_EXECUTOR`) are not selectable. Default unset = all layers eligible.
+         */
+        settlementLayers?: Array<'ACROSS' | 'ECO' | 'RELAY' | 'OFT' | 'NEAR' | 'RHINO' | 'CCTP'> | {
+            include: Array<'ACROSS' | 'ECO' | 'RELAY' | 'OFT' | 'NEAR' | 'RHINO' | 'CCTP'>;
+        } | {
+            exclude: Array<'ACROSS' | 'ECO' | 'RELAY' | 'OFT' | 'NEAR' | 'RHINO' | 'CCTP'>;
+        };
+    };
+    headers: {
+        /**
+         * API version. Required; pinned to this document.
+         */
+        'x-api-version': '2026-04.blanc';
+        /**
+         * API key.
+         */
+        'x-api-key': string;
+    };
+    path?: never;
+    query?: never;
+    url: '/intents/splits';
+};
+
+export type GetSplitErrors = {
+    /**
+     * Invalid request parameters
+     */
+    400: {
+        code: 'VALIDATION_ERROR';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+        /**
+         * Per-field validation issues
+         */
+        details?: Array<{
+            /**
+             * Human-readable issue description
+             */
+            message: string;
+            /**
+             * Structured issue context (e.g. `{ path: "body.accountAddress" }`)
+             */
+            context?: {
+                [key: string]: unknown;
+            };
+        }>;
+    } | {
+        code: 'SIMULATION_FAILED';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+        /**
+         * Classified on-chain simulation failure details
+         */
+        details?: {
+            nonce?: string;
+            category: string;
+            errorSelector: string;
+            errorName: string;
+            errorArgs?: {
+                [key: string]: string;
+            };
+            retryable: boolean;
+            retryHint?: 'RE_PREPARE' | 'RETRY_LATER';
+            simulations?: unknown;
+            [key: string]: unknown | string | {
+                [key: string]: string;
+            } | boolean | 'RE_PREPARE' | 'RETRY_LATER' | undefined;
+        };
+    } | {
+        code: 'INSUFFICIENT_LIQUIDITY';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+        /**
+         * Fillable subset and unfillable remainder
+         */
+        details?: {
+            /**
+             * Intents fillable with current liquidity
+             */
+            availableIntents: Array<{
+                [key: string]: string;
+            }>;
+            /**
+             * Token amounts that cannot be filled
+             */
+            unfillable: {
+                [key: string]: string;
+            };
+        };
+    } | {
+        code: 'KEY_SCOPE_DENIED';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+        /**
+         * Single-element list describing the failing scope
+         */
+        details?: Array<{
+            message: string;
+            context: {
+                /**
+                 * Which scope rejected the request
+                 */
+                scope: 'allowMainnet' | 'intents' | 'deposits';
+                /**
+                 * Minimum level the endpoint demands
+                 */
+                required: boolean | 'read' | 'write';
+                /**
+                 * Level resolved on the key
+                 */
+                actual: boolean | 'none' | 'read' | 'write';
+            };
+        }>;
+    } | {
+        code: 'NOT_FOUND' | 'UNAUTHORIZED' | 'FORBIDDEN' | 'CONFLICT' | 'WITHDRAWAL_IN_PROGRESS' | 'UNPROCESSABLE_CONTENT' | 'TOO_MANY_REQUESTS' | 'SETTLEMENT_QUOTE_ERROR' | 'SETTLEMENT_EXECUTION_ERROR' | 'EXTERNAL_SERVICE_TIMEOUT' | 'RELAYER_MARKET_UNAVAILABLE' | 'INTERNAL_ERROR';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+    };
+    /**
+     * API key scope denied
+     */
+    403: {
+        code: 'VALIDATION_ERROR';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+        /**
+         * Per-field validation issues
+         */
+        details?: Array<{
+            /**
+             * Human-readable issue description
+             */
+            message: string;
+            /**
+             * Structured issue context (e.g. `{ path: "body.accountAddress" }`)
+             */
+            context?: {
+                [key: string]: unknown;
+            };
+        }>;
+    } | {
+        code: 'SIMULATION_FAILED';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+        /**
+         * Classified on-chain simulation failure details
+         */
+        details?: {
+            nonce?: string;
+            category: string;
+            errorSelector: string;
+            errorName: string;
+            errorArgs?: {
+                [key: string]: string;
+            };
+            retryable: boolean;
+            retryHint?: 'RE_PREPARE' | 'RETRY_LATER';
+            simulations?: unknown;
+            [key: string]: unknown | string | {
+                [key: string]: string;
+            } | boolean | 'RE_PREPARE' | 'RETRY_LATER' | undefined;
+        };
+    } | {
+        code: 'INSUFFICIENT_LIQUIDITY';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+        /**
+         * Fillable subset and unfillable remainder
+         */
+        details?: {
+            /**
+             * Intents fillable with current liquidity
+             */
+            availableIntents: Array<{
+                [key: string]: string;
+            }>;
+            /**
+             * Token amounts that cannot be filled
+             */
+            unfillable: {
+                [key: string]: string;
+            };
+        };
+    } | {
+        code: 'KEY_SCOPE_DENIED';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+        /**
+         * Single-element list describing the failing scope
+         */
+        details?: Array<{
+            message: string;
+            context: {
+                /**
+                 * Which scope rejected the request
+                 */
+                scope: 'allowMainnet' | 'intents' | 'deposits';
+                /**
+                 * Minimum level the endpoint demands
+                 */
+                required: boolean | 'read' | 'write';
+                /**
+                 * Level resolved on the key
+                 */
+                actual: boolean | 'none' | 'read' | 'write';
+            };
+        }>;
+    } | {
+        code: 'NOT_FOUND' | 'UNAUTHORIZED' | 'FORBIDDEN' | 'CONFLICT' | 'WITHDRAWAL_IN_PROGRESS' | 'UNPROCESSABLE_CONTENT' | 'TOO_MANY_REQUESTS' | 'SETTLEMENT_QUOTE_ERROR' | 'SETTLEMENT_EXECUTION_ERROR' | 'EXTERNAL_SERVICE_TIMEOUT' | 'RELAYER_MARKET_UNAVAILABLE' | 'INTERNAL_ERROR';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+    };
+    /**
+     * Insufficient liquidity to fill the full amount. Partial splits returned.
+     */
+    422: {
+        code: 'INSUFFICIENT_LIQUIDITY';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+        /**
+         * Fillable subset and unfillable remainder
+         */
+        details?: {
+            /**
+             * Intents fillable with current liquidity
+             */
+            availableIntents: Array<{
+                [key: string]: string;
+            }>;
+            /**
+             * Token amounts that cannot be filled
+             */
+            unfillable: {
+                [key: string]: string;
+            };
+        };
+    };
+    /**
+     * Server error
+     */
+    500: {
+        code: 'VALIDATION_ERROR';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+        /**
+         * Per-field validation issues
+         */
+        details?: Array<{
+            /**
+             * Human-readable issue description
+             */
+            message: string;
+            /**
+             * Structured issue context (e.g. `{ path: "body.accountAddress" }`)
+             */
+            context?: {
+                [key: string]: unknown;
+            };
+        }>;
+    } | {
+        code: 'SIMULATION_FAILED';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+        /**
+         * Classified on-chain simulation failure details
+         */
+        details?: {
+            nonce?: string;
+            category: string;
+            errorSelector: string;
+            errorName: string;
+            errorArgs?: {
+                [key: string]: string;
+            };
+            retryable: boolean;
+            retryHint?: 'RE_PREPARE' | 'RETRY_LATER';
+            simulations?: unknown;
+            [key: string]: unknown | string | {
+                [key: string]: string;
+            } | boolean | 'RE_PREPARE' | 'RETRY_LATER' | undefined;
+        };
+    } | {
+        code: 'INSUFFICIENT_LIQUIDITY';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+        /**
+         * Fillable subset and unfillable remainder
+         */
+        details?: {
+            /**
+             * Intents fillable with current liquidity
+             */
+            availableIntents: Array<{
+                [key: string]: string;
+            }>;
+            /**
+             * Token amounts that cannot be filled
+             */
+            unfillable: {
+                [key: string]: string;
+            };
+        };
+    } | {
+        code: 'KEY_SCOPE_DENIED';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+        /**
+         * Single-element list describing the failing scope
+         */
+        details?: Array<{
+            message: string;
+            context: {
+                /**
+                 * Which scope rejected the request
+                 */
+                scope: 'allowMainnet' | 'intents' | 'deposits';
+                /**
+                 * Minimum level the endpoint demands
+                 */
+                required: boolean | 'read' | 'write';
+                /**
+                 * Level resolved on the key
+                 */
+                actual: boolean | 'none' | 'read' | 'write';
+            };
+        }>;
+    } | {
+        code: 'NOT_FOUND' | 'UNAUTHORIZED' | 'FORBIDDEN' | 'CONFLICT' | 'WITHDRAWAL_IN_PROGRESS' | 'UNPROCESSABLE_CONTENT' | 'TOO_MANY_REQUESTS' | 'SETTLEMENT_QUOTE_ERROR' | 'SETTLEMENT_EXECUTION_ERROR' | 'EXTERNAL_SERVICE_TIMEOUT' | 'RELAYER_MARKET_UNAVAILABLE' | 'INTERNAL_ERROR';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+    };
+};
+
+export type GetSplitError = GetSplitErrors[keyof GetSplitErrors];
+
+export type GetSplitResponses = {
+    /**
+     * OK
+     */
+    200: {
+        /**
+         * Array of intents, each mapping token addresses to amounts that can be filled by a single relayer
+         */
+        intents: Array<{
+            [key: string]: string;
+        }>;
+    };
+};
+
+export type GetSplitResponse = GetSplitResponses[keyof GetSplitResponses];
+
+export type CreateQuoteData = {
+    /**
+     * Quote request. Chain ids are CAIP-2 strings (e.g. `eip155:8453`, `solana:…`, `tron:…`); bare numeric ids are rejected.
+     */
+    body: {
+        /**
+         * CAIP-2 chain identifier of the destination chain (EVM `eip155:<id>`, or non-EVM `solana:…`/`tron:…`)
          */
         destinationChainId: string;
         /**
@@ -18,22 +2895,17 @@ export type PostQuotesData = {
          */
         tokenRequests: Array<{
             /**
-             * The address of the requested token
+             * The address of the requested token. Format depends on destination chain — 0x-hex for EVM, base58 SPL mint for Solana, T-address for Tron.
              */
             tokenAddress: string;
             /**
-             * The amount of the requested token (in the smallest unit)
-             */
-            amount: string;
-        } | {
-            /**
-             * The address of the requested token
-             */
-            tokenAddress: string;
-            /**
-             * The amount of the requested token (in the smallest unit)
+             * The amount of the requested token (in the smallest unit). Omit for max-out.
              */
             amount?: string;
+            /**
+             * HyperCore balance class for this token request — 'spot' or 'perp'. Optional; defaults to 'perp' when destinationChainId is HyperCore. Rejected on every other destination.
+             */
+            balance?: 'spot' | 'perp';
         }>;
         /**
          * Account details
@@ -46,7 +2918,7 @@ export type PostQuotesData = {
             /**
              * Account type. Blanc clients should use `ERC7579`; the legacy `smartAccount` value is equivalent and accepted for alps wire compatibility, and gets rewritten to `ERC7579` by the `alpsAccountType` versioning change before Zod validation.
              */
-            accountType?: 'GENERIC' | 'EOA' | 'ERC7579';
+            accountType?: 'smartAccount' | 'GENERIC' | 'EOA' | 'ERC7579';
             /**
              * Setup operations for the smart account. Only used if the account is not deployed
              */
@@ -61,11 +2933,15 @@ export type PostQuotesData = {
                 data: string;
             }>;
             /**
-             * Per-chain SSX mock signatures for gas estimation. Keys are chain IDs as decimal strings. The special key `"0"` is a cross-chain fallback applied when no specific chain entry matches.
+             * Per-chain stub signatures used only during gas estimation. Required for smart-session flows where the real signature length depends on session policy — the orchestrator needs a same-shape placeholder to simulate the verification cost. Keys are chain IDs as decimal strings; `"0"` is a cross-chain fallback applied when no chain-specific entry matches.
              */
             mockSignatures?: {
                 [key: string]: string;
             };
+            /**
+             * Deprecated. Must be omitted; use `mockSignatures` (keyed by chain id) instead.
+             */
+            mockSignature?: unknown;
             /**
              * Per-chain specific map to delegated contract address for 7702 delegations. Use `0` to indicate cross-chain delegation
              */
@@ -96,7 +2972,7 @@ export type PostQuotesData = {
             data: string;
         }>;
         /**
-         * Execution calls to perform before the claim on each origin chain, keyed by chain ID. Max 10 ops per chain, max 5 chains. Object keyed by CAIP-2 chain identifier (e.g. `eip155:42161`).
+         * Execution calls to perform before the claim on each origin chain, keyed by chain ID. Max 10 ops per chain, max 5 chains.
          */
         preClaimExecutions?: {
             [key: string]: Array<{
@@ -122,13 +2998,10 @@ export type PostQuotesData = {
          * Account access list specifying which chains and tokens an account may access
          */
         accountAccessList?: {
-            chainIds?: Array<string>;
-            tokens?: Array<string | 'ETH' | 'USDC' | 'WETH' | 'USDT0' | 'USDT' | 'BNB' | 'WBNB' | 'XDAI' | 'WXDAI' | 'POL' | 'WPOL' | 'MON' | 'WMON' | 'S' | 'WS' | 'HYPE' | 'WHYPE' | 'XPL' | 'WXPL' | 'MockUSD'>;
-            /**
-             * Object keyed by CAIP-2 chain identifier (e.g. `eip155:42161`).
-             */
+            chainIds?: Array<number>;
+            tokens?: Array<string | 'ETH' | 'USDC' | 'WETH' | 'USDT' | 'USDT0' | 'BNB' | 'WBNB' | 'XDAI' | 'WXDAI' | 'POL' | 'WPOL' | 'MON' | 'WMON' | 'S' | 'WS' | 'HYPE' | 'WHYPE' | 'USDG' | 'XPL' | 'WXPL' | 'AVAX' | 'WAVAX' | 'MockUSD' | 'TRX' | 'WTRX' | 'SOL' | 'WSOL'>;
             chainTokens?: {
-                [key: string]: Array<string | 'ETH' | 'USDC' | 'WETH' | 'USDT0' | 'USDT' | 'BNB' | 'WBNB' | 'XDAI' | 'WXDAI' | 'POL' | 'WPOL' | 'MON' | 'WMON' | 'S' | 'WS' | 'HYPE' | 'WHYPE' | 'XPL' | 'WXPL' | 'MockUSD'>;
+                [key: string]: Array<string | 'ETH' | 'USDC' | 'WETH' | 'USDT' | 'USDT0' | 'BNB' | 'WBNB' | 'XDAI' | 'WXDAI' | 'POL' | 'WPOL' | 'MON' | 'WMON' | 'S' | 'WS' | 'HYPE' | 'WHYPE' | 'USDG' | 'XPL' | 'WXPL' | 'AVAX' | 'WAVAX' | 'MockUSD' | 'TRX' | 'WTRX' | 'SOL' | 'WSOL'>;
             };
             chainTokenAmounts?: {
                 [key: string]: {
@@ -136,13 +3009,10 @@ export type PostQuotesData = {
                 };
             };
             exclude?: {
-                chainIds?: Array<string>;
-                tokens?: Array<string | 'ETH' | 'USDC' | 'WETH' | 'USDT0' | 'USDT' | 'BNB' | 'WBNB' | 'XDAI' | 'WXDAI' | 'POL' | 'WPOL' | 'MON' | 'WMON' | 'S' | 'WS' | 'HYPE' | 'WHYPE' | 'XPL' | 'WXPL' | 'MockUSD'>;
-                /**
-                 * Object keyed by CAIP-2 chain identifier (e.g. `eip155:42161`).
-                 */
+                chainIds?: Array<number>;
+                tokens?: Array<string | 'ETH' | 'USDC' | 'WETH' | 'USDT' | 'USDT0' | 'BNB' | 'WBNB' | 'XDAI' | 'WXDAI' | 'POL' | 'WPOL' | 'MON' | 'WMON' | 'S' | 'WS' | 'HYPE' | 'WHYPE' | 'USDG' | 'XPL' | 'WXPL' | 'AVAX' | 'WAVAX' | 'MockUSD' | 'TRX' | 'WTRX' | 'SOL' | 'WSOL'>;
                 chainTokens?: {
-                    [key: string]: Array<string | 'ETH' | 'USDC' | 'WETH' | 'USDT0' | 'USDT' | 'BNB' | 'WBNB' | 'XDAI' | 'WXDAI' | 'POL' | 'WPOL' | 'MON' | 'WMON' | 'S' | 'WS' | 'HYPE' | 'WHYPE' | 'XPL' | 'WXPL' | 'MockUSD'>;
+                    [key: string]: Array<string | 'ETH' | 'USDC' | 'WETH' | 'USDT' | 'USDT0' | 'BNB' | 'WBNB' | 'XDAI' | 'WXDAI' | 'POL' | 'WPOL' | 'MON' | 'WMON' | 'S' | 'WS' | 'HYPE' | 'WHYPE' | 'USDG' | 'XPL' | 'WXPL' | 'AVAX' | 'WAVAX' | 'MockUSD' | 'TRX' | 'WTRX' | 'SOL' | 'WSOL'>;
                 };
             };
         };
@@ -154,7 +3024,7 @@ export type PostQuotesData = {
             /**
              * Account type. Blanc clients should use `ERC7579`; the legacy `smartAccount` value is equivalent and accepted for alps wire compatibility, and gets rewritten to `ERC7579` by the `alpsAccountType` versioning change before Zod validation.
              */
-            accountType?: 'GENERIC' | 'EOA' | 'ERC7579';
+            accountType?: 'smartAccount' | 'GENERIC' | 'EOA' | 'ERC7579';
             /**
              * Setup operations for the smart account. Only used if the account is not deployed
              */
@@ -169,11 +3039,15 @@ export type PostQuotesData = {
                 data: string;
             }>;
             /**
-             * Per-chain SSX mock signatures for gas estimation. Keys are chain IDs as decimal strings. The special key `"0"` is a cross-chain fallback applied when no specific chain entry matches.
+             * Per-chain stub signatures used only during gas estimation. Required for smart-session flows where the real signature length depends on session policy — the orchestrator needs a same-shape placeholder to simulate the verification cost. Keys are chain IDs as decimal strings; `"0"` is a cross-chain fallback applied when no chain-specific entry matches.
              */
             mockSignatures?: {
                 [key: string]: string;
             };
+            /**
+             * Deprecated. Must be omitted; use `mockSignatures` (keyed by chain id) instead.
+             */
+            mockSignature?: unknown;
             /**
              * Per-chain specific map to delegated contract address for 7702 delegations. Use `0` to indicate cross-chain delegation
              */
@@ -191,9 +3065,13 @@ export type PostQuotesData = {
          */
         options?: {
             /**
-             * The settlement layer to be used to settle intents
+             * Which settlement layers the orchestrator may use. `{ include: [...] }` (allow-list) or `{ exclude: [...] }` (deny-list, inverted against the orchestrator's live layer set); a bare array means `include`. Internal modes (`SAME_CHAIN`, `INTENT_EXECUTOR`) are not selectable. Default unset = all layers eligible.
              */
-            settlementLayers?: Array<'ACROSS' | 'ECO' | 'RELAY' | 'OFT' | 'NEAR' | 'RHINO' | 'CCTP'>;
+            settlementLayers?: Array<'ACROSS' | 'ECO' | 'RELAY' | 'OFT' | 'NEAR' | 'RHINO' | 'CCTP'> | {
+                include: Array<'ACROSS' | 'ECO' | 'RELAY' | 'OFT' | 'NEAR' | 'RHINO' | 'CCTP'>;
+            } | {
+                exclude: Array<'ACROSS' | 'ECO' | 'RELAY' | 'OFT' | 'NEAR' | 'RHINO' | 'CCTP'>;
+            };
             /**
              * Sponsor settings for the intent
              */
@@ -210,18 +3088,33 @@ export type PostQuotesData = {
                  * Whether to sponsor swap fees for the intent
                  */
                 swapFees?: boolean;
+                /**
+                 * Whether to sponsor the Rhinestone protocol fee (`options.protocolFees`) for the intent. When `true`, the fee is charged to the integrator's sponsorship balance instead of carved from the user, without the sponsorship surcharge.
+                 */
+                protocolFees?: boolean;
             };
             /**
-             * The signature mode to be used
+             * How the user's intent signature will be verified onchain. `ECDSA` for plain EOA signatures; `ERC1271_EMISSARY` for smart-account signatures verified via TheCompact emissary delegation. The orchestrator picks a default based on `account.accountType` — only set this if you need to override.
              */
             signatureMode?: 'EMISSARY' | 'ERC1271' | 'EMISSARY_ERC1271' | 'ERC1271_EMISSARY' | 'EMISSARY_EXECUTION' | 'EMISSARY_EXECUTION_ERC1271' | 'ERC1271_EMISSARY_EXECUTION' | 0 | 1 | 2 | 3 | 4 | 5 | 6;
-            feeToken?: 'ETH' | 'USDC' | 'WETH' | 'USDT0' | 'USDT' | 'BNB' | 'WBNB' | 'XDAI' | 'WXDAI' | 'POL' | 'WPOL' | 'MON' | 'WMON' | 'S' | 'WS' | 'HYPE' | 'WHYPE' | 'XPL' | 'WXPL' | 'MockUSD';
+            appFees?: {
+                /**
+                 * App fee rate in basis points of the input value (0–10000 = 0–100%).
+                 */
+                feeBps: number;
+            };
+            protocolFees?: {
+                /**
+                 * Rhinestone protocol fee rate in basis points of the input value (0–10000 = 0–100%). Collected alongside the app fee in one batched transfer and always accrues to Rhinestone; sponsor it via `sponsorSettings.protocolFees` to charge the integrator balance instead of the user.
+                 */
+                feeBps: number;
+            };
             /**
              * Tokens that will be received by EOA executions. These will be swept to the recipient account.
              */
             executionTokensReceived?: Array<string>;
             /**
-             * Additional token balances to consider during route finding Object keyed by CAIP-2 chain identifier (e.g. `eip155:42161`).
+             * Additional balances the quote should treat as available, beyond what is currently on the account. Use this to get a preliminary quote against funds you can produce by the time you submit — e.g. liquidity in a DeFi vault you will withdraw, an in-flight CEX deposit, or a parallel transfer from another wallet. Keyed by chain ID, then token address; amounts in the token's smallest unit.
              */
             auxiliaryFunds?: {
                 [key: string]: {
@@ -232,25 +3125,28 @@ export type PostQuotesData = {
              * How to rank candidate plans. `cheapest` minimizes direct USD cost. `fastest` minimizes estimated fill time (with cost tiebreaker). `best` balances both via a notional- and time-weighted shadow fee.
              */
             selectionStrategy?: 'cheapest' | 'fastest' | 'best';
+            /**
+             * Absolute unix timestamp (seconds) overriding the on-chain fill deadline. **TOKENLESS intents only.** If the intent resolves to any other route (cross-chain or same-chain), the request is **rejected** with `INVALID_CUSTOM_DEADLINE` (422) rather than silently ignoring the override. Must be between `now + 120s` and `now + 86400s`. The bundle claim/nonce expiry and the response `expiresAt` track this value automatically.
+             */
+            customDeadline?: number;
         };
     };
     headers: {
         /**
-         * Rhinestone API key
+         * API version. Required; pinned to this document.
+         */
+        'x-api-version': '2026-04.blanc';
+        /**
+         * API key.
          */
         'x-api-key': string;
-        /**
-         * API version (YYYY-MM.name). Will become required in a future release.
-         */
-        'x-api-version'?: string;
-        'x-feature-flags'?: string;
     };
     path?: never;
     query?: never;
     url: '/quotes';
 };
 
-export type PostQuotesErrors = {
+export type CreateQuoteErrors = {
     /**
      * Invalid request parameters
      */
@@ -260,10 +3156,6 @@ export type PostQuotesErrors = {
          * Human-readable error message
          */
         message: string;
-        /**
-         * Trace ID
-         */
-        traceId: string;
         /**
          * Per-field validation issues
          */
@@ -280,15 +3172,35 @@ export type PostQuotesErrors = {
             };
         }>;
     } | {
-        code: 'INSUFFICIENT_LIQUIDITY';
+        code: 'SIMULATION_FAILED';
         /**
          * Human-readable error message
          */
         message: string;
         /**
-         * Trace ID
+         * Classified on-chain simulation failure details
          */
-        traceId: string;
+        details?: {
+            nonce?: string;
+            category: string;
+            errorSelector: string;
+            errorName: string;
+            errorArgs?: {
+                [key: string]: string;
+            };
+            retryable: boolean;
+            retryHint?: 'RE_PREPARE' | 'RETRY_LATER';
+            simulations?: unknown;
+            [key: string]: unknown | string | {
+                [key: string]: string;
+            } | boolean | 'RE_PREPARE' | 'RETRY_LATER' | undefined;
+        };
+    } | {
+        code: 'INSUFFICIENT_LIQUIDITY';
+        /**
+         * Human-readable error message
+         */
+        message: string;
         /**
          * Fillable subset and unfillable remainder
          */
@@ -307,15 +3219,141 @@ export type PostQuotesErrors = {
             };
         };
     } | {
-        code: 'NOT_FOUND' | 'UNAUTHORIZED' | 'FORBIDDEN' | 'CONFLICT' | 'UNPROCESSABLE_CONTENT' | 'TOO_MANY_REQUESTS' | 'SETTLEMENT_QUOTE_ERROR' | 'SETTLEMENT_EXECUTION_ERROR' | 'EXTERNAL_SERVICE_TIMEOUT' | 'RELAYER_MARKET_UNAVAILABLE' | 'INTERNAL_ERROR';
+        code: 'KEY_SCOPE_DENIED';
         /**
          * Human-readable error message
          */
         message: string;
         /**
-         * Trace ID
+         * Single-element list describing the failing scope
          */
-        traceId: string;
+        details?: Array<{
+            message: string;
+            context: {
+                /**
+                 * Which scope rejected the request
+                 */
+                scope: 'allowMainnet' | 'intents' | 'deposits';
+                /**
+                 * Minimum level the endpoint demands
+                 */
+                required: boolean | 'read' | 'write';
+                /**
+                 * Level resolved on the key
+                 */
+                actual: boolean | 'none' | 'read' | 'write';
+            };
+        }>;
+    } | {
+        code: 'NOT_FOUND' | 'UNAUTHORIZED' | 'FORBIDDEN' | 'CONFLICT' | 'WITHDRAWAL_IN_PROGRESS' | 'UNPROCESSABLE_CONTENT' | 'TOO_MANY_REQUESTS' | 'SETTLEMENT_QUOTE_ERROR' | 'SETTLEMENT_EXECUTION_ERROR' | 'EXTERNAL_SERVICE_TIMEOUT' | 'RELAYER_MARKET_UNAVAILABLE' | 'INTERNAL_ERROR';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+    };
+    /**
+     * API key scope denied
+     */
+    403: {
+        code: 'VALIDATION_ERROR';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+        /**
+         * Per-field validation issues
+         */
+        details?: Array<{
+            /**
+             * Human-readable issue description
+             */
+            message: string;
+            /**
+             * Structured issue context (e.g. `{ path: "body.accountAddress" }`)
+             */
+            context?: {
+                [key: string]: unknown;
+            };
+        }>;
+    } | {
+        code: 'SIMULATION_FAILED';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+        /**
+         * Classified on-chain simulation failure details
+         */
+        details?: {
+            nonce?: string;
+            category: string;
+            errorSelector: string;
+            errorName: string;
+            errorArgs?: {
+                [key: string]: string;
+            };
+            retryable: boolean;
+            retryHint?: 'RE_PREPARE' | 'RETRY_LATER';
+            simulations?: unknown;
+            [key: string]: unknown | string | {
+                [key: string]: string;
+            } | boolean | 'RE_PREPARE' | 'RETRY_LATER' | undefined;
+        };
+    } | {
+        code: 'INSUFFICIENT_LIQUIDITY';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+        /**
+         * Fillable subset and unfillable remainder
+         */
+        details?: {
+            /**
+             * Intents fillable with current liquidity
+             */
+            availableIntents: Array<{
+                [key: string]: string;
+            }>;
+            /**
+             * Token amounts that cannot be filled
+             */
+            unfillable: {
+                [key: string]: string;
+            };
+        };
+    } | {
+        code: 'KEY_SCOPE_DENIED';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+        /**
+         * Single-element list describing the failing scope
+         */
+        details?: Array<{
+            message: string;
+            context: {
+                /**
+                 * Which scope rejected the request
+                 */
+                scope: 'allowMainnet' | 'intents' | 'deposits';
+                /**
+                 * Minimum level the endpoint demands
+                 */
+                required: boolean | 'read' | 'write';
+                /**
+                 * Level resolved on the key
+                 */
+                actual: boolean | 'none' | 'read' | 'write';
+            };
+        }>;
+    } | {
+        code: 'NOT_FOUND' | 'UNAUTHORIZED' | 'FORBIDDEN' | 'CONFLICT' | 'WITHDRAWAL_IN_PROGRESS' | 'UNPROCESSABLE_CONTENT' | 'TOO_MANY_REQUESTS' | 'SETTLEMENT_QUOTE_ERROR' | 'SETTLEMENT_EXECUTION_ERROR' | 'EXTERNAL_SERVICE_TIMEOUT' | 'RELAYER_MARKET_UNAVAILABLE' | 'INTERNAL_ERROR';
+        /**
+         * Human-readable error message
+         */
+        message: string;
     };
     /**
      * Server error
@@ -327,10 +3365,6 @@ export type PostQuotesErrors = {
          */
         message: string;
         /**
-         * Trace ID
-         */
-        traceId: string;
-        /**
          * Per-field validation issues
          */
         details?: Array<{
@@ -346,15 +3380,35 @@ export type PostQuotesErrors = {
             };
         }>;
     } | {
-        code: 'INSUFFICIENT_LIQUIDITY';
+        code: 'SIMULATION_FAILED';
         /**
          * Human-readable error message
          */
         message: string;
         /**
-         * Trace ID
+         * Classified on-chain simulation failure details
          */
-        traceId: string;
+        details?: {
+            nonce?: string;
+            category: string;
+            errorSelector: string;
+            errorName: string;
+            errorArgs?: {
+                [key: string]: string;
+            };
+            retryable: boolean;
+            retryHint?: 'RE_PREPARE' | 'RETRY_LATER';
+            simulations?: unknown;
+            [key: string]: unknown | string | {
+                [key: string]: string;
+            } | boolean | 'RE_PREPARE' | 'RETRY_LATER' | undefined;
+        };
+    } | {
+        code: 'INSUFFICIENT_LIQUIDITY';
+        /**
+         * Human-readable error message
+         */
+        message: string;
         /**
          * Fillable subset and unfillable remainder
          */
@@ -373,27 +3427,49 @@ export type PostQuotesErrors = {
             };
         };
     } | {
-        code: 'NOT_FOUND' | 'UNAUTHORIZED' | 'FORBIDDEN' | 'CONFLICT' | 'UNPROCESSABLE_CONTENT' | 'TOO_MANY_REQUESTS' | 'SETTLEMENT_QUOTE_ERROR' | 'SETTLEMENT_EXECUTION_ERROR' | 'EXTERNAL_SERVICE_TIMEOUT' | 'RELAYER_MARKET_UNAVAILABLE' | 'INTERNAL_ERROR';
+        code: 'KEY_SCOPE_DENIED';
         /**
          * Human-readable error message
          */
         message: string;
         /**
-         * Trace ID
+         * Single-element list describing the failing scope
          */
-        traceId: string;
+        details?: Array<{
+            message: string;
+            context: {
+                /**
+                 * Which scope rejected the request
+                 */
+                scope: 'allowMainnet' | 'intents' | 'deposits';
+                /**
+                 * Minimum level the endpoint demands
+                 */
+                required: boolean | 'read' | 'write';
+                /**
+                 * Level resolved on the key
+                 */
+                actual: boolean | 'none' | 'read' | 'write';
+            };
+        }>;
+    } | {
+        code: 'NOT_FOUND' | 'UNAUTHORIZED' | 'FORBIDDEN' | 'CONFLICT' | 'WITHDRAWAL_IN_PROGRESS' | 'UNPROCESSABLE_CONTENT' | 'TOO_MANY_REQUESTS' | 'SETTLEMENT_QUOTE_ERROR' | 'SETTLEMENT_EXECUTION_ERROR' | 'EXTERNAL_SERVICE_TIMEOUT' | 'RELAYER_MARKET_UNAVAILABLE' | 'INTERNAL_ERROR';
+        /**
+         * Human-readable error message
+         */
+        message: string;
     };
 };
 
-export type PostQuotesError = PostQuotesErrors[keyof PostQuotesErrors];
+export type CreateQuoteError = CreateQuoteErrors[keyof CreateQuoteErrors];
 
-export type PostQuotesResponses = {
+export type CreateQuoteResponses = {
     /**
      * Response body for `POST /quotes` on the blanc API version
      */
     200: {
         /**
-         * Pre-ranked route candidates (first entry is the recommended route)
+         * Route candidates ranked by the orchestrator's internal scoring (cheaper + faster wins). The first entry is the recommended route — most clients should submit it without inspecting the rest.
          */
         routes: Array<{
             /**
@@ -431,10 +3507,7 @@ export type PostQuotesResponses = {
                     domain: {
                         name?: string;
                         version?: string;
-                        /**
-                         * CAIP-2 chain identifier (`eip155:<chainId>` for EVM chains)
-                         */
-                        chainId?: string;
+                        chainId?: number;
                         verifyingContract?: string;
                         salt?: string;
                     };
@@ -468,10 +3541,7 @@ export type PostQuotesResponses = {
                     domain: {
                         name?: string;
                         version?: string;
-                        /**
-                         * CAIP-2 chain identifier (`eip155:<chainId>` for EVM chains)
-                         */
-                        chainId?: string;
+                        chainId?: number;
                         verifyingContract?: string;
                         salt?: string;
                     };
@@ -505,10 +3575,7 @@ export type PostQuotesResponses = {
                     domain: {
                         name?: string;
                         version?: string;
-                        /**
-                         * CAIP-2 chain identifier (`eip155:<chainId>` for EVM chains)
-                         */
-                        chainId?: string;
+                        chainId?: number;
                         verifyingContract?: string;
                         salt?: string;
                     };
@@ -576,11 +3643,11 @@ export type PostQuotesResponses = {
                  */
                 output: Array<{
                     /**
-                     * Chain where this token leg settles
+                     * Chain where this token leg settles (CAIP-2, any namespace)
                      */
                     chainId: string;
                     /**
-                     * ERC-20 contract address for this token
+                     * Contract address of the delivered token (EVM 0x or non-EVM base58)
                      */
                     tokenAddress: string;
                     /**
@@ -610,7 +3677,7 @@ export type PostQuotesResponses = {
                  */
                 fees: {
                     /**
-                     * Sum of all categories in USD (including sponsored)
+                     * Full route cost in USD, regardless of who pays. Equal to `sum(breakdown.*.usd)` modulo rounding.
                      */
                     total: {
                         /**
@@ -619,68 +3686,116 @@ export type PostQuotesResponses = {
                         usd: number;
                     };
                     /**
-                     * Per-category USD fee breakdown
+                     * Per-category fee breakdown
                      */
                     breakdown: {
                         /**
-                         * Aggregate gas cost in USD (destination fill, swap execution, origin gas)
+                         * Aggregate gas cost (destination fill, swap execution, origin gas)
                          */
                         gas: {
                             /**
-                             * USD-denominated value
+                             * Total cost of this category in USD, regardless of who pays.
                              */
                             usd: number;
+                            /**
+                             * True when a sponsor absorbs some or all of this category. The user-vs-sponsor split is not surfaced.
+                             */
+                            sponsored: boolean;
                         };
                         /**
-                         * Aggregate bridge commission in USD
+                         * Aggregate settlement-layer bridge cost
                          */
                         bridge: {
                             /**
-                             * USD-denominated value
+                             * Total cost of this category in USD, regardless of who pays.
                              */
                             usd: number;
-                        };
-                        /**
-                         * Aggregate protocol fee in USD
-                         */
-                        protocol: {
                             /**
-                             * USD-denominated value
+                             * True when a sponsor absorbs some or all of this category. The user-vs-sponsor split is not surfaced.
                              */
-                            usd: number;
+                            sponsored: boolean;
                         };
                         /**
-                         * Aggregate solver swap commission in USD
+                         * Aggregate solver swap commission
                          */
                         swap: {
                             /**
-                             * USD-denominated value
+                             * Total cost of this category in USD, regardless of who pays.
                              */
                             usd: number;
+                            /**
+                             * True when a sponsor absorbs some or all of this category. The user-vs-sponsor split is not surfaced.
+                             */
+                            sponsored: boolean;
                         };
                         /**
-                         * Aggregate settlement layer fee in USD
+                         * Aggregate integrator app fee
                          */
-                        settlement: {
+                        app: {
                             /**
-                             * USD-denominated value
+                             * Total cost of this category in USD, regardless of who pays.
                              */
                             usd: number;
+                            /**
+                             * True when a sponsor absorbs some or all of this category. The user-vs-sponsor split is not surfaced.
+                             */
+                            sponsored: boolean;
+                        };
+                        /**
+                         * Rhinestone protocol fee (`options.protocolFees`). `sponsored: true` when the integrator sponsorship balance pays it instead of the user.
+                         */
+                        protocol: {
+                            /**
+                             * Total cost of this category in USD, regardless of who pays.
+                             */
+                            usd: number;
+                            /**
+                             * True when a sponsor absorbs some or all of this category. The user-vs-sponsor split is not surfaced.
+                             */
+                            sponsored: boolean;
+                        };
+                        /**
+                         * Rhinestone's surcharge on the sponsored relayer coverage, charged to the sponsor. 0 when the intent is not sponsored. Pure surcharge — a sponsored protocol fee is shown on `protocol`, never here.
+                         */
+                        sponsorSurcharge: {
+                            /**
+                             * Total cost of this category in USD, regardless of who pays.
+                             */
+                            usd: number;
+                            /**
+                             * True when a sponsor absorbs some or all of this category. The user-vs-sponsor split is not surfaced.
+                             */
+                            sponsored: boolean;
                         };
                     };
                 };
             };
             /**
-             * Token approvals / wrapping required before submission. Emitted for EOAs only; smart accounts handle approvals internally. Object keyed by CAIP-2 chain identifier (e.g. `eip155:42161`).
+             * Pre-flight token operations the user must perform before submitting this route (approvals, wrapping). Emitted for EOA accounts only — smart accounts handle these internally.
              */
             tokenRequirements?: {
                 [key: string]: {
                     [key: string]: {
+                        /**
+                         * Discriminator: `approval` means the user must ERC-20 approve `spender` for at least `amount` before submission.
+                         */
                         type: 'approval';
+                        /**
+                         * Minimum required allowance, in the token's smallest unit.
+                         */
                         amount: string;
+                        /**
+                         * Always the canonical Permit2 contract on this chain. The EOA approves Permit2; the settlement contract pulls funds via Permit2 at claim time.
+                         */
                         spender: string;
                     } | {
+                        /**
+                         * Discriminator: `wrap` means the user must wrap native ETH into the chain's WETH-equivalent before submission.
+                         */
                         type: 'wrap';
+                        /**
+                         * Minimum amount to wrap, in wei.
+                         */
                         amount: string;
                     };
                 };
@@ -692,65 +3807,105 @@ export type PostQuotesResponses = {
                 /**
                  * Destination chain ID for the bridge fill
                  */
-                destinationChainId: string;
+                destinationChainId: number;
                 /**
-                 * Bridge type
+                 * Optional bridge-specific fill deadline duration, in seconds. Preserved on stored quote reload so checksum validation uses the same bridgeFill payload that was signed at quote time.
+                 */
+                fillExpirationPeriod?: number;
+                /**
+                 * Fill-tracker watch window, in seconds. The orchestrator owns this timeout; the fill-tracker reads it here to decide when a bridge fill has timed out.
+                 */
+                fillStatusTimeout: number;
+                /**
+                 * LayerZero OFT
                  */
                 type: 'OFT';
             } | {
                 /**
                  * Destination chain ID for the bridge fill
                  */
-                destinationChainId: string;
+                destinationChainId: number;
                 /**
-                 * Bridge type
+                 * Optional bridge-specific fill deadline duration, in seconds. Preserved on stored quote reload so checksum validation uses the same bridgeFill payload that was signed at quote time.
+                 */
+                fillExpirationPeriod?: number;
+                /**
+                 * Fill-tracker watch window, in seconds. The orchestrator owns this timeout; the fill-tracker reads it here to decide when a bridge fill has timed out.
+                 */
+                fillStatusTimeout: number;
+                /**
+                 * Relay.link
                  */
                 type: 'RELAY';
                 /**
-                 * Relay API request ID
+                 * Relay.link request ID. Use against Relay.link's status API to track the destination-chain fill.
                  */
                 requestId: string;
             } | {
                 /**
                  * Destination chain ID for the bridge fill
                  */
-                destinationChainId: string;
+                destinationChainId: number;
                 /**
-                 * Bridge type
+                 * Optional bridge-specific fill deadline duration, in seconds. Preserved on stored quote reload so checksum validation uses the same bridgeFill payload that was signed at quote time.
+                 */
+                fillExpirationPeriod?: number;
+                /**
+                 * Fill-tracker watch window, in seconds. The orchestrator owns this timeout; the fill-tracker reads it here to decide when a bridge fill has timed out.
+                 */
+                fillStatusTimeout: number;
+                /**
+                 * NEAR Intents
                  */
                 type: 'NEAR';
                 /**
-                 * NEAR 1Click deposit address for status tracking
+                 * NEAR Intents deposit address. Track fill status via the NEAR Intents status API keyed on this address.
                  */
                 depositAddress: string;
             } | {
                 /**
                  * Destination chain ID for the bridge fill
                  */
-                destinationChainId: string;
+                destinationChainId: number;
                 /**
-                 * Bridge type
+                 * Optional bridge-specific fill deadline duration, in seconds. Preserved on stored quote reload so checksum validation uses the same bridgeFill payload that was signed at quote time.
+                 */
+                fillExpirationPeriod?: number;
+                /**
+                 * Fill-tracker watch window, in seconds. The orchestrator owns this timeout; the fill-tracker reads it here to decide when a bridge fill has timed out.
+                 */
+                fillStatusTimeout: number;
+                /**
+                 * Rhino.fi
                  */
                 type: 'RHINO';
                 /**
-                 * Rhino.fi commitment ID (hex ObjectId) for fill tracking
+                 * Rhino.fi commitment ID. Use against Rhino.fi's status API to track the destination-chain fill.
                  */
                 commitmentId: string;
             } | {
                 /**
                  * Destination chain ID for the bridge fill
                  */
-                destinationChainId: string;
+                destinationChainId: number;
                 /**
-                 * Bridge type
+                 * Optional bridge-specific fill deadline duration, in seconds. Preserved on stored quote reload so checksum validation uses the same bridgeFill payload that was signed at quote time.
+                 */
+                fillExpirationPeriod?: number;
+                /**
+                 * Fill-tracker watch window, in seconds. The orchestrator owns this timeout; the fill-tracker reads it here to decide when a bridge fill has timed out.
+                 */
+                fillStatusTimeout: number;
+                /**
+                 * Circle CCTP
                  */
                 type: 'CCTP';
                 /**
-                 * CCTP source domain ID
+                 * Circle CCTP source domain ID — needed to fetch the attestation for the burn message on the source chain.
                  */
                 sourceDomainId: number;
                 /**
-                 * CCTP destination domain ID
+                 * Circle CCTP destination domain ID.
                  */
                 destinationDomainId: number;
             };
@@ -758,1087 +3913,19 @@ export type PostQuotesResponses = {
     };
 };
 
-export type PostQuotesResponse = PostQuotesResponses[keyof PostQuotesResponses];
+export type CreateQuoteResponse = CreateQuoteResponses[keyof CreateQuoteResponses];
 
-export type PostIntentsSplitsData = {
+export type CreateQuoteEstimateData = {
     /**
-     * Body
+     * Indicative-quote request. Chain ids are eip155 CAIP-2 strings; exactly one of `amountIn`/`amountOut` is required, matching `direction`.
      */
-    body?: {
+    body: {
         /**
-         * The destination chain ID
+         * `exactIn` fixes the deposited `amountIn` and estimates the delivered output; `exactOut` fixes the desired `amountOut` and estimates the required input.
          */
-        chainId: string;
+        direction: 'exactIn' | 'exactOut';
         /**
-         * Map of token addresses to amounts
-         */
-        tokens: {
-            [key: string]: string;
-        };
-        /**
-         * Optional array of settlement layers to filter by. If not provided, all layers are considered.
-         */
-        settlementLayers?: Array<'INTENT_EXECUTOR' | 'SAME_CHAIN' | 'ACROSS' | 'ECO' | 'RELAY' | 'OFT' | 'NEAR' | 'RHINO' | 'CCTP'>;
-    };
-    headers: {
-        /**
-         * Rhinestone API key
-         */
-        'x-api-key': string;
-        /**
-         * API version (YYYY-MM.name). Will become required in a future release.
-         */
-        'x-api-version'?: string;
-    };
-    path?: never;
-    query?: never;
-    url: '/intents/splits';
-};
-
-export type PostIntentsSplitsErrors = {
-    /**
-     * Invalid request parameters
-     */
-    400: {
-        code: 'VALIDATION_ERROR';
-        /**
-         * Human-readable error message
-         */
-        message: string;
-        /**
-         * Trace ID
-         */
-        traceId: string;
-        /**
-         * Per-field validation issues
-         */
-        details?: Array<{
-            /**
-             * Human-readable issue description
-             */
-            message: string;
-            /**
-             * Structured issue context (e.g. `{ path: "body.accountAddress" }`)
-             */
-            context?: {
-                [key: string]: unknown;
-            };
-        }>;
-    } | {
-        code: 'INSUFFICIENT_LIQUIDITY';
-        /**
-         * Human-readable error message
-         */
-        message: string;
-        /**
-         * Trace ID
-         */
-        traceId: string;
-        /**
-         * Fillable subset and unfillable remainder
-         */
-        details?: {
-            /**
-             * Intents fillable with current liquidity
-             */
-            availableIntents: Array<{
-                [key: string]: string;
-            }>;
-            /**
-             * Token amounts that cannot be filled
-             */
-            unfillable: {
-                [key: string]: string;
-            };
-        };
-    } | {
-        code: 'NOT_FOUND' | 'UNAUTHORIZED' | 'FORBIDDEN' | 'CONFLICT' | 'UNPROCESSABLE_CONTENT' | 'TOO_MANY_REQUESTS' | 'SETTLEMENT_QUOTE_ERROR' | 'SETTLEMENT_EXECUTION_ERROR' | 'EXTERNAL_SERVICE_TIMEOUT' | 'RELAYER_MARKET_UNAVAILABLE' | 'INTERNAL_ERROR';
-        /**
-         * Human-readable error message
-         */
-        message: string;
-        /**
-         * Trace ID
-         */
-        traceId: string;
-    };
-    /**
-     * Insufficient liquidity to fill the full amount. Partial splits returned.
-     */
-    422: {
-        /**
-         * Machine-readable error code
-         */
-        code: 'INSUFFICIENT_LIQUIDITY';
-        /**
-         * Human-readable error message
-         */
-        message: string;
-        /**
-         * Trace ID
-         */
-        traceId: string;
-        details?: {
-            /**
-             * Intents that can be filled with available liquidity
-             */
-            availableIntents: Array<{
-                [key: string]: string;
-            }>;
-            /**
-             * Token amounts that cannot be filled due to insufficient liquidity
-             */
-            unfillable: {
-                [key: string]: string;
-            };
-        };
-    };
-    /**
-     * Server error
-     */
-    500: {
-        code: 'VALIDATION_ERROR';
-        /**
-         * Human-readable error message
-         */
-        message: string;
-        /**
-         * Trace ID
-         */
-        traceId: string;
-        /**
-         * Per-field validation issues
-         */
-        details?: Array<{
-            /**
-             * Human-readable issue description
-             */
-            message: string;
-            /**
-             * Structured issue context (e.g. `{ path: "body.accountAddress" }`)
-             */
-            context?: {
-                [key: string]: unknown;
-            };
-        }>;
-    } | {
-        code: 'INSUFFICIENT_LIQUIDITY';
-        /**
-         * Human-readable error message
-         */
-        message: string;
-        /**
-         * Trace ID
-         */
-        traceId: string;
-        /**
-         * Fillable subset and unfillable remainder
-         */
-        details?: {
-            /**
-             * Intents fillable with current liquidity
-             */
-            availableIntents: Array<{
-                [key: string]: string;
-            }>;
-            /**
-             * Token amounts that cannot be filled
-             */
-            unfillable: {
-                [key: string]: string;
-            };
-        };
-    } | {
-        code: 'NOT_FOUND' | 'UNAUTHORIZED' | 'FORBIDDEN' | 'CONFLICT' | 'UNPROCESSABLE_CONTENT' | 'TOO_MANY_REQUESTS' | 'SETTLEMENT_QUOTE_ERROR' | 'SETTLEMENT_EXECUTION_ERROR' | 'EXTERNAL_SERVICE_TIMEOUT' | 'RELAYER_MARKET_UNAVAILABLE' | 'INTERNAL_ERROR';
-        /**
-         * Human-readable error message
-         */
-        message: string;
-        /**
-         * Trace ID
-         */
-        traceId: string;
-    };
-};
-
-export type PostIntentsSplitsError = PostIntentsSplitsErrors[keyof PostIntentsSplitsErrors];
-
-export type PostIntentsSplitsResponses = {
-    /**
-     * Successfully split the intent by available liquidity
-     */
-    200: {
-        /**
-         * Array of intents, each mapping token addresses to amounts that can be filled by a single relayer
-         */
-        intents: Array<{
-            [key: string]: string;
-        }>;
-    };
-};
-
-export type PostIntentsSplitsResponse = PostIntentsSplitsResponses[keyof PostIntentsSplitsResponses];
-
-export type PostIntentsData = {
-    /**
-     * Body
-     */
-    body?: {
-        /**
-         * Identifier of the intent returned by `POST /quotes` (as `routes[].intentId`).
-         */
-        intentId: string;
-        signatures: {
-            /**
-             * Origin (source chain) signatures
-             */
-            origin: Array<string | {
-                preClaimSig: string;
-                notarizedClaimSig: string;
-            }>;
-            /**
-             * Destination (target chain) signature
-             */
-            destination: string;
-            /**
-             * Target execution signature (smart sessions only; omit for EOA)
-             */
-            targetExecution?: string;
-        };
-        authorizations?: {
-            /**
-             * EIP-7702 authorizations signed by the sponsor account
-             */
-            sponsor?: Array<{
-                /**
-                 * Chain ID for EIP-7702 delegation, 0 means it can be applied to any chain
-                 */
-                chainId: string;
-                /**
-                 * Address of the delegate for EIP-7702 delegation
-                 */
-                address: string;
-                /**
-                 * Nonce for EIP-7702 delegation
-                 */
-                nonce: number;
-                /**
-                 * Y parity for EIP-7702 delegation
-                 */
-                yParity: number;
-                /**
-                 * R value for EIP-7702 delegation
-                 */
-                r: string;
-                /**
-                 * S value for EIP-7702 delegation
-                 */
-                s: string;
-            }>;
-            /**
-             * EIP-7702 authorizations signed by the recipient account
-             */
-            recipient?: Array<{
-                /**
-                 * Chain ID for EIP-7702 delegation, 0 means it can be applied to any chain
-                 */
-                chainId: string;
-                /**
-                 * Address of the delegate for EIP-7702 delegation
-                 */
-                address: string;
-                /**
-                 * Nonce for EIP-7702 delegation
-                 */
-                nonce: number;
-                /**
-                 * Y parity for EIP-7702 delegation
-                 */
-                yParity: number;
-                /**
-                 * R value for EIP-7702 delegation
-                 */
-                r: string;
-                /**
-                 * S value for EIP-7702 delegation
-                 */
-                s: string;
-            }>;
-        };
-    };
-    headers: {
-        /**
-         * Rhinestone API key
-         */
-        'x-api-key': string;
-        /**
-         * API version (YYYY-MM.name). Will become required in a future release.
-         */
-        'x-api-version'?: string;
-    };
-    path?: never;
-    query?: never;
-    url: '/intents';
-};
-
-export type PostIntentsErrors = {
-    /**
-     * Invalid request parameters
-     */
-    400: {
-        code: 'VALIDATION_ERROR';
-        /**
-         * Human-readable error message
-         */
-        message: string;
-        /**
-         * Trace ID
-         */
-        traceId: string;
-        /**
-         * Per-field validation issues
-         */
-        details?: Array<{
-            /**
-             * Human-readable issue description
-             */
-            message: string;
-            /**
-             * Structured issue context (e.g. `{ path: "body.accountAddress" }`)
-             */
-            context?: {
-                [key: string]: unknown;
-            };
-        }>;
-    } | {
-        code: 'INSUFFICIENT_LIQUIDITY';
-        /**
-         * Human-readable error message
-         */
-        message: string;
-        /**
-         * Trace ID
-         */
-        traceId: string;
-        /**
-         * Fillable subset and unfillable remainder
-         */
-        details?: {
-            /**
-             * Intents fillable with current liquidity
-             */
-            availableIntents: Array<{
-                [key: string]: string;
-            }>;
-            /**
-             * Token amounts that cannot be filled
-             */
-            unfillable: {
-                [key: string]: string;
-            };
-        };
-    } | {
-        code: 'NOT_FOUND' | 'UNAUTHORIZED' | 'FORBIDDEN' | 'CONFLICT' | 'UNPROCESSABLE_CONTENT' | 'TOO_MANY_REQUESTS' | 'SETTLEMENT_QUOTE_ERROR' | 'SETTLEMENT_EXECUTION_ERROR' | 'EXTERNAL_SERVICE_TIMEOUT' | 'RELAYER_MARKET_UNAVAILABLE' | 'INTERNAL_ERROR';
-        /**
-         * Human-readable error message
-         */
-        message: string;
-        /**
-         * Trace ID
-         */
-        traceId: string;
-    };
-    /**
-     * The quoted intent has expired or was already submitted. Request a new route to retry.
-     */
-    404: {
-        code: 'VALIDATION_ERROR';
-        /**
-         * Human-readable error message
-         */
-        message: string;
-        /**
-         * Trace ID
-         */
-        traceId: string;
-        /**
-         * Per-field validation issues
-         */
-        details?: Array<{
-            /**
-             * Human-readable issue description
-             */
-            message: string;
-            /**
-             * Structured issue context (e.g. `{ path: "body.accountAddress" }`)
-             */
-            context?: {
-                [key: string]: unknown;
-            };
-        }>;
-    } | {
-        code: 'INSUFFICIENT_LIQUIDITY';
-        /**
-         * Human-readable error message
-         */
-        message: string;
-        /**
-         * Trace ID
-         */
-        traceId: string;
-        /**
-         * Fillable subset and unfillable remainder
-         */
-        details?: {
-            /**
-             * Intents fillable with current liquidity
-             */
-            availableIntents: Array<{
-                [key: string]: string;
-            }>;
-            /**
-             * Token amounts that cannot be filled
-             */
-            unfillable: {
-                [key: string]: string;
-            };
-        };
-    } | {
-        code: 'NOT_FOUND' | 'UNAUTHORIZED' | 'FORBIDDEN' | 'CONFLICT' | 'UNPROCESSABLE_CONTENT' | 'TOO_MANY_REQUESTS' | 'SETTLEMENT_QUOTE_ERROR' | 'SETTLEMENT_EXECUTION_ERROR' | 'EXTERNAL_SERVICE_TIMEOUT' | 'RELAYER_MARKET_UNAVAILABLE' | 'INTERNAL_ERROR';
-        /**
-         * Human-readable error message
-         */
-        message: string;
-        /**
-         * Trace ID
-         */
-        traceId: string;
-    };
-    /**
-     * Server error
-     */
-    500: {
-        code: 'VALIDATION_ERROR';
-        /**
-         * Human-readable error message
-         */
-        message: string;
-        /**
-         * Trace ID
-         */
-        traceId: string;
-        /**
-         * Per-field validation issues
-         */
-        details?: Array<{
-            /**
-             * Human-readable issue description
-             */
-            message: string;
-            /**
-             * Structured issue context (e.g. `{ path: "body.accountAddress" }`)
-             */
-            context?: {
-                [key: string]: unknown;
-            };
-        }>;
-    } | {
-        code: 'INSUFFICIENT_LIQUIDITY';
-        /**
-         * Human-readable error message
-         */
-        message: string;
-        /**
-         * Trace ID
-         */
-        traceId: string;
-        /**
-         * Fillable subset and unfillable remainder
-         */
-        details?: {
-            /**
-             * Intents fillable with current liquidity
-             */
-            availableIntents: Array<{
-                [key: string]: string;
-            }>;
-            /**
-             * Token amounts that cannot be filled
-             */
-            unfillable: {
-                [key: string]: string;
-            };
-        };
-    } | {
-        code: 'NOT_FOUND' | 'UNAUTHORIZED' | 'FORBIDDEN' | 'CONFLICT' | 'UNPROCESSABLE_CONTENT' | 'TOO_MANY_REQUESTS' | 'SETTLEMENT_QUOTE_ERROR' | 'SETTLEMENT_EXECUTION_ERROR' | 'EXTERNAL_SERVICE_TIMEOUT' | 'RELAYER_MARKET_UNAVAILABLE' | 'INTERNAL_ERROR';
-        /**
-         * Human-readable error message
-         */
-        message: string;
-        /**
-         * Trace ID
-         */
-        traceId: string;
-    };
-};
-
-export type PostIntentsError = PostIntentsErrors[keyof PostIntentsErrors];
-
-export type PostIntentsResponses = {
-    /**
-     * Intent operations submitted successfully
-     */
-    201: {
-        intentId: string;
-    };
-};
-
-export type PostIntentsResponse = PostIntentsResponses[keyof PostIntentsResponses];
-
-export type GetIntentsByIdData = {
-    body?: never;
-    headers: {
-        /**
-         * Rhinestone API key
-         */
-        'x-api-key': string;
-        /**
-         * API version (YYYY-MM.name). Will become required in a future release.
-         */
-        'x-api-version'?: string;
-    };
-    path: {
-        /**
-         * Unique identifier of the intent operation
-         */
-        id: string;
-    };
-    query?: {
-        /**
-         * Whether to include intent operation details
-         */
-        full?: boolean;
-    };
-    url: '/intents/{id}';
-};
-
-export type GetIntentsByIdErrors = {
-    /**
-     * Invalid intent ID
-     */
-    400: {
-        code: 'VALIDATION_ERROR';
-        /**
-         * Human-readable error message
-         */
-        message: string;
-        /**
-         * Trace ID
-         */
-        traceId: string;
-        /**
-         * Per-field validation issues
-         */
-        details?: Array<{
-            /**
-             * Human-readable issue description
-             */
-            message: string;
-            /**
-             * Structured issue context (e.g. `{ path: "body.accountAddress" }`)
-             */
-            context?: {
-                [key: string]: unknown;
-            };
-        }>;
-    } | {
-        code: 'INSUFFICIENT_LIQUIDITY';
-        /**
-         * Human-readable error message
-         */
-        message: string;
-        /**
-         * Trace ID
-         */
-        traceId: string;
-        /**
-         * Fillable subset and unfillable remainder
-         */
-        details?: {
-            /**
-             * Intents fillable with current liquidity
-             */
-            availableIntents: Array<{
-                [key: string]: string;
-            }>;
-            /**
-             * Token amounts that cannot be filled
-             */
-            unfillable: {
-                [key: string]: string;
-            };
-        };
-    } | {
-        code: 'NOT_FOUND' | 'UNAUTHORIZED' | 'FORBIDDEN' | 'CONFLICT' | 'UNPROCESSABLE_CONTENT' | 'TOO_MANY_REQUESTS' | 'SETTLEMENT_QUOTE_ERROR' | 'SETTLEMENT_EXECUTION_ERROR' | 'EXTERNAL_SERVICE_TIMEOUT' | 'RELAYER_MARKET_UNAVAILABLE' | 'INTERNAL_ERROR';
-        /**
-         * Human-readable error message
-         */
-        message: string;
-        /**
-         * Trace ID
-         */
-        traceId: string;
-    };
-    /**
-     * Intent ID not found
-     */
-    404: {
-        code: 'VALIDATION_ERROR';
-        /**
-         * Human-readable error message
-         */
-        message: string;
-        /**
-         * Trace ID
-         */
-        traceId: string;
-        /**
-         * Per-field validation issues
-         */
-        details?: Array<{
-            /**
-             * Human-readable issue description
-             */
-            message: string;
-            /**
-             * Structured issue context (e.g. `{ path: "body.accountAddress" }`)
-             */
-            context?: {
-                [key: string]: unknown;
-            };
-        }>;
-    } | {
-        code: 'INSUFFICIENT_LIQUIDITY';
-        /**
-         * Human-readable error message
-         */
-        message: string;
-        /**
-         * Trace ID
-         */
-        traceId: string;
-        /**
-         * Fillable subset and unfillable remainder
-         */
-        details?: {
-            /**
-             * Intents fillable with current liquidity
-             */
-            availableIntents: Array<{
-                [key: string]: string;
-            }>;
-            /**
-             * Token amounts that cannot be filled
-             */
-            unfillable: {
-                [key: string]: string;
-            };
-        };
-    } | {
-        code: 'NOT_FOUND' | 'UNAUTHORIZED' | 'FORBIDDEN' | 'CONFLICT' | 'UNPROCESSABLE_CONTENT' | 'TOO_MANY_REQUESTS' | 'SETTLEMENT_QUOTE_ERROR' | 'SETTLEMENT_EXECUTION_ERROR' | 'EXTERNAL_SERVICE_TIMEOUT' | 'RELAYER_MARKET_UNAVAILABLE' | 'INTERNAL_ERROR';
-        /**
-         * Human-readable error message
-         */
-        message: string;
-        /**
-         * Trace ID
-         */
-        traceId: string;
-    };
-    /**
-     * Server error
-     */
-    500: {
-        code: 'VALIDATION_ERROR';
-        /**
-         * Human-readable error message
-         */
-        message: string;
-        /**
-         * Trace ID
-         */
-        traceId: string;
-        /**
-         * Per-field validation issues
-         */
-        details?: Array<{
-            /**
-             * Human-readable issue description
-             */
-            message: string;
-            /**
-             * Structured issue context (e.g. `{ path: "body.accountAddress" }`)
-             */
-            context?: {
-                [key: string]: unknown;
-            };
-        }>;
-    } | {
-        code: 'INSUFFICIENT_LIQUIDITY';
-        /**
-         * Human-readable error message
-         */
-        message: string;
-        /**
-         * Trace ID
-         */
-        traceId: string;
-        /**
-         * Fillable subset and unfillable remainder
-         */
-        details?: {
-            /**
-             * Intents fillable with current liquidity
-             */
-            availableIntents: Array<{
-                [key: string]: string;
-            }>;
-            /**
-             * Token amounts that cannot be filled
-             */
-            unfillable: {
-                [key: string]: string;
-            };
-        };
-    } | {
-        code: 'NOT_FOUND' | 'UNAUTHORIZED' | 'FORBIDDEN' | 'CONFLICT' | 'UNPROCESSABLE_CONTENT' | 'TOO_MANY_REQUESTS' | 'SETTLEMENT_QUOTE_ERROR' | 'SETTLEMENT_EXECUTION_ERROR' | 'EXTERNAL_SERVICE_TIMEOUT' | 'RELAYER_MARKET_UNAVAILABLE' | 'INTERNAL_ERROR';
-        /**
-         * Human-readable error message
-         */
-        message: string;
-        /**
-         * Trace ID
-         */
-        traceId: string;
-    };
-};
-
-export type GetIntentsByIdError = GetIntentsByIdErrors[keyof GetIntentsByIdErrors];
-
-export type GetIntentsByIdResponses = {
-    /**
-     * Successfully retrieved intent operation status
-     */
-    200: {
-        /**
-         * Overall status of the intent operation
-         */
-        status: 'PENDING' | 'PRECONFIRMED' | 'CLAIMED' | 'FILLED' | 'COMPLETED' | 'FAILED' | 'EXPIRED';
-        /**
-         * Timestamp of the fill transaction
-         */
-        fillTimestamp?: number;
-        /**
-         * Transaction hash of the fill transaction
-         */
-        fillTransactionHash?: string;
-        /**
-         * Chain ID of the fill transaction
-         */
-        destinationChainId: string;
-        /**
-         * Account address
-         */
-        accountAddress: string;
-        /**
-         * Array of claims within the intent
-         */
-        claims: Array<{
-            /**
-             * Chain ID of the claim
-             */
-            chainId: string;
-            /**
-             * Status of the claim
-             */
-            status: 'PENDING' | 'EXPIRED' | 'PRECONFIRMED' | 'COMPLETED' | 'FAILED';
-            /**
-             * Timestamp when the claim was processed
-             */
-            claimTimestamp?: number;
-            /**
-             * Transaction hash of the claim transaction
-             */
-            claimTransactionHash?: string;
-        }>;
-    };
-};
-
-export type GetIntentsByIdResponse = GetIntentsByIdResponses[keyof GetIntentsByIdResponses];
-
-export type GetAccountsByAccountAddressPortfolioData = {
-    body?: never;
-    headers: {
-        /**
-         * Rhinestone API key
-         */
-        'x-api-key': string;
-        /**
-         * API version (YYYY-MM.name). Will become required in a future release.
-         */
-        'x-api-version'?: string;
-    };
-    path: {
-        /**
-         * Ethereum address of the user account
-         */
-        accountAddress: string;
-    };
-    query?: {
-        /**
-         * Filter by chain. Pass as repeated query parameters: `?chainIds=eip155:1&chainIds=eip155:137`.
-         */
-        chainIds?: Array<string>;
-        /**
-         * Filter by `chain:token`. Pass as repeated query parameters: `?tokens=eip155:1:0x...&tokens=eip155:137:0x...`.
-         */
-        tokens?: Array<string>;
-        /**
-         * Whether to filter out tokens with zero balance
-         */
-        filterEmpty?: boolean;
-    };
-    url: '/accounts/{accountAddress}/portfolio';
-};
-
-export type GetAccountsByAccountAddressPortfolioErrors = {
-    /**
-     * Invalid request parameters
-     */
-    400: {
-        code: 'VALIDATION_ERROR';
-        /**
-         * Human-readable error message
-         */
-        message: string;
-        /**
-         * Trace ID
-         */
-        traceId: string;
-        /**
-         * Per-field validation issues
-         */
-        details?: Array<{
-            /**
-             * Human-readable issue description
-             */
-            message: string;
-            /**
-             * Structured issue context (e.g. `{ path: "body.accountAddress" }`)
-             */
-            context?: {
-                [key: string]: unknown;
-            };
-        }>;
-    } | {
-        code: 'INSUFFICIENT_LIQUIDITY';
-        /**
-         * Human-readable error message
-         */
-        message: string;
-        /**
-         * Trace ID
-         */
-        traceId: string;
-        /**
-         * Fillable subset and unfillable remainder
-         */
-        details?: {
-            /**
-             * Intents fillable with current liquidity
-             */
-            availableIntents: Array<{
-                [key: string]: string;
-            }>;
-            /**
-             * Token amounts that cannot be filled
-             */
-            unfillable: {
-                [key: string]: string;
-            };
-        };
-    } | {
-        code: 'NOT_FOUND' | 'UNAUTHORIZED' | 'FORBIDDEN' | 'CONFLICT' | 'UNPROCESSABLE_CONTENT' | 'TOO_MANY_REQUESTS' | 'SETTLEMENT_QUOTE_ERROR' | 'SETTLEMENT_EXECUTION_ERROR' | 'EXTERNAL_SERVICE_TIMEOUT' | 'RELAYER_MARKET_UNAVAILABLE' | 'INTERNAL_ERROR';
-        /**
-         * Human-readable error message
-         */
-        message: string;
-        /**
-         * Trace ID
-         */
-        traceId: string;
-    };
-    /**
-     * Server error
-     */
-    500: {
-        code: 'VALIDATION_ERROR';
-        /**
-         * Human-readable error message
-         */
-        message: string;
-        /**
-         * Trace ID
-         */
-        traceId: string;
-        /**
-         * Per-field validation issues
-         */
-        details?: Array<{
-            /**
-             * Human-readable issue description
-             */
-            message: string;
-            /**
-             * Structured issue context (e.g. `{ path: "body.accountAddress" }`)
-             */
-            context?: {
-                [key: string]: unknown;
-            };
-        }>;
-    } | {
-        code: 'INSUFFICIENT_LIQUIDITY';
-        /**
-         * Human-readable error message
-         */
-        message: string;
-        /**
-         * Trace ID
-         */
-        traceId: string;
-        /**
-         * Fillable subset and unfillable remainder
-         */
-        details?: {
-            /**
-             * Intents fillable with current liquidity
-             */
-            availableIntents: Array<{
-                [key: string]: string;
-            }>;
-            /**
-             * Token amounts that cannot be filled
-             */
-            unfillable: {
-                [key: string]: string;
-            };
-        };
-    } | {
-        code: 'NOT_FOUND' | 'UNAUTHORIZED' | 'FORBIDDEN' | 'CONFLICT' | 'UNPROCESSABLE_CONTENT' | 'TOO_MANY_REQUESTS' | 'SETTLEMENT_QUOTE_ERROR' | 'SETTLEMENT_EXECUTION_ERROR' | 'EXTERNAL_SERVICE_TIMEOUT' | 'RELAYER_MARKET_UNAVAILABLE' | 'INTERNAL_ERROR';
-        /**
-         * Human-readable error message
-         */
-        message: string;
-        /**
-         * Trace ID
-         */
-        traceId: string;
-    };
-};
-
-export type GetAccountsByAccountAddressPortfolioError = GetAccountsByAccountAddressPortfolioErrors[keyof GetAccountsByAccountAddressPortfolioErrors];
-
-export type GetAccountsByAccountAddressPortfolioResponses = {
-    /**
-     * Successfully retrieved user portfolio
-     */
-    200: {
-        /**
-         * Array of token portfolio entries
-         */
-        portfolio: Array<{
-            /**
-             * Short name (symbol) of the token
-             */
-            symbol: string;
-            /**
-             * Array of token balances per chain
-             */
-            chains: Array<{
-                /**
-                 * Chain ID where the token balance exists
-                 */
-                chainId: string;
-                /**
-                 * Token contract address on this chain
-                 */
-                address: string;
-                /**
-                 * Decimal places for this token on this chain. Sourced per-chain because the same logical token can have different on-chain decimals across chains (e.g. USDC: 6 on Ethereum, 18 on BNB Smart Chain).
-                 */
-                decimals: number;
-                /**
-                 * Token balance on this chain in the token's smallest unit
-                 */
-                amount: string;
-            }>;
-        }>;
-    };
-};
-
-export type GetAccountsByAccountAddressPortfolioResponse = GetAccountsByAccountAddressPortfolioResponses[keyof GetAccountsByAccountAddressPortfolioResponses];
-
-export type GetChainsData = {
-    body?: never;
-    headers?: {
-        /**
-         * API version (YYYY-MM.name). Will become required in a future release.
-         */
-        'x-api-version'?: string;
-    };
-    path?: never;
-    query?: never;
-    url: '/chains';
-};
-
-export type GetChainsResponses = {
-    /**
-     * The supported chains and tokens with additional metadata Object keyed by CAIP-2 chain identifier (e.g. `eip155:42161`).
-     */
-    200: {
-        [key: string]: {
-            /**
-             * The name of the chain
-             */
-            name: string;
-            supportedTokens: 'all' | Array<{
-                symbol: string;
-                address: string;
-                decimals: number;
-            }>;
-            testnet: boolean;
-        };
-    };
-};
-
-export type GetChainsResponse = GetChainsResponses[keyof GetChainsResponses];
-
-export type GetLiquidityData = {
-    body?: never;
-    headers: {
-        /**
-         * Rhinestone API key
-         */
-        'x-api-key': string;
-        /**
-         * API version (YYYY-MM.name). Will become required in a future release.
-         */
-        'x-api-version'?: string;
-    };
-    path?: never;
-    query: {
-        /**
-         * Source chain ID
+         * Source chain id (CAIP-2, eip155)
          */
         sourceChainId: string;
         /**
@@ -1846,18 +3933,102 @@ export type GetLiquidityData = {
          */
         sourceToken: string;
         /**
-         * Destination chain ID
+         * Destination chain id (CAIP-2), matching the destinations `POST /quotes` accepts: EVM (`eip155:*`), the virtual `hypercore:mainnet`, or non-EVM `solana:…` / `tron:…`.
          */
         destinationChainId: string;
         /**
-         * Destination token address
+         * Destination token address — EVM `0x…`, Solana base58 mint, or Tron T-address.
          */
         destinationToken: string;
+        /**
+         * Deposited amount in the source token's smallest unit. Required for (and only valid with) `direction: exactIn`.
+         */
+        amountIn?: string;
+        /**
+         * Desired delivered amount in the destination token's smallest unit. Required for (and only valid with) `direction: exactOut`.
+         */
+        amountOut?: string;
+        /**
+         * Account the route would execute against. Settlement layers filter on account type, so declaring it yields an estimate that matches what `POST /quotes` would plan. Defaults to `EOA` — the more restrictive of the two — so an undeclared caller is never shown smart-account-only routes.
+         */
+        accountType?: 'EOA' | 'SMART_ACCOUNT';
+        /**
+         * Whether the smart account is already deployed on the source chain. An undeployed account pays one-time setup gas, so declaring it avoids over-charging repeat users. Defaults to undeployed (charges setup) for a smart account when omitted — the conservative direction. Ignored for EOAs.
+         */
+        accountDeployed?: boolean;
+        /**
+         * Optional estimate tuning knobs
+         */
+        options?: {
+            /**
+             * Which settlement layers the estimate may rank. `{ include: [...] }` (allow-list) or `{ exclude: [...] }` (deny-list). Default unset = all layers eligible.
+             */
+            settlementLayers?: {
+                include: Array<'ACROSS' | 'ECO' | 'RELAY' | 'OFT' | 'NEAR' | 'RHINO' | 'CCTP'>;
+            } | {
+                exclude: Array<'ACROSS' | 'ECO' | 'RELAY' | 'OFT' | 'NEAR' | 'RHINO' | 'CCTP'>;
+            };
+            /**
+             * Which fee categories to treat as sponsored. Sponsored categories are absorbed by the sponsor and do not reduce the delivered amount.
+             */
+            sponsorSettings?: {
+                /**
+                 * Whether to sponsor gas for the intent
+                 */
+                gas?: boolean;
+                /**
+                 * Whether to sponsor bridge fees for the intent
+                 */
+                bridgeFees?: boolean;
+                /**
+                 * Whether to sponsor swap fees for the intent
+                 */
+                swapFees?: boolean;
+                /**
+                 * Whether to sponsor the Rhinestone protocol fee (`options.protocolFees`) for the intent. When `true`, the fee is charged to the integrator's sponsorship balance instead of carved from the user, without the sponsorship surcharge.
+                 */
+                protocolFees?: boolean;
+            };
+            /**
+             * How to rank candidate routes. `cheapest` minimizes USD cost, `fastest` minimizes fill time, `best` balances delivered output and speed.
+             */
+            selectionStrategy?: 'cheapest' | 'fastest' | 'best';
+            /**
+             * Integrator app fee applied to the estimate
+             */
+            appFees?: {
+                /**
+                 * App fee rate in basis points of the input value (0–10000 = 0–100%).
+                 */
+                feeBps: number;
+            };
+            /**
+             * Rhinestone protocol fee applied to the estimate
+             */
+            protocolFees?: {
+                /**
+                 * Rhinestone protocol fee rate in basis points of the input value (0–10000 = 0–100%). Carved from the user unless `sponsorSettings.protocolFees` is set.
+                 */
+                feeBps: number;
+            };
+        };
     };
-    url: '/liquidity';
+    headers: {
+        /**
+         * API version. Required; pinned to this document.
+         */
+        'x-api-version': '2026-04.blanc';
+        /**
+         * API key.
+         */
+        'x-api-key': string;
+    };
+    path?: never;
+    query?: never;
+    url: '/quotes/estimate';
 };
 
-export type GetLiquidityErrors = {
+export type CreateQuoteEstimateErrors = {
     /**
      * Invalid request parameters
      */
@@ -1867,10 +4038,6 @@ export type GetLiquidityErrors = {
          * Human-readable error message
          */
         message: string;
-        /**
-         * Trace ID
-         */
-        traceId: string;
         /**
          * Per-field validation issues
          */
@@ -1887,15 +4054,35 @@ export type GetLiquidityErrors = {
             };
         }>;
     } | {
-        code: 'INSUFFICIENT_LIQUIDITY';
+        code: 'SIMULATION_FAILED';
         /**
          * Human-readable error message
          */
         message: string;
         /**
-         * Trace ID
+         * Classified on-chain simulation failure details
          */
-        traceId: string;
+        details?: {
+            nonce?: string;
+            category: string;
+            errorSelector: string;
+            errorName: string;
+            errorArgs?: {
+                [key: string]: string;
+            };
+            retryable: boolean;
+            retryHint?: 'RE_PREPARE' | 'RETRY_LATER';
+            simulations?: unknown;
+            [key: string]: unknown | string | {
+                [key: string]: string;
+            } | boolean | 'RE_PREPARE' | 'RETRY_LATER' | undefined;
+        };
+    } | {
+        code: 'INSUFFICIENT_LIQUIDITY';
+        /**
+         * Human-readable error message
+         */
+        message: string;
         /**
          * Fillable subset and unfillable remainder
          */
@@ -1914,15 +4101,141 @@ export type GetLiquidityErrors = {
             };
         };
     } | {
-        code: 'NOT_FOUND' | 'UNAUTHORIZED' | 'FORBIDDEN' | 'CONFLICT' | 'UNPROCESSABLE_CONTENT' | 'TOO_MANY_REQUESTS' | 'SETTLEMENT_QUOTE_ERROR' | 'SETTLEMENT_EXECUTION_ERROR' | 'EXTERNAL_SERVICE_TIMEOUT' | 'RELAYER_MARKET_UNAVAILABLE' | 'INTERNAL_ERROR';
+        code: 'KEY_SCOPE_DENIED';
         /**
          * Human-readable error message
          */
         message: string;
         /**
-         * Trace ID
+         * Single-element list describing the failing scope
          */
-        traceId: string;
+        details?: Array<{
+            message: string;
+            context: {
+                /**
+                 * Which scope rejected the request
+                 */
+                scope: 'allowMainnet' | 'intents' | 'deposits';
+                /**
+                 * Minimum level the endpoint demands
+                 */
+                required: boolean | 'read' | 'write';
+                /**
+                 * Level resolved on the key
+                 */
+                actual: boolean | 'none' | 'read' | 'write';
+            };
+        }>;
+    } | {
+        code: 'NOT_FOUND' | 'UNAUTHORIZED' | 'FORBIDDEN' | 'CONFLICT' | 'WITHDRAWAL_IN_PROGRESS' | 'UNPROCESSABLE_CONTENT' | 'TOO_MANY_REQUESTS' | 'SETTLEMENT_QUOTE_ERROR' | 'SETTLEMENT_EXECUTION_ERROR' | 'EXTERNAL_SERVICE_TIMEOUT' | 'RELAYER_MARKET_UNAVAILABLE' | 'INTERNAL_ERROR';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+    };
+    /**
+     * API key scope denied
+     */
+    403: {
+        code: 'VALIDATION_ERROR';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+        /**
+         * Per-field validation issues
+         */
+        details?: Array<{
+            /**
+             * Human-readable issue description
+             */
+            message: string;
+            /**
+             * Structured issue context (e.g. `{ path: "body.accountAddress" }`)
+             */
+            context?: {
+                [key: string]: unknown;
+            };
+        }>;
+    } | {
+        code: 'SIMULATION_FAILED';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+        /**
+         * Classified on-chain simulation failure details
+         */
+        details?: {
+            nonce?: string;
+            category: string;
+            errorSelector: string;
+            errorName: string;
+            errorArgs?: {
+                [key: string]: string;
+            };
+            retryable: boolean;
+            retryHint?: 'RE_PREPARE' | 'RETRY_LATER';
+            simulations?: unknown;
+            [key: string]: unknown | string | {
+                [key: string]: string;
+            } | boolean | 'RE_PREPARE' | 'RETRY_LATER' | undefined;
+        };
+    } | {
+        code: 'INSUFFICIENT_LIQUIDITY';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+        /**
+         * Fillable subset and unfillable remainder
+         */
+        details?: {
+            /**
+             * Intents fillable with current liquidity
+             */
+            availableIntents: Array<{
+                [key: string]: string;
+            }>;
+            /**
+             * Token amounts that cannot be filled
+             */
+            unfillable: {
+                [key: string]: string;
+            };
+        };
+    } | {
+        code: 'KEY_SCOPE_DENIED';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+        /**
+         * Single-element list describing the failing scope
+         */
+        details?: Array<{
+            message: string;
+            context: {
+                /**
+                 * Which scope rejected the request
+                 */
+                scope: 'allowMainnet' | 'intents' | 'deposits';
+                /**
+                 * Minimum level the endpoint demands
+                 */
+                required: boolean | 'read' | 'write';
+                /**
+                 * Level resolved on the key
+                 */
+                actual: boolean | 'none' | 'read' | 'write';
+            };
+        }>;
+    } | {
+        code: 'NOT_FOUND' | 'UNAUTHORIZED' | 'FORBIDDEN' | 'CONFLICT' | 'WITHDRAWAL_IN_PROGRESS' | 'UNPROCESSABLE_CONTENT' | 'TOO_MANY_REQUESTS' | 'SETTLEMENT_QUOTE_ERROR' | 'SETTLEMENT_EXECUTION_ERROR' | 'EXTERNAL_SERVICE_TIMEOUT' | 'RELAYER_MARKET_UNAVAILABLE' | 'INTERNAL_ERROR';
+        /**
+         * Human-readable error message
+         */
+        message: string;
     };
     /**
      * Server error
@@ -1934,10 +4247,6 @@ export type GetLiquidityErrors = {
          */
         message: string;
         /**
-         * Trace ID
-         */
-        traceId: string;
-        /**
          * Per-field validation issues
          */
         details?: Array<{
@@ -1953,15 +4262,35 @@ export type GetLiquidityErrors = {
             };
         }>;
     } | {
-        code: 'INSUFFICIENT_LIQUIDITY';
+        code: 'SIMULATION_FAILED';
         /**
          * Human-readable error message
          */
         message: string;
         /**
-         * Trace ID
+         * Classified on-chain simulation failure details
          */
-        traceId: string;
+        details?: {
+            nonce?: string;
+            category: string;
+            errorSelector: string;
+            errorName: string;
+            errorArgs?: {
+                [key: string]: string;
+            };
+            retryable: boolean;
+            retryHint?: 'RE_PREPARE' | 'RETRY_LATER';
+            simulations?: unknown;
+            [key: string]: unknown | string | {
+                [key: string]: string;
+            } | boolean | 'RE_PREPARE' | 'RETRY_LATER' | undefined;
+        };
+    } | {
+        code: 'INSUFFICIENT_LIQUIDITY';
+        /**
+         * Human-readable error message
+         */
+        message: string;
         /**
          * Fillable subset and unfillable remainder
          */
@@ -1980,42 +4309,2063 @@ export type GetLiquidityErrors = {
             };
         };
     } | {
-        code: 'NOT_FOUND' | 'UNAUTHORIZED' | 'FORBIDDEN' | 'CONFLICT' | 'UNPROCESSABLE_CONTENT' | 'TOO_MANY_REQUESTS' | 'SETTLEMENT_QUOTE_ERROR' | 'SETTLEMENT_EXECUTION_ERROR' | 'EXTERNAL_SERVICE_TIMEOUT' | 'RELAYER_MARKET_UNAVAILABLE' | 'INTERNAL_ERROR';
+        code: 'KEY_SCOPE_DENIED';
         /**
          * Human-readable error message
          */
         message: string;
         /**
-         * Trace ID
+         * Single-element list describing the failing scope
          */
-        traceId: string;
+        details?: Array<{
+            message: string;
+            context: {
+                /**
+                 * Which scope rejected the request
+                 */
+                scope: 'allowMainnet' | 'intents' | 'deposits';
+                /**
+                 * Minimum level the endpoint demands
+                 */
+                required: boolean | 'read' | 'write';
+                /**
+                 * Level resolved on the key
+                 */
+                actual: boolean | 'none' | 'read' | 'write';
+            };
+        }>;
+    } | {
+        code: 'NOT_FOUND' | 'UNAUTHORIZED' | 'FORBIDDEN' | 'CONFLICT' | 'WITHDRAWAL_IN_PROGRESS' | 'UNPROCESSABLE_CONTENT' | 'TOO_MANY_REQUESTS' | 'SETTLEMENT_QUOTE_ERROR' | 'SETTLEMENT_EXECUTION_ERROR' | 'EXTERNAL_SERVICE_TIMEOUT' | 'RELAYER_MARKET_UNAVAILABLE' | 'INTERNAL_ERROR';
+        /**
+         * Human-readable error message
+         */
+        message: string;
     };
 };
 
-export type GetLiquidityError = GetLiquidityErrors[keyof GetLiquidityErrors];
+export type CreateQuoteEstimateError = CreateQuoteEstimateErrors[keyof CreateQuoteEstimateErrors];
 
-export type GetLiquidityResponses = {
+export type CreateQuoteEstimateResponses = {
     /**
-     * Liquidity information for the requested route
+     * Response body for `POST /quotes/estimate`. Indicative (non-binding): carries no `intentId`, `signData`, or `expiresAt`.
      */
     200: {
         /**
-         * Destination token symbol
+         * Indicative route estimates, best-first. Empty when no route is available.
          */
-        symbol: string;
+        routes: Array<{
+            /**
+             * Settlement layer this estimate is for
+             */
+            settlementLayer: 'INTENT_EXECUTOR' | 'SAME_CHAIN' | 'ACROSS' | 'ECO' | 'RELAY' | 'OFT' | 'NEAR' | 'RHINO' | 'CCTP';
+            /**
+             * `exact` for formula-priced layers; `approximated` for solver-market layers estimated from a typical-fee table.
+             */
+            accuracy: 'exact' | 'approximated';
+            /**
+             * `over_capacity` when the delivered notional exceeds the known liquidity ceiling for this route; such routes rank below fillable ones.
+             */
+            status: 'ok' | 'over_capacity';
+            /**
+             * A single (chain, token) leg with amount, price, and metadata
+             */
+            input: {
+                /**
+                 * Chain where this token leg settles
+                 */
+                chainId: string;
+                /**
+                 * ERC-20 contract address for this token
+                 */
+                tokenAddress: string;
+                /**
+                 * Token symbol. `null` when the internal token registry has no entry for this address.
+                 */
+                symbol: string | null;
+                /**
+                 * Token decimals. `null` when the internal token registry has no entry for this address.
+                 */
+                decimals: number | null;
+                /**
+                 * Unit price in USD. `null` when the price oracle has no data for this token.
+                 */
+                price: {
+                    /**
+                     * Unit price in USD
+                     */
+                    usd: number;
+                } | null;
+                /**
+                 * Token amount in the token's smallest unit
+                 */
+                amount: string;
+            };
+            /**
+             * A single (chain, token) leg with amount, price, and metadata
+             */
+            output: {
+                /**
+                 * Chain where this token leg settles (CAIP-2, any namespace)
+                 */
+                chainId: string;
+                /**
+                 * Contract address of the delivered token (EVM 0x or non-EVM base58)
+                 */
+                tokenAddress: string;
+                /**
+                 * Token symbol. `null` when the internal token registry has no entry for this address.
+                 */
+                symbol: string | null;
+                /**
+                 * Token decimals. `null` when the internal token registry has no entry for this address.
+                 */
+                decimals: number | null;
+                /**
+                 * Unit price in USD. `null` when the price oracle has no data for this token.
+                 */
+                price: {
+                    /**
+                     * Unit price in USD
+                     */
+                    usd: number;
+                } | null;
+                /**
+                 * Token amount in the token's smallest unit
+                 */
+                amount: string;
+            };
+            /**
+             * Aggregate route fees with per-category breakdown
+             */
+            fees: {
+                /**
+                 * Full route cost in USD, regardless of who pays. Equal to `sum(breakdown.*.usd)` modulo rounding.
+                 */
+                total: {
+                    /**
+                     * USD-denominated value
+                     */
+                    usd: number;
+                };
+                /**
+                 * Per-category fee breakdown
+                 */
+                breakdown: {
+                    /**
+                     * Aggregate gas cost (destination fill, swap execution, origin gas)
+                     */
+                    gas: {
+                        /**
+                         * Total cost of this category in USD, regardless of who pays.
+                         */
+                        usd: number;
+                        /**
+                         * True when a sponsor absorbs some or all of this category. The user-vs-sponsor split is not surfaced.
+                         */
+                        sponsored: boolean;
+                    };
+                    /**
+                     * Aggregate settlement-layer bridge cost
+                     */
+                    bridge: {
+                        /**
+                         * Total cost of this category in USD, regardless of who pays.
+                         */
+                        usd: number;
+                        /**
+                         * True when a sponsor absorbs some or all of this category. The user-vs-sponsor split is not surfaced.
+                         */
+                        sponsored: boolean;
+                    };
+                    /**
+                     * Aggregate solver swap commission
+                     */
+                    swap: {
+                        /**
+                         * Total cost of this category in USD, regardless of who pays.
+                         */
+                        usd: number;
+                        /**
+                         * True when a sponsor absorbs some or all of this category. The user-vs-sponsor split is not surfaced.
+                         */
+                        sponsored: boolean;
+                    };
+                    /**
+                     * Aggregate integrator app fee
+                     */
+                    app: {
+                        /**
+                         * Total cost of this category in USD, regardless of who pays.
+                         */
+                        usd: number;
+                        /**
+                         * True when a sponsor absorbs some or all of this category. The user-vs-sponsor split is not surfaced.
+                         */
+                        sponsored: boolean;
+                    };
+                    /**
+                     * Rhinestone protocol fee (`options.protocolFees`). `sponsored: true` when the integrator sponsorship balance pays it instead of the user.
+                     */
+                    protocol: {
+                        /**
+                         * Total cost of this category in USD, regardless of who pays.
+                         */
+                        usd: number;
+                        /**
+                         * True when a sponsor absorbs some or all of this category. The user-vs-sponsor split is not surfaced.
+                         */
+                        sponsored: boolean;
+                    };
+                    /**
+                     * Rhinestone's surcharge on the sponsored relayer coverage, charged to the sponsor. 0 when the intent is not sponsored. Pure surcharge — a sponsored protocol fee is shown on `protocol`, never here.
+                     */
+                    sponsorSurcharge: {
+                        /**
+                         * Total cost of this category in USD, regardless of who pays.
+                         */
+                        usd: number;
+                        /**
+                         * True when a sponsor absorbs some or all of this category. The user-vs-sponsor split is not surfaced.
+                         */
+                        sponsored: boolean;
+                    };
+                };
+            };
+            /**
+             * Estimated fill time for the route
+             */
+            estimatedFillTime: {
+                /**
+                 * Typical end-to-end fill time for this route in seconds. Directional, not guaranteed.
+                 */
+                seconds: number;
+            };
+        }>;
         /**
-         * Destination token decimals
+         * Set when `routes` is empty and there is a single explanatory reason.
          */
-        decimals: number;
-        /**
-         * True when an uncapped settlement layer (e.g. OFT) supports this route
-         */
-        unlimited: boolean;
-        /**
-         * Largest fillable amount for this token by a single relayer instance. Null when unlimited.
-         */
-        maxAmount: string | null;
+        unavailableReason?: 'unsupported_token' | 'no_route_support' | 'no_price' | 'below_minimum';
     };
 };
 
-export type GetLiquidityResponse = GetLiquidityResponses[keyof GetLiquidityResponses];
+export type CreateQuoteEstimateResponse = CreateQuoteEstimateResponses[keyof CreateQuoteEstimateResponses];
+
+export type GetAppFeeBalancesData = {
+    body?: never;
+    headers: {
+        /**
+         * API version. Required; pinned to this document.
+         */
+        'x-api-version': '2026-04.blanc';
+        /**
+         * API key.
+         */
+        'x-api-key': string;
+    };
+    path?: never;
+    query?: never;
+    url: '/app-fees/balances';
+};
+
+export type GetAppFeeBalancesErrors = {
+    /**
+     * Validation error
+     */
+    400: {
+        code: 'VALIDATION_ERROR';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+        /**
+         * Per-field validation issues
+         */
+        details?: Array<{
+            /**
+             * Human-readable issue description
+             */
+            message: string;
+            /**
+             * Structured issue context (e.g. `{ path: "body.accountAddress" }`)
+             */
+            context?: {
+                [key: string]: unknown;
+            };
+        }>;
+    } | {
+        code: 'SIMULATION_FAILED';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+        /**
+         * Classified on-chain simulation failure details
+         */
+        details?: {
+            nonce?: string;
+            category: string;
+            errorSelector: string;
+            errorName: string;
+            errorArgs?: {
+                [key: string]: string;
+            };
+            retryable: boolean;
+            retryHint?: 'RE_PREPARE' | 'RETRY_LATER';
+            simulations?: unknown;
+            [key: string]: unknown | string | {
+                [key: string]: string;
+            } | boolean | 'RE_PREPARE' | 'RETRY_LATER' | undefined;
+        };
+    } | {
+        code: 'INSUFFICIENT_LIQUIDITY';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+        /**
+         * Fillable subset and unfillable remainder
+         */
+        details?: {
+            /**
+             * Intents fillable with current liquidity
+             */
+            availableIntents: Array<{
+                [key: string]: string;
+            }>;
+            /**
+             * Token amounts that cannot be filled
+             */
+            unfillable: {
+                [key: string]: string;
+            };
+        };
+    } | {
+        code: 'KEY_SCOPE_DENIED';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+        /**
+         * Single-element list describing the failing scope
+         */
+        details?: Array<{
+            message: string;
+            context: {
+                /**
+                 * Which scope rejected the request
+                 */
+                scope: 'allowMainnet' | 'intents' | 'deposits';
+                /**
+                 * Minimum level the endpoint demands
+                 */
+                required: boolean | 'read' | 'write';
+                /**
+                 * Level resolved on the key
+                 */
+                actual: boolean | 'none' | 'read' | 'write';
+            };
+        }>;
+    } | {
+        code: 'NOT_FOUND' | 'UNAUTHORIZED' | 'FORBIDDEN' | 'CONFLICT' | 'WITHDRAWAL_IN_PROGRESS' | 'UNPROCESSABLE_CONTENT' | 'TOO_MANY_REQUESTS' | 'SETTLEMENT_QUOTE_ERROR' | 'SETTLEMENT_EXECUTION_ERROR' | 'EXTERNAL_SERVICE_TIMEOUT' | 'RELAYER_MARKET_UNAVAILABLE' | 'INTERNAL_ERROR';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+    };
+    /**
+     * Missing or invalid API key
+     */
+    401: {
+        code: 'VALIDATION_ERROR';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+        /**
+         * Per-field validation issues
+         */
+        details?: Array<{
+            /**
+             * Human-readable issue description
+             */
+            message: string;
+            /**
+             * Structured issue context (e.g. `{ path: "body.accountAddress" }`)
+             */
+            context?: {
+                [key: string]: unknown;
+            };
+        }>;
+    } | {
+        code: 'SIMULATION_FAILED';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+        /**
+         * Classified on-chain simulation failure details
+         */
+        details?: {
+            nonce?: string;
+            category: string;
+            errorSelector: string;
+            errorName: string;
+            errorArgs?: {
+                [key: string]: string;
+            };
+            retryable: boolean;
+            retryHint?: 'RE_PREPARE' | 'RETRY_LATER';
+            simulations?: unknown;
+            [key: string]: unknown | string | {
+                [key: string]: string;
+            } | boolean | 'RE_PREPARE' | 'RETRY_LATER' | undefined;
+        };
+    } | {
+        code: 'INSUFFICIENT_LIQUIDITY';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+        /**
+         * Fillable subset and unfillable remainder
+         */
+        details?: {
+            /**
+             * Intents fillable with current liquidity
+             */
+            availableIntents: Array<{
+                [key: string]: string;
+            }>;
+            /**
+             * Token amounts that cannot be filled
+             */
+            unfillable: {
+                [key: string]: string;
+            };
+        };
+    } | {
+        code: 'KEY_SCOPE_DENIED';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+        /**
+         * Single-element list describing the failing scope
+         */
+        details?: Array<{
+            message: string;
+            context: {
+                /**
+                 * Which scope rejected the request
+                 */
+                scope: 'allowMainnet' | 'intents' | 'deposits';
+                /**
+                 * Minimum level the endpoint demands
+                 */
+                required: boolean | 'read' | 'write';
+                /**
+                 * Level resolved on the key
+                 */
+                actual: boolean | 'none' | 'read' | 'write';
+            };
+        }>;
+    } | {
+        code: 'NOT_FOUND' | 'UNAUTHORIZED' | 'FORBIDDEN' | 'CONFLICT' | 'WITHDRAWAL_IN_PROGRESS' | 'UNPROCESSABLE_CONTENT' | 'TOO_MANY_REQUESTS' | 'SETTLEMENT_QUOTE_ERROR' | 'SETTLEMENT_EXECUTION_ERROR' | 'EXTERNAL_SERVICE_TIMEOUT' | 'RELAYER_MARKET_UNAVAILABLE' | 'INTERNAL_ERROR';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+    };
+    /**
+     * Server error
+     */
+    500: {
+        code: 'VALIDATION_ERROR';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+        /**
+         * Per-field validation issues
+         */
+        details?: Array<{
+            /**
+             * Human-readable issue description
+             */
+            message: string;
+            /**
+             * Structured issue context (e.g. `{ path: "body.accountAddress" }`)
+             */
+            context?: {
+                [key: string]: unknown;
+            };
+        }>;
+    } | {
+        code: 'SIMULATION_FAILED';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+        /**
+         * Classified on-chain simulation failure details
+         */
+        details?: {
+            nonce?: string;
+            category: string;
+            errorSelector: string;
+            errorName: string;
+            errorArgs?: {
+                [key: string]: string;
+            };
+            retryable: boolean;
+            retryHint?: 'RE_PREPARE' | 'RETRY_LATER';
+            simulations?: unknown;
+            [key: string]: unknown | string | {
+                [key: string]: string;
+            } | boolean | 'RE_PREPARE' | 'RETRY_LATER' | undefined;
+        };
+    } | {
+        code: 'INSUFFICIENT_LIQUIDITY';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+        /**
+         * Fillable subset and unfillable remainder
+         */
+        details?: {
+            /**
+             * Intents fillable with current liquidity
+             */
+            availableIntents: Array<{
+                [key: string]: string;
+            }>;
+            /**
+             * Token amounts that cannot be filled
+             */
+            unfillable: {
+                [key: string]: string;
+            };
+        };
+    } | {
+        code: 'KEY_SCOPE_DENIED';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+        /**
+         * Single-element list describing the failing scope
+         */
+        details?: Array<{
+            message: string;
+            context: {
+                /**
+                 * Which scope rejected the request
+                 */
+                scope: 'allowMainnet' | 'intents' | 'deposits';
+                /**
+                 * Minimum level the endpoint demands
+                 */
+                required: boolean | 'read' | 'write';
+                /**
+                 * Level resolved on the key
+                 */
+                actual: boolean | 'none' | 'read' | 'write';
+            };
+        }>;
+    } | {
+        code: 'NOT_FOUND' | 'UNAUTHORIZED' | 'FORBIDDEN' | 'CONFLICT' | 'WITHDRAWAL_IN_PROGRESS' | 'UNPROCESSABLE_CONTENT' | 'TOO_MANY_REQUESTS' | 'SETTLEMENT_QUOTE_ERROR' | 'SETTLEMENT_EXECUTION_ERROR' | 'EXTERNAL_SERVICE_TIMEOUT' | 'RELAYER_MARKET_UNAVAILABLE' | 'INTERNAL_ERROR';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+    };
+};
+
+export type GetAppFeeBalancesError = GetAppFeeBalancesErrors[keyof GetAppFeeBalancesErrors];
+
+export type GetAppFeeBalancesResponses = {
+    /**
+     * OK
+     */
+    200: {
+        withdrawableUsd: number;
+        pendingUsd: number;
+    };
+};
+
+export type GetAppFeeBalancesResponse = GetAppFeeBalancesResponses[keyof GetAppFeeBalancesResponses];
+
+export type ListAppFeeWithdrawalsData = {
+    body?: never;
+    headers: {
+        /**
+         * API version. Required; pinned to this document.
+         */
+        'x-api-version': '2026-04.blanc';
+        /**
+         * API key.
+         */
+        'x-api-key': string;
+    };
+    path?: never;
+    query?: never;
+    url: '/app-fees/withdrawals';
+};
+
+export type ListAppFeeWithdrawalsErrors = {
+    /**
+     * Validation error
+     */
+    400: {
+        code: 'VALIDATION_ERROR';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+        /**
+         * Per-field validation issues
+         */
+        details?: Array<{
+            /**
+             * Human-readable issue description
+             */
+            message: string;
+            /**
+             * Structured issue context (e.g. `{ path: "body.accountAddress" }`)
+             */
+            context?: {
+                [key: string]: unknown;
+            };
+        }>;
+    } | {
+        code: 'SIMULATION_FAILED';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+        /**
+         * Classified on-chain simulation failure details
+         */
+        details?: {
+            nonce?: string;
+            category: string;
+            errorSelector: string;
+            errorName: string;
+            errorArgs?: {
+                [key: string]: string;
+            };
+            retryable: boolean;
+            retryHint?: 'RE_PREPARE' | 'RETRY_LATER';
+            simulations?: unknown;
+            [key: string]: unknown | string | {
+                [key: string]: string;
+            } | boolean | 'RE_PREPARE' | 'RETRY_LATER' | undefined;
+        };
+    } | {
+        code: 'INSUFFICIENT_LIQUIDITY';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+        /**
+         * Fillable subset and unfillable remainder
+         */
+        details?: {
+            /**
+             * Intents fillable with current liquidity
+             */
+            availableIntents: Array<{
+                [key: string]: string;
+            }>;
+            /**
+             * Token amounts that cannot be filled
+             */
+            unfillable: {
+                [key: string]: string;
+            };
+        };
+    } | {
+        code: 'KEY_SCOPE_DENIED';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+        /**
+         * Single-element list describing the failing scope
+         */
+        details?: Array<{
+            message: string;
+            context: {
+                /**
+                 * Which scope rejected the request
+                 */
+                scope: 'allowMainnet' | 'intents' | 'deposits';
+                /**
+                 * Minimum level the endpoint demands
+                 */
+                required: boolean | 'read' | 'write';
+                /**
+                 * Level resolved on the key
+                 */
+                actual: boolean | 'none' | 'read' | 'write';
+            };
+        }>;
+    } | {
+        code: 'NOT_FOUND' | 'UNAUTHORIZED' | 'FORBIDDEN' | 'CONFLICT' | 'WITHDRAWAL_IN_PROGRESS' | 'UNPROCESSABLE_CONTENT' | 'TOO_MANY_REQUESTS' | 'SETTLEMENT_QUOTE_ERROR' | 'SETTLEMENT_EXECUTION_ERROR' | 'EXTERNAL_SERVICE_TIMEOUT' | 'RELAYER_MARKET_UNAVAILABLE' | 'INTERNAL_ERROR';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+    };
+    /**
+     * Missing or invalid API key
+     */
+    401: {
+        code: 'VALIDATION_ERROR';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+        /**
+         * Per-field validation issues
+         */
+        details?: Array<{
+            /**
+             * Human-readable issue description
+             */
+            message: string;
+            /**
+             * Structured issue context (e.g. `{ path: "body.accountAddress" }`)
+             */
+            context?: {
+                [key: string]: unknown;
+            };
+        }>;
+    } | {
+        code: 'SIMULATION_FAILED';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+        /**
+         * Classified on-chain simulation failure details
+         */
+        details?: {
+            nonce?: string;
+            category: string;
+            errorSelector: string;
+            errorName: string;
+            errorArgs?: {
+                [key: string]: string;
+            };
+            retryable: boolean;
+            retryHint?: 'RE_PREPARE' | 'RETRY_LATER';
+            simulations?: unknown;
+            [key: string]: unknown | string | {
+                [key: string]: string;
+            } | boolean | 'RE_PREPARE' | 'RETRY_LATER' | undefined;
+        };
+    } | {
+        code: 'INSUFFICIENT_LIQUIDITY';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+        /**
+         * Fillable subset and unfillable remainder
+         */
+        details?: {
+            /**
+             * Intents fillable with current liquidity
+             */
+            availableIntents: Array<{
+                [key: string]: string;
+            }>;
+            /**
+             * Token amounts that cannot be filled
+             */
+            unfillable: {
+                [key: string]: string;
+            };
+        };
+    } | {
+        code: 'KEY_SCOPE_DENIED';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+        /**
+         * Single-element list describing the failing scope
+         */
+        details?: Array<{
+            message: string;
+            context: {
+                /**
+                 * Which scope rejected the request
+                 */
+                scope: 'allowMainnet' | 'intents' | 'deposits';
+                /**
+                 * Minimum level the endpoint demands
+                 */
+                required: boolean | 'read' | 'write';
+                /**
+                 * Level resolved on the key
+                 */
+                actual: boolean | 'none' | 'read' | 'write';
+            };
+        }>;
+    } | {
+        code: 'NOT_FOUND' | 'UNAUTHORIZED' | 'FORBIDDEN' | 'CONFLICT' | 'WITHDRAWAL_IN_PROGRESS' | 'UNPROCESSABLE_CONTENT' | 'TOO_MANY_REQUESTS' | 'SETTLEMENT_QUOTE_ERROR' | 'SETTLEMENT_EXECUTION_ERROR' | 'EXTERNAL_SERVICE_TIMEOUT' | 'RELAYER_MARKET_UNAVAILABLE' | 'INTERNAL_ERROR';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+    };
+    /**
+     * API key scope denied
+     */
+    403: {
+        code: 'VALIDATION_ERROR';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+        /**
+         * Per-field validation issues
+         */
+        details?: Array<{
+            /**
+             * Human-readable issue description
+             */
+            message: string;
+            /**
+             * Structured issue context (e.g. `{ path: "body.accountAddress" }`)
+             */
+            context?: {
+                [key: string]: unknown;
+            };
+        }>;
+    } | {
+        code: 'SIMULATION_FAILED';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+        /**
+         * Classified on-chain simulation failure details
+         */
+        details?: {
+            nonce?: string;
+            category: string;
+            errorSelector: string;
+            errorName: string;
+            errorArgs?: {
+                [key: string]: string;
+            };
+            retryable: boolean;
+            retryHint?: 'RE_PREPARE' | 'RETRY_LATER';
+            simulations?: unknown;
+            [key: string]: unknown | string | {
+                [key: string]: string;
+            } | boolean | 'RE_PREPARE' | 'RETRY_LATER' | undefined;
+        };
+    } | {
+        code: 'INSUFFICIENT_LIQUIDITY';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+        /**
+         * Fillable subset and unfillable remainder
+         */
+        details?: {
+            /**
+             * Intents fillable with current liquidity
+             */
+            availableIntents: Array<{
+                [key: string]: string;
+            }>;
+            /**
+             * Token amounts that cannot be filled
+             */
+            unfillable: {
+                [key: string]: string;
+            };
+        };
+    } | {
+        code: 'KEY_SCOPE_DENIED';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+        /**
+         * Single-element list describing the failing scope
+         */
+        details?: Array<{
+            message: string;
+            context: {
+                /**
+                 * Which scope rejected the request
+                 */
+                scope: 'allowMainnet' | 'intents' | 'deposits';
+                /**
+                 * Minimum level the endpoint demands
+                 */
+                required: boolean | 'read' | 'write';
+                /**
+                 * Level resolved on the key
+                 */
+                actual: boolean | 'none' | 'read' | 'write';
+            };
+        }>;
+    } | {
+        code: 'NOT_FOUND' | 'UNAUTHORIZED' | 'FORBIDDEN' | 'CONFLICT' | 'WITHDRAWAL_IN_PROGRESS' | 'UNPROCESSABLE_CONTENT' | 'TOO_MANY_REQUESTS' | 'SETTLEMENT_QUOTE_ERROR' | 'SETTLEMENT_EXECUTION_ERROR' | 'EXTERNAL_SERVICE_TIMEOUT' | 'RELAYER_MARKET_UNAVAILABLE' | 'INTERNAL_ERROR';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+    };
+    /**
+     * Server error
+     */
+    500: {
+        code: 'VALIDATION_ERROR';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+        /**
+         * Per-field validation issues
+         */
+        details?: Array<{
+            /**
+             * Human-readable issue description
+             */
+            message: string;
+            /**
+             * Structured issue context (e.g. `{ path: "body.accountAddress" }`)
+             */
+            context?: {
+                [key: string]: unknown;
+            };
+        }>;
+    } | {
+        code: 'SIMULATION_FAILED';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+        /**
+         * Classified on-chain simulation failure details
+         */
+        details?: {
+            nonce?: string;
+            category: string;
+            errorSelector: string;
+            errorName: string;
+            errorArgs?: {
+                [key: string]: string;
+            };
+            retryable: boolean;
+            retryHint?: 'RE_PREPARE' | 'RETRY_LATER';
+            simulations?: unknown;
+            [key: string]: unknown | string | {
+                [key: string]: string;
+            } | boolean | 'RE_PREPARE' | 'RETRY_LATER' | undefined;
+        };
+    } | {
+        code: 'INSUFFICIENT_LIQUIDITY';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+        /**
+         * Fillable subset and unfillable remainder
+         */
+        details?: {
+            /**
+             * Intents fillable with current liquidity
+             */
+            availableIntents: Array<{
+                [key: string]: string;
+            }>;
+            /**
+             * Token amounts that cannot be filled
+             */
+            unfillable: {
+                [key: string]: string;
+            };
+        };
+    } | {
+        code: 'KEY_SCOPE_DENIED';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+        /**
+         * Single-element list describing the failing scope
+         */
+        details?: Array<{
+            message: string;
+            context: {
+                /**
+                 * Which scope rejected the request
+                 */
+                scope: 'allowMainnet' | 'intents' | 'deposits';
+                /**
+                 * Minimum level the endpoint demands
+                 */
+                required: boolean | 'read' | 'write';
+                /**
+                 * Level resolved on the key
+                 */
+                actual: boolean | 'none' | 'read' | 'write';
+            };
+        }>;
+    } | {
+        code: 'NOT_FOUND' | 'UNAUTHORIZED' | 'FORBIDDEN' | 'CONFLICT' | 'WITHDRAWAL_IN_PROGRESS' | 'UNPROCESSABLE_CONTENT' | 'TOO_MANY_REQUESTS' | 'SETTLEMENT_QUOTE_ERROR' | 'SETTLEMENT_EXECUTION_ERROR' | 'EXTERNAL_SERVICE_TIMEOUT' | 'RELAYER_MARKET_UNAVAILABLE' | 'INTERNAL_ERROR';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+    };
+};
+
+export type ListAppFeeWithdrawalsError = ListAppFeeWithdrawalsErrors[keyof ListAppFeeWithdrawalsErrors];
+
+export type ListAppFeeWithdrawalsResponses = {
+    /**
+     * OK
+     */
+    200: {
+        withdrawals: Array<{
+            requestNonce: string;
+            status: 'PENDING' | 'COMPLETED' | 'FAILED';
+            payoutUsd: number;
+            targetChainId: number;
+            targetToken: string;
+            targetAmount: string;
+            payoutAddress: string;
+            txHash: string | null;
+            createdAt: string;
+        }>;
+    };
+};
+
+export type ListAppFeeWithdrawalsResponse = ListAppFeeWithdrawalsResponses[keyof ListAppFeeWithdrawalsResponses];
+
+export type CreateAppFeeWithdrawalData = {
+    body: {
+        targetChainId: number;
+        targetToken: string;
+    };
+    headers: {
+        /**
+         * API version. Required; pinned to this document.
+         */
+        'x-api-version': '2026-04.blanc';
+        /**
+         * API key.
+         */
+        'x-api-key': string;
+    };
+    path?: never;
+    query?: never;
+    url: '/app-fees/withdrawals';
+};
+
+export type CreateAppFeeWithdrawalErrors = {
+    /**
+     * No payout address, nothing to withdraw, or invalid target
+     */
+    400: {
+        code: 'VALIDATION_ERROR';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+        /**
+         * Per-field validation issues
+         */
+        details?: Array<{
+            /**
+             * Human-readable issue description
+             */
+            message: string;
+            /**
+             * Structured issue context (e.g. `{ path: "body.accountAddress" }`)
+             */
+            context?: {
+                [key: string]: unknown;
+            };
+        }>;
+    } | {
+        code: 'SIMULATION_FAILED';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+        /**
+         * Classified on-chain simulation failure details
+         */
+        details?: {
+            nonce?: string;
+            category: string;
+            errorSelector: string;
+            errorName: string;
+            errorArgs?: {
+                [key: string]: string;
+            };
+            retryable: boolean;
+            retryHint?: 'RE_PREPARE' | 'RETRY_LATER';
+            simulations?: unknown;
+            [key: string]: unknown | string | {
+                [key: string]: string;
+            } | boolean | 'RE_PREPARE' | 'RETRY_LATER' | undefined;
+        };
+    } | {
+        code: 'INSUFFICIENT_LIQUIDITY';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+        /**
+         * Fillable subset and unfillable remainder
+         */
+        details?: {
+            /**
+             * Intents fillable with current liquidity
+             */
+            availableIntents: Array<{
+                [key: string]: string;
+            }>;
+            /**
+             * Token amounts that cannot be filled
+             */
+            unfillable: {
+                [key: string]: string;
+            };
+        };
+    } | {
+        code: 'KEY_SCOPE_DENIED';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+        /**
+         * Single-element list describing the failing scope
+         */
+        details?: Array<{
+            message: string;
+            context: {
+                /**
+                 * Which scope rejected the request
+                 */
+                scope: 'allowMainnet' | 'intents' | 'deposits';
+                /**
+                 * Minimum level the endpoint demands
+                 */
+                required: boolean | 'read' | 'write';
+                /**
+                 * Level resolved on the key
+                 */
+                actual: boolean | 'none' | 'read' | 'write';
+            };
+        }>;
+    } | {
+        code: 'NOT_FOUND' | 'UNAUTHORIZED' | 'FORBIDDEN' | 'CONFLICT' | 'WITHDRAWAL_IN_PROGRESS' | 'UNPROCESSABLE_CONTENT' | 'TOO_MANY_REQUESTS' | 'SETTLEMENT_QUOTE_ERROR' | 'SETTLEMENT_EXECUTION_ERROR' | 'EXTERNAL_SERVICE_TIMEOUT' | 'RELAYER_MARKET_UNAVAILABLE' | 'INTERNAL_ERROR';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+    };
+    /**
+     * Missing or invalid API key
+     */
+    401: {
+        code: 'VALIDATION_ERROR';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+        /**
+         * Per-field validation issues
+         */
+        details?: Array<{
+            /**
+             * Human-readable issue description
+             */
+            message: string;
+            /**
+             * Structured issue context (e.g. `{ path: "body.accountAddress" }`)
+             */
+            context?: {
+                [key: string]: unknown;
+            };
+        }>;
+    } | {
+        code: 'SIMULATION_FAILED';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+        /**
+         * Classified on-chain simulation failure details
+         */
+        details?: {
+            nonce?: string;
+            category: string;
+            errorSelector: string;
+            errorName: string;
+            errorArgs?: {
+                [key: string]: string;
+            };
+            retryable: boolean;
+            retryHint?: 'RE_PREPARE' | 'RETRY_LATER';
+            simulations?: unknown;
+            [key: string]: unknown | string | {
+                [key: string]: string;
+            } | boolean | 'RE_PREPARE' | 'RETRY_LATER' | undefined;
+        };
+    } | {
+        code: 'INSUFFICIENT_LIQUIDITY';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+        /**
+         * Fillable subset and unfillable remainder
+         */
+        details?: {
+            /**
+             * Intents fillable with current liquidity
+             */
+            availableIntents: Array<{
+                [key: string]: string;
+            }>;
+            /**
+             * Token amounts that cannot be filled
+             */
+            unfillable: {
+                [key: string]: string;
+            };
+        };
+    } | {
+        code: 'KEY_SCOPE_DENIED';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+        /**
+         * Single-element list describing the failing scope
+         */
+        details?: Array<{
+            message: string;
+            context: {
+                /**
+                 * Which scope rejected the request
+                 */
+                scope: 'allowMainnet' | 'intents' | 'deposits';
+                /**
+                 * Minimum level the endpoint demands
+                 */
+                required: boolean | 'read' | 'write';
+                /**
+                 * Level resolved on the key
+                 */
+                actual: boolean | 'none' | 'read' | 'write';
+            };
+        }>;
+    } | {
+        code: 'NOT_FOUND' | 'UNAUTHORIZED' | 'FORBIDDEN' | 'CONFLICT' | 'WITHDRAWAL_IN_PROGRESS' | 'UNPROCESSABLE_CONTENT' | 'TOO_MANY_REQUESTS' | 'SETTLEMENT_QUOTE_ERROR' | 'SETTLEMENT_EXECUTION_ERROR' | 'EXTERNAL_SERVICE_TIMEOUT' | 'RELAYER_MARKET_UNAVAILABLE' | 'INTERNAL_ERROR';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+    };
+    /**
+     * A withdrawal is already being signed
+     */
+    409: {
+        code: 'VALIDATION_ERROR';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+        /**
+         * Per-field validation issues
+         */
+        details?: Array<{
+            /**
+             * Human-readable issue description
+             */
+            message: string;
+            /**
+             * Structured issue context (e.g. `{ path: "body.accountAddress" }`)
+             */
+            context?: {
+                [key: string]: unknown;
+            };
+        }>;
+    } | {
+        code: 'SIMULATION_FAILED';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+        /**
+         * Classified on-chain simulation failure details
+         */
+        details?: {
+            nonce?: string;
+            category: string;
+            errorSelector: string;
+            errorName: string;
+            errorArgs?: {
+                [key: string]: string;
+            };
+            retryable: boolean;
+            retryHint?: 'RE_PREPARE' | 'RETRY_LATER';
+            simulations?: unknown;
+            [key: string]: unknown | string | {
+                [key: string]: string;
+            } | boolean | 'RE_PREPARE' | 'RETRY_LATER' | undefined;
+        };
+    } | {
+        code: 'INSUFFICIENT_LIQUIDITY';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+        /**
+         * Fillable subset and unfillable remainder
+         */
+        details?: {
+            /**
+             * Intents fillable with current liquidity
+             */
+            availableIntents: Array<{
+                [key: string]: string;
+            }>;
+            /**
+             * Token amounts that cannot be filled
+             */
+            unfillable: {
+                [key: string]: string;
+            };
+        };
+    } | {
+        code: 'KEY_SCOPE_DENIED';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+        /**
+         * Single-element list describing the failing scope
+         */
+        details?: Array<{
+            message: string;
+            context: {
+                /**
+                 * Which scope rejected the request
+                 */
+                scope: 'allowMainnet' | 'intents' | 'deposits';
+                /**
+                 * Minimum level the endpoint demands
+                 */
+                required: boolean | 'read' | 'write';
+                /**
+                 * Level resolved on the key
+                 */
+                actual: boolean | 'none' | 'read' | 'write';
+            };
+        }>;
+    } | {
+        code: 'NOT_FOUND' | 'UNAUTHORIZED' | 'FORBIDDEN' | 'CONFLICT' | 'WITHDRAWAL_IN_PROGRESS' | 'UNPROCESSABLE_CONTENT' | 'TOO_MANY_REQUESTS' | 'SETTLEMENT_QUOTE_ERROR' | 'SETTLEMENT_EXECUTION_ERROR' | 'EXTERNAL_SERVICE_TIMEOUT' | 'RELAYER_MARKET_UNAVAILABLE' | 'INTERNAL_ERROR';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+    };
+    /**
+     * Server error
+     */
+    500: {
+        code: 'VALIDATION_ERROR';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+        /**
+         * Per-field validation issues
+         */
+        details?: Array<{
+            /**
+             * Human-readable issue description
+             */
+            message: string;
+            /**
+             * Structured issue context (e.g. `{ path: "body.accountAddress" }`)
+             */
+            context?: {
+                [key: string]: unknown;
+            };
+        }>;
+    } | {
+        code: 'SIMULATION_FAILED';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+        /**
+         * Classified on-chain simulation failure details
+         */
+        details?: {
+            nonce?: string;
+            category: string;
+            errorSelector: string;
+            errorName: string;
+            errorArgs?: {
+                [key: string]: string;
+            };
+            retryable: boolean;
+            retryHint?: 'RE_PREPARE' | 'RETRY_LATER';
+            simulations?: unknown;
+            [key: string]: unknown | string | {
+                [key: string]: string;
+            } | boolean | 'RE_PREPARE' | 'RETRY_LATER' | undefined;
+        };
+    } | {
+        code: 'INSUFFICIENT_LIQUIDITY';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+        /**
+         * Fillable subset and unfillable remainder
+         */
+        details?: {
+            /**
+             * Intents fillable with current liquidity
+             */
+            availableIntents: Array<{
+                [key: string]: string;
+            }>;
+            /**
+             * Token amounts that cannot be filled
+             */
+            unfillable: {
+                [key: string]: string;
+            };
+        };
+    } | {
+        code: 'KEY_SCOPE_DENIED';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+        /**
+         * Single-element list describing the failing scope
+         */
+        details?: Array<{
+            message: string;
+            context: {
+                /**
+                 * Which scope rejected the request
+                 */
+                scope: 'allowMainnet' | 'intents' | 'deposits';
+                /**
+                 * Minimum level the endpoint demands
+                 */
+                required: boolean | 'read' | 'write';
+                /**
+                 * Level resolved on the key
+                 */
+                actual: boolean | 'none' | 'read' | 'write';
+            };
+        }>;
+    } | {
+        code: 'NOT_FOUND' | 'UNAUTHORIZED' | 'FORBIDDEN' | 'CONFLICT' | 'WITHDRAWAL_IN_PROGRESS' | 'UNPROCESSABLE_CONTENT' | 'TOO_MANY_REQUESTS' | 'SETTLEMENT_QUOTE_ERROR' | 'SETTLEMENT_EXECUTION_ERROR' | 'EXTERNAL_SERVICE_TIMEOUT' | 'RELAYER_MARKET_UNAVAILABLE' | 'INTERNAL_ERROR';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+    };
+};
+
+export type CreateAppFeeWithdrawalError = CreateAppFeeWithdrawalErrors[keyof CreateAppFeeWithdrawalErrors];
+
+export type CreateAppFeeWithdrawalResponses = {
+    /**
+     * OK
+     */
+    202: {
+        requestNonce: string;
+    };
+};
+
+export type CreateAppFeeWithdrawalResponse = CreateAppFeeWithdrawalResponses[keyof CreateAppFeeWithdrawalResponses];
+
+export type GetAppFeeWithdrawalData = {
+    body?: never;
+    headers: {
+        /**
+         * API version. Required; pinned to this document.
+         */
+        'x-api-version': '2026-04.blanc';
+        /**
+         * API key.
+         */
+        'x-api-key': string;
+    };
+    path: {
+        nonce: string;
+    };
+    query?: never;
+    url: '/app-fees/withdrawals/{nonce}';
+};
+
+export type GetAppFeeWithdrawalErrors = {
+    /**
+     * Validation error
+     */
+    400: {
+        code: 'VALIDATION_ERROR';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+        /**
+         * Per-field validation issues
+         */
+        details?: Array<{
+            /**
+             * Human-readable issue description
+             */
+            message: string;
+            /**
+             * Structured issue context (e.g. `{ path: "body.accountAddress" }`)
+             */
+            context?: {
+                [key: string]: unknown;
+            };
+        }>;
+    } | {
+        code: 'SIMULATION_FAILED';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+        /**
+         * Classified on-chain simulation failure details
+         */
+        details?: {
+            nonce?: string;
+            category: string;
+            errorSelector: string;
+            errorName: string;
+            errorArgs?: {
+                [key: string]: string;
+            };
+            retryable: boolean;
+            retryHint?: 'RE_PREPARE' | 'RETRY_LATER';
+            simulations?: unknown;
+            [key: string]: unknown | string | {
+                [key: string]: string;
+            } | boolean | 'RE_PREPARE' | 'RETRY_LATER' | undefined;
+        };
+    } | {
+        code: 'INSUFFICIENT_LIQUIDITY';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+        /**
+         * Fillable subset and unfillable remainder
+         */
+        details?: {
+            /**
+             * Intents fillable with current liquidity
+             */
+            availableIntents: Array<{
+                [key: string]: string;
+            }>;
+            /**
+             * Token amounts that cannot be filled
+             */
+            unfillable: {
+                [key: string]: string;
+            };
+        };
+    } | {
+        code: 'KEY_SCOPE_DENIED';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+        /**
+         * Single-element list describing the failing scope
+         */
+        details?: Array<{
+            message: string;
+            context: {
+                /**
+                 * Which scope rejected the request
+                 */
+                scope: 'allowMainnet' | 'intents' | 'deposits';
+                /**
+                 * Minimum level the endpoint demands
+                 */
+                required: boolean | 'read' | 'write';
+                /**
+                 * Level resolved on the key
+                 */
+                actual: boolean | 'none' | 'read' | 'write';
+            };
+        }>;
+    } | {
+        code: 'NOT_FOUND' | 'UNAUTHORIZED' | 'FORBIDDEN' | 'CONFLICT' | 'WITHDRAWAL_IN_PROGRESS' | 'UNPROCESSABLE_CONTENT' | 'TOO_MANY_REQUESTS' | 'SETTLEMENT_QUOTE_ERROR' | 'SETTLEMENT_EXECUTION_ERROR' | 'EXTERNAL_SERVICE_TIMEOUT' | 'RELAYER_MARKET_UNAVAILABLE' | 'INTERNAL_ERROR';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+    };
+    /**
+     * Missing or invalid API key
+     */
+    401: {
+        code: 'VALIDATION_ERROR';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+        /**
+         * Per-field validation issues
+         */
+        details?: Array<{
+            /**
+             * Human-readable issue description
+             */
+            message: string;
+            /**
+             * Structured issue context (e.g. `{ path: "body.accountAddress" }`)
+             */
+            context?: {
+                [key: string]: unknown;
+            };
+        }>;
+    } | {
+        code: 'SIMULATION_FAILED';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+        /**
+         * Classified on-chain simulation failure details
+         */
+        details?: {
+            nonce?: string;
+            category: string;
+            errorSelector: string;
+            errorName: string;
+            errorArgs?: {
+                [key: string]: string;
+            };
+            retryable: boolean;
+            retryHint?: 'RE_PREPARE' | 'RETRY_LATER';
+            simulations?: unknown;
+            [key: string]: unknown | string | {
+                [key: string]: string;
+            } | boolean | 'RE_PREPARE' | 'RETRY_LATER' | undefined;
+        };
+    } | {
+        code: 'INSUFFICIENT_LIQUIDITY';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+        /**
+         * Fillable subset and unfillable remainder
+         */
+        details?: {
+            /**
+             * Intents fillable with current liquidity
+             */
+            availableIntents: Array<{
+                [key: string]: string;
+            }>;
+            /**
+             * Token amounts that cannot be filled
+             */
+            unfillable: {
+                [key: string]: string;
+            };
+        };
+    } | {
+        code: 'KEY_SCOPE_DENIED';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+        /**
+         * Single-element list describing the failing scope
+         */
+        details?: Array<{
+            message: string;
+            context: {
+                /**
+                 * Which scope rejected the request
+                 */
+                scope: 'allowMainnet' | 'intents' | 'deposits';
+                /**
+                 * Minimum level the endpoint demands
+                 */
+                required: boolean | 'read' | 'write';
+                /**
+                 * Level resolved on the key
+                 */
+                actual: boolean | 'none' | 'read' | 'write';
+            };
+        }>;
+    } | {
+        code: 'NOT_FOUND' | 'UNAUTHORIZED' | 'FORBIDDEN' | 'CONFLICT' | 'WITHDRAWAL_IN_PROGRESS' | 'UNPROCESSABLE_CONTENT' | 'TOO_MANY_REQUESTS' | 'SETTLEMENT_QUOTE_ERROR' | 'SETTLEMENT_EXECUTION_ERROR' | 'EXTERNAL_SERVICE_TIMEOUT' | 'RELAYER_MARKET_UNAVAILABLE' | 'INTERNAL_ERROR';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+    };
+    /**
+     * API key scope denied
+     */
+    403: {
+        code: 'VALIDATION_ERROR';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+        /**
+         * Per-field validation issues
+         */
+        details?: Array<{
+            /**
+             * Human-readable issue description
+             */
+            message: string;
+            /**
+             * Structured issue context (e.g. `{ path: "body.accountAddress" }`)
+             */
+            context?: {
+                [key: string]: unknown;
+            };
+        }>;
+    } | {
+        code: 'SIMULATION_FAILED';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+        /**
+         * Classified on-chain simulation failure details
+         */
+        details?: {
+            nonce?: string;
+            category: string;
+            errorSelector: string;
+            errorName: string;
+            errorArgs?: {
+                [key: string]: string;
+            };
+            retryable: boolean;
+            retryHint?: 'RE_PREPARE' | 'RETRY_LATER';
+            simulations?: unknown;
+            [key: string]: unknown | string | {
+                [key: string]: string;
+            } | boolean | 'RE_PREPARE' | 'RETRY_LATER' | undefined;
+        };
+    } | {
+        code: 'INSUFFICIENT_LIQUIDITY';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+        /**
+         * Fillable subset and unfillable remainder
+         */
+        details?: {
+            /**
+             * Intents fillable with current liquidity
+             */
+            availableIntents: Array<{
+                [key: string]: string;
+            }>;
+            /**
+             * Token amounts that cannot be filled
+             */
+            unfillable: {
+                [key: string]: string;
+            };
+        };
+    } | {
+        code: 'KEY_SCOPE_DENIED';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+        /**
+         * Single-element list describing the failing scope
+         */
+        details?: Array<{
+            message: string;
+            context: {
+                /**
+                 * Which scope rejected the request
+                 */
+                scope: 'allowMainnet' | 'intents' | 'deposits';
+                /**
+                 * Minimum level the endpoint demands
+                 */
+                required: boolean | 'read' | 'write';
+                /**
+                 * Level resolved on the key
+                 */
+                actual: boolean | 'none' | 'read' | 'write';
+            };
+        }>;
+    } | {
+        code: 'NOT_FOUND' | 'UNAUTHORIZED' | 'FORBIDDEN' | 'CONFLICT' | 'WITHDRAWAL_IN_PROGRESS' | 'UNPROCESSABLE_CONTENT' | 'TOO_MANY_REQUESTS' | 'SETTLEMENT_QUOTE_ERROR' | 'SETTLEMENT_EXECUTION_ERROR' | 'EXTERNAL_SERVICE_TIMEOUT' | 'RELAYER_MARKET_UNAVAILABLE' | 'INTERNAL_ERROR';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+    };
+    /**
+     * Withdrawal not found
+     */
+    404: {
+        code: 'VALIDATION_ERROR';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+        /**
+         * Per-field validation issues
+         */
+        details?: Array<{
+            /**
+             * Human-readable issue description
+             */
+            message: string;
+            /**
+             * Structured issue context (e.g. `{ path: "body.accountAddress" }`)
+             */
+            context?: {
+                [key: string]: unknown;
+            };
+        }>;
+    } | {
+        code: 'SIMULATION_FAILED';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+        /**
+         * Classified on-chain simulation failure details
+         */
+        details?: {
+            nonce?: string;
+            category: string;
+            errorSelector: string;
+            errorName: string;
+            errorArgs?: {
+                [key: string]: string;
+            };
+            retryable: boolean;
+            retryHint?: 'RE_PREPARE' | 'RETRY_LATER';
+            simulations?: unknown;
+            [key: string]: unknown | string | {
+                [key: string]: string;
+            } | boolean | 'RE_PREPARE' | 'RETRY_LATER' | undefined;
+        };
+    } | {
+        code: 'INSUFFICIENT_LIQUIDITY';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+        /**
+         * Fillable subset and unfillable remainder
+         */
+        details?: {
+            /**
+             * Intents fillable with current liquidity
+             */
+            availableIntents: Array<{
+                [key: string]: string;
+            }>;
+            /**
+             * Token amounts that cannot be filled
+             */
+            unfillable: {
+                [key: string]: string;
+            };
+        };
+    } | {
+        code: 'KEY_SCOPE_DENIED';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+        /**
+         * Single-element list describing the failing scope
+         */
+        details?: Array<{
+            message: string;
+            context: {
+                /**
+                 * Which scope rejected the request
+                 */
+                scope: 'allowMainnet' | 'intents' | 'deposits';
+                /**
+                 * Minimum level the endpoint demands
+                 */
+                required: boolean | 'read' | 'write';
+                /**
+                 * Level resolved on the key
+                 */
+                actual: boolean | 'none' | 'read' | 'write';
+            };
+        }>;
+    } | {
+        code: 'NOT_FOUND' | 'UNAUTHORIZED' | 'FORBIDDEN' | 'CONFLICT' | 'WITHDRAWAL_IN_PROGRESS' | 'UNPROCESSABLE_CONTENT' | 'TOO_MANY_REQUESTS' | 'SETTLEMENT_QUOTE_ERROR' | 'SETTLEMENT_EXECUTION_ERROR' | 'EXTERNAL_SERVICE_TIMEOUT' | 'RELAYER_MARKET_UNAVAILABLE' | 'INTERNAL_ERROR';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+    };
+    /**
+     * Server error
+     */
+    500: {
+        code: 'VALIDATION_ERROR';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+        /**
+         * Per-field validation issues
+         */
+        details?: Array<{
+            /**
+             * Human-readable issue description
+             */
+            message: string;
+            /**
+             * Structured issue context (e.g. `{ path: "body.accountAddress" }`)
+             */
+            context?: {
+                [key: string]: unknown;
+            };
+        }>;
+    } | {
+        code: 'SIMULATION_FAILED';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+        /**
+         * Classified on-chain simulation failure details
+         */
+        details?: {
+            nonce?: string;
+            category: string;
+            errorSelector: string;
+            errorName: string;
+            errorArgs?: {
+                [key: string]: string;
+            };
+            retryable: boolean;
+            retryHint?: 'RE_PREPARE' | 'RETRY_LATER';
+            simulations?: unknown;
+            [key: string]: unknown | string | {
+                [key: string]: string;
+            } | boolean | 'RE_PREPARE' | 'RETRY_LATER' | undefined;
+        };
+    } | {
+        code: 'INSUFFICIENT_LIQUIDITY';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+        /**
+         * Fillable subset and unfillable remainder
+         */
+        details?: {
+            /**
+             * Intents fillable with current liquidity
+             */
+            availableIntents: Array<{
+                [key: string]: string;
+            }>;
+            /**
+             * Token amounts that cannot be filled
+             */
+            unfillable: {
+                [key: string]: string;
+            };
+        };
+    } | {
+        code: 'KEY_SCOPE_DENIED';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+        /**
+         * Single-element list describing the failing scope
+         */
+        details?: Array<{
+            message: string;
+            context: {
+                /**
+                 * Which scope rejected the request
+                 */
+                scope: 'allowMainnet' | 'intents' | 'deposits';
+                /**
+                 * Minimum level the endpoint demands
+                 */
+                required: boolean | 'read' | 'write';
+                /**
+                 * Level resolved on the key
+                 */
+                actual: boolean | 'none' | 'read' | 'write';
+            };
+        }>;
+    } | {
+        code: 'NOT_FOUND' | 'UNAUTHORIZED' | 'FORBIDDEN' | 'CONFLICT' | 'WITHDRAWAL_IN_PROGRESS' | 'UNPROCESSABLE_CONTENT' | 'TOO_MANY_REQUESTS' | 'SETTLEMENT_QUOTE_ERROR' | 'SETTLEMENT_EXECUTION_ERROR' | 'EXTERNAL_SERVICE_TIMEOUT' | 'RELAYER_MARKET_UNAVAILABLE' | 'INTERNAL_ERROR';
+        /**
+         * Human-readable error message
+         */
+        message: string;
+    };
+};
+
+export type GetAppFeeWithdrawalError = GetAppFeeWithdrawalErrors[keyof GetAppFeeWithdrawalErrors];
+
+export type GetAppFeeWithdrawalResponses = {
+    /**
+     * OK
+     */
+    200: {
+        requestNonce: string;
+        status: 'PENDING' | 'COMPLETED' | 'FAILED';
+        payoutUsd: number;
+        targetChainId: number;
+        targetToken: string;
+        targetAmount: string;
+        payoutAddress: string;
+        txHash: string | null;
+        createdAt: string;
+    };
+};
+
+export type GetAppFeeWithdrawalResponse = GetAppFeeWithdrawalResponses[keyof GetAppFeeWithdrawalResponses];

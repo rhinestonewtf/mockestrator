@@ -1,16 +1,16 @@
 import { Request, Response } from 'express';
 import { z } from 'zod';
 import { jsonify, logRequest } from '../log';
-import { zGetLiquidityData, zGetLiquidityResponse } from '../gen/zod.gen';
+import { zListLiquidityData, zListLiquidityResponse } from '../gen/zod.gen';
 import { sendError } from '../errors';
 
-type LiquidityResponse = z.infer<typeof zGetLiquidityResponse>;
+type LiquidityResponse = z.infer<typeof zListLiquidityResponse>;
 
 export const liquidity = async (req: Request, resp: Response) => {
     logRequest(req);
 
     try {
-        zGetLiquidityData.parse({
+        zListLiquidityData.parse({
             body: undefined,
             path: undefined,
             query: req.query,
