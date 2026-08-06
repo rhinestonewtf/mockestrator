@@ -5,7 +5,7 @@ import { z } from 'zod';
 import { jsonify, logRequest } from '../log';
 import { zCreateQuoteData, zCreateQuoteResponse } from '../gen/zod.gen';
 import { chainContexts } from '../chains';
-import { fromCaip2, isCaip2, toCaip2 } from '../caip2';
+import { fromCaip2, isCaip2, toCaip2, toEvmChainId } from '../caip2';
 import { ApiError, sendError } from '../errors';
 import { saveQuote } from '../services/quoteCache';
 
@@ -54,16 +54,6 @@ const decodeChainIdArrays = (node: unknown): unknown => {
                 : decodeChainIdArrays(value),
         ]),
     );
-};
-
-// The spec accepts `solana:`/`tron:`/`hypercore:` destinations, but the mock only
-// serves EVM forks — reject those cleanly instead of letting `fromCaip2` throw its
-// way to a 500.
-const toEvmChainId = (chainId: string): number => {
-    if (!isCaip2(chainId)) {
-        throw new ApiError(400, 'VALIDATION_ERROR', `Unsupported destination chain ${chainId}`);
-    }
-    return fromCaip2(chainId);
 };
 
 const buildQuoteResponse = async (body: QuoteRequestBody): Promise<QuoteResponseData> => {

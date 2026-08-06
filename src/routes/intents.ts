@@ -107,7 +107,8 @@ export const getIntents = async (req: Request, resp: Response) => {
                 createdAt: record.createdAt,
             })),
             pagination: {
-                nextCursor: String(nextOffset),
+                // Documented as null on the terminal page; callers paginate on that sentinel.
+                nextCursor: nextOffset < all.length ? String(nextOffset) : null,
                 hasNextPage: nextOffset < all.length,
             },
         };

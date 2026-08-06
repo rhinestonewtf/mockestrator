@@ -606,6 +606,21 @@ describe("Mockestrator Intent Flow", () => {
       expect(typeof response.symbol).toBe("string");
       expect(typeof response.decimals).toBe("number");
     });
+
+    it("should return 400 for a non-EVM destination chain", async () => {
+      const response = await fetch(
+        `${API_BASE_URL}/liquidity?sourceChainId=${encodeURIComponent(
+          BASE_SEPOLIA_CAIP2
+        )}&sourceToken=${USDC_BASE_SEPOLIA}&destinationChainId=${encodeURIComponent(
+          "solana:mainnet"
+        )}&destinationToken=${USDC_SEPOLIA}`,
+        { method: "GET", headers }
+      );
+
+      expect(response.status).toBe(400);
+      const body = await response.json();
+      expect(body.code).toBe("VALIDATION_ERROR");
+    });
   });
 
   describe("Intent list endpoint", () => {
@@ -624,6 +639,13 @@ describe("Mockestrator Intent Flow", () => {
         expect(typeof intent.account).toBe("string");
         expect(typeof intent.createdAt).toBe("number");
       }
+    });
+
+    it("should return a null cursor on the terminal page", async () => {
+      const response = await apiCall<any>("GET", "/intents?limit=1000");
+
+      expect(response.pagination.hasNextPage).toBe(false);
+      expect(response.pagination.nextCursor).toBeNull();
     });
   });
 

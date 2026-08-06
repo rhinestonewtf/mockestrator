@@ -4,7 +4,7 @@ import { z } from 'zod';
 import { jsonify, logRequest } from '../log';
 import { zCreateQuoteEstimateData, zCreateQuoteEstimateResponse } from '../gen/zod.gen';
 import { chainContexts } from '../chains';
-import { fromCaip2, isCaip2 } from '../caip2';
+import { toEvmChainId } from '../caip2';
 import { ApiError, sendError } from '../errors';
 
 type EstimateData = z.infer<typeof zCreateQuoteEstimateData>;
@@ -103,11 +103,4 @@ const describeToken = (
     if (!ctx) return undefined;
     const symbol = ctx.supportedTokens().find((s) => ctx.maybeAddress(s) === address);
     return symbol ? { symbol, decimals: ctx.tokenDecimals(symbol) ?? 0 } : undefined;
-};
-
-const toEvmChainId = (chainId: string): number => {
-    if (!isCaip2(chainId)) {
-        throw new ApiError(400, 'VALIDATION_ERROR', `Unsupported chain ${chainId}`);
-    }
-    return fromCaip2(chainId);
 };
