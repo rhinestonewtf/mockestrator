@@ -39,7 +39,10 @@ export const listAppFeeWithdrawals = async (req: Request, resp: Response) => {
     logRequest(req);
 
     try {
-        const out: WithdrawalList = { withdrawals: Array.from(withdrawals.values()) };
+        // Newest first, per the contract; the map holds creation order.
+        const out: WithdrawalList = {
+            withdrawals: Array.from(withdrawals.values()).reverse(),
+        };
         console.log('Response: ', jsonify(out));
         resp.status(200).json(out);
     } catch (e) {

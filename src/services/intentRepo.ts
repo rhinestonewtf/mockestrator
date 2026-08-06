@@ -43,7 +43,7 @@ export function saveIntent(intentId: string, record: IntentRecord): void {
     intents.set(intentId, record);
 }
 
-// Insertion order is creation order, which is the order `GET /intents` pages over.
+// Insertion order is creation order; `GET /intents` pages newest first.
 export function listIntents(): { id: string; record: IntentRecord }[] {
     return Array.from(intents, ([id, record]) => ({ id, record }));
 }

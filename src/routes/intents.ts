@@ -85,7 +85,8 @@ export const getIntents = async (req: Request, resp: Response) => {
             headers: req.headers,
         });
 
-        const all = listIntents();
+        // The contract is newest first; the repo holds creation order.
+        const all = listIntents().reverse();
         // Opaque to callers by contract; the mock uses the offset it decodes from.
         const offset = Number(data.query?.cursor ?? '0');
         if (!Number.isInteger(offset) || offset < 0) {

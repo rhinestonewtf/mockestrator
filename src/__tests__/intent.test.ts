@@ -641,6 +641,29 @@ describe("Mockestrator Intent Flow", () => {
       }
     });
 
+    it("should return the newest intent first", async () => {
+      const quoteResponse = await apiCall<any>("POST", "/quotes", {
+        destinationChainId: BASE_SEPOLIA_CAIP2,
+        tokenRequests: [
+          { tokenAddress: USDC_BASE_SEPOLIA, amount: "1000000" },
+        ],
+        account: { address: USER_ADDRESS },
+        accountAccessList: { chainIds: [BASE_SEPOLIA_CAIP2] },
+      });
+      const { intentId } = quoteResponse.routes[0];
+
+      await apiCall<any>("POST", "/intents", {
+        intentId,
+        signatures: {
+          origin: [MOCK_ORIGIN_SIG],
+          destination: MOCK_DEST_SIG,
+        },
+      });
+
+      const response = await apiCall<any>("GET", "/intents?limit=1");
+      expect(response.data[0].id).toBe(intentId);
+    });
+
     it("should return a null cursor on the terminal page", async () => {
       const response = await apiCall<any>("GET", "/intents?limit=100");
 
@@ -705,6 +728,27 @@ describe("Mockestrator Intent Flow", () => {
       expect(
         list.withdrawals.some((w: any) => w.requestNonce === requestNonce)
       ).toBe(true);
+    });
+
+    it("should list withdrawals newest first", async () => {
+      const create = async () => {
+        const response = await fetch(`${API_BASE_URL}/app-fees/withdrawals`, {
+          method: "POST",
+          headers,
+          body: JSON.stringify({
+            targetChainId: BASE_SEPOLIA_CHAIN_ID,
+            targetToken: USDC_BASE_SEPOLIA,
+          }),
+        });
+        const { requestNonce } = await response.json();
+        return requestNonce as string;
+      };
+
+      await create();
+      const newest = await create();
+
+      const list = await apiCall<any>("GET", "/app-fees/withdrawals");
+      expect(list.withdrawals[0].requestNonce).toBe(newest);
     });
 
     it("should return 404 for an unknown withdrawal nonce", async () => {
